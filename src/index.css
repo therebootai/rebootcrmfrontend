@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@keyframes slideInFromLeft {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate {
+  animation: slideInFromLeft 0.5s ease forwards;
+}
+
+@keyframes slideInFromRight {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.slidefromright {
+  animation: slideInFromRight 0.5s ease forwards;
+}
+
+@keyframes slideUpFromBottom {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.bottomToTop {
+  animation: slideUpFromBottom 0.5s ease forwards;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.flex-grow {
+  flex-grow: 1;
+}
+.ql-container {
+  height: fit-content;
+}
+.ql-container.ql-snow {
+  border: 0px solid #ccc;
+}
+.ql-toolbar .ql-formats button,
+.ql-toolbar .ql-picker-label,
+.ql-toolbar .ql-picker-item {
+  color: white !important;
+}
+
+.ql-toolbar .ql-picker-label::before,
+.ql-toolbar .ql-picker-item::before {
+  color: white !important;
+}
+.ql-snow .ql-picker-options {
+  background-color: black;
+}
+
+.ql-toolbar .ql-stroke {
+  stroke: white !important;
+}
+
+.ql-toolbar .ql-fill {
+  fill: white !important;
+}
+.truncate {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+.custom-shadow {
+  text-shadow: 2px 2px 4px #023102;
+}
+
+/* Add this CSS in your global styles or component CSS file */
+.loader {
+  border: 2px solid #413e3e; /* Light grey */
+  border-top: 2px solid #ffffff; /* White */
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,216 @@
+.boxsh {
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 2px 7px;
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.model-proposal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  height: 80vh;
+
+  width: 70%;
+  z-index: 1001;
+}
+
+@media (max-width: 580px) {
+  .model-proposal {
+    width: 90%;
+  }
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 4px;
+  width: 75%;
+
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1000;
+}
+
+.modal-content-show {
+  background: white;
+  padding: 20px;
+  border-radius: 4px;
+  width: 40%;
+
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+@media (max-width: 580px) {
+  .modal-content {
+    width: 90%;
+    padding: 1rem;
+  }
+  .modal-content-show {
+    width: 75%;
+  }
+}
+
+/* styles.css */
+.file-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.file-input {
+  display: none;
+  width: 100%;
+}
+
+.file-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  border: 2px solid #ccc;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.file-label::before {
+  content: "Choose file";
+  color: #888;
+}
+
+.file-label span {
+  background-color: #eee;
+  padding: 5px 10px;
+  border-radius: 5px;
+  color: #555;
+}
+
+/* loaders */
+
+/* From Uiverse.io by mrpumps31232 */
+.loading-wave {
+  width: 300px;
+  height: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.loading-bar {
+  width: 20px;
+  height: 10px;
+  margin: 0 5px;
+  background-color: #3498db;
+  border-radius: 5px;
+  animation: loading-wave-animation 1s ease-in-out infinite;
+}
+
+.loading-bar:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.loading-bar:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.loading-bar:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+@keyframes loading-wave-animation {
+  0% {
+    height: 10px;
+  }
+
+  50% {
+    height: 50px;
+  }
+
+  100% {
+    height: 10px;
+  }
+}
+/* loaders end */
+
+/* line limit */
+.threelinelimit {
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Limits to 3 lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 2rem;
+}
+
+.line {
+  width: 100%;
+  height: 20px;
+  background-color: #ccc;
+  border-radius: 2px;
+  animation: blink 1.5s infinite ease-in-out;
+}
+
+/* ManageCategory.css */
+@keyframes slideLeft {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideRight {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.slide-left {
+  animation: slideLeft 0.5s ease-in-out;
+}
+
+.slide-right {
+  animation: slideRight 0.5s ease-in-out;
+}
