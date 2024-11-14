@@ -49,39 +49,94 @@ const TelecallerCallingData = () => {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const itemsPerPage = 20;
+  const [totalPage, setTotalPages] = useState(1);
+
+  const fetchBusinesses = async (
+    telecallerId,
+    currentPage,
+    itemsPerPage,
+    dateRange,
+    mobileNumber,
+    businessName,
+    city,
+    category,
+    status
+  ) => {
+    try {
+      const params = {
+        telecallerId,
+        page: currentPage,
+        limit: itemsPerPage,
+        startDate: dateRange.startDate
+          ? dateRange.startDate.toISOString()
+          : null,
+        endDate: dateRange.endDate ? dateRange.endDate.toISOString() : null,
+        mobileNumber,
+        businessName,
+        city,
+        category,
+        status,
+      };
+
+      // Making the API request
+      const response = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/api/business/get`,
+        { params }
+      );
+
+      const businessesData = response.data.businesses;
+
+      setBusinesses(businessesData);
+      setFilteredBusinesses(businessesData);
+
+      setTotalPages(response.data.totalPages);
+      setCurrentPage(response.data.currentPage);
+
+      // Extract unique values for filtering
+      const cities = [
+        ...new Set(businessesData.map((business) => business.city)),
+      ];
+      const categories = [
+        ...new Set(businessesData.map((business) => business.category)),
+      ];
+      const statuses = [
+        ...new Set(businessesData.map((business) => business.status)),
+      ];
+
+      setUniqueCities(cities);
+      setUniqueCategories(categories);
+      setUniqueStatuses(statuses);
+    } catch (error) {
+      console.error("Error fetching businesses:", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchBusinesses = async () => {
-      try {
-        const response = await axios.get(
-          `${
-            import.meta.env.VITE_BASE_URL
-          }/api/business/get?telecallerId=${telecallerId}`
-        );
-        setBusinesses(response.data);
-        setFilteredBusinesses(response.data);
-
-        const cities = [
-          ...new Set(response.data.map((business) => business.city)),
-        ];
-        const categories = [
-          ...new Set(response.data.map((business) => business.category)),
-        ];
-        const statuses = [
-          ...new Set(response.data.map((business) => business.status)),
-        ];
-
-        setUniqueCities(cities);
-        setUniqueCategories(categories);
-        setUniqueStatuses(statuses);
-      } catch (error) {
-        console.error("Error fetching businesses:", error);
-      }
-    };
-
-    fetchBusinesses();
-  }, [telecallerId]);
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+    fetchBusinesses(
+      telecallerId,
+      currentPage,
+      itemsPerPage,
+      dateRange,
+      mobileNumber,
+      businessName,
+      city,
+      category,
+      status
+    );
+  }, [
+    telecallerId,
+    currentPage,
+    dateRange,
+    mobileNumber,
+    businessName,
+    city,
+    category,
+    status,
+  ]);
 
   const normalizeString = (str) => {
     return str
@@ -91,7 +146,7 @@ const TelecallerCallingData = () => {
   };
 
   const applyFilters = () => {
-    let filteredData = businesses;
+    let filteredData = [...businesses];
 
     if (dateRange.startDate && dateRange.endDate) {
       const start = dateRange.startDate;
@@ -131,7 +186,15 @@ const TelecallerCallingData = () => {
     }
 
     setFilteredBusinesses(filteredData);
-    setCurrentPage(1); // Reset to the first page after applying filters
+    if (
+      dateRange.startDate ||
+      dateRange.endDate ||
+      city ||
+      category ||
+      status
+    ) {
+      setCurrentPage(1); // Reset page if needed
+    }
   };
 
   useEffect(() => {
@@ -220,17 +283,10 @@ const TelecallerCallingData = () => {
     );
   };
 
-  // Pagination logic
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredBusinesses.slice(
-    indexOfFirstItem,
-    indexOfLastItem
-  );
-  const totalPages = Math.ceil(filteredBusinesses.length / itemsPerPage);
+  const totalPages = totalPage;
 
   const handlePageChange = (pageNumber) => {
-    if (pageNumber !== currentPage) {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
       setCurrentPage(pageNumber);
     }
   };
@@ -344,8 +400,8 @@ const TelecallerCallingData = () => {
       <div>
         <div>
           <div className="grid sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {currentItems.length > 0 ? (
-              currentItems.map((business, index) => (
+            {businesses.length > 0 ? (
+              businesses.map((business, index) => (
                 <div
                   key={index}
                   className="bg-white text-[#2F2C49] w-full rounded-lg border border-[#CCCCCC] text-sm font-medium flex justify-between p-4"
