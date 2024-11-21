@@ -3,6 +3,7 @@ import AdminDashboardTemplate from "../../template/AdminDashboardTemplate";
 import AddNewBlog from "./AddNewBlog";
 import axios from "axios";
 import { format } from "date-fns";
+import { DateRangePicker } from "react-date-range";
 import { MdOutlineVisibility } from "react-icons/md";
 import { RiDeleteBin5Line } from "react-icons/ri";
 import { FiEdit } from "react-icons/fi";
@@ -392,7 +393,9 @@ const AddAndManageBlog = () => {
           addBlogModel ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {addBlogModel && <AddNewBlog onClose={handleCloseAddBlog} />}
+        {addBlogModel && (
+          <AddNewBlog onClose={handleCloseAddBlog} fetchBlogs={fetchBlogs} />
+        )}
       </div>
 
       {showDeleteModal && (

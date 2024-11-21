@@ -5,7 +5,7 @@ import "react-quill/dist/quill.snow.css";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 
-const PostJob = ({ onClose }) => {
+const PostJob = ({ onClose, fetchJobPosts }) => {
   const [jobTags, setJobTags] = useState([]);
   const [jobDescription, setJobDescription] = useState("");
   const [commaPressed, setCommaPressed] = useState(false);
@@ -62,6 +62,7 @@ const PostJob = ({ onClose }) => {
       );
 
       onClose();
+      fetchJobPosts();
     } catch (error) {
       console.error("Error posting job:", error);
       alert("Error creating job post");

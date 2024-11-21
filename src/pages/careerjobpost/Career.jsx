@@ -145,8 +145,16 @@ const Career = () => {
                     {new Date(job.createdAt).toLocaleString()}
                   </div>
                   <div className="w-[25%]">{job.jobPostName}</div>
-                  <div className="w-[20%]">
-                    {job.jobTags || "Not specified"}
+                  <div className="w-[20%] onelinelimit">
+                    <div className="flex gap-2 ">
+                      {job.jobTags
+                        ? job.jobTags.map((tag, index) => (
+                            <span key={index} className="">
+                              {tag},
+                            </span>
+                          ))
+                        : "Not specified"}
+                    </div>
                   </div>
                   <div className="w-[15%]">{job.jobLocation}</div>
                   <div className="w-[10%]">
@@ -214,7 +222,12 @@ const Career = () => {
           openJobpostModel ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {openJobpostModel && <PostJob onClose={handleCloseJobPostModel} />}
+        {openJobpostModel && (
+          <PostJob
+            onClose={handleCloseJobPostModel}
+            fetchJobPosts={fetchJobPosts}
+          />
+        )}
       </div>
 
       {openEditModel && (

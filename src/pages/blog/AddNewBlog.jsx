@@ -5,7 +5,7 @@ import "react-quill/dist/quill.snow.css";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 
-const AddNewBlog = ({ onClose }) => {
+const AddNewBlog = ({ onClose, fetchBlogs }) => {
   const [bulletPoints, setBulletPoints] = useState([]);
   const [isDraft, setIsDraft] = useState(false);
   const [quillContent, setQuillContent] = useState("");
@@ -79,6 +79,7 @@ const AddNewBlog = ({ onClose }) => {
       );
 
       onClose();
+      fetchBlogs();
     } catch (error) {
       console.error("Error creating blog:", error);
       alert("Error creating the blog. Please try again.");

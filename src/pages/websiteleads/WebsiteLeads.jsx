@@ -38,10 +38,11 @@ const WebsiteLeads = () => {
     statusOptions: [],
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [dateRange, setDateRange] = useState({
+  const [tempDateRange, setTempDateRange] = useState({
     startDate: null,
     endDate: null,
   });
+  const [dateFilterApplied, setDateFilterApplied] = useState(false);
 
   const [selectedLead, setSelectedLead] = useState(null); // State for selected lead
   const [showLeads, setShowLeads] = useState(false);
@@ -83,27 +84,42 @@ const WebsiteLeads = () => {
     setCurrentPage(1); // Reset current page to 1
   };
 
-  // Handle date range change
-  const handleDateRangeChange = (ranges) => {
-    const { startDate, endDate } = ranges.selection;
-    setDateRange({ startDate, endDate });
-    setFilters({
-      ...filters,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    });
-    setShowDatePicker(false);
-    setCurrentPage(1); // Reset current page to 1
-  };
-
   // Handle pagination
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
 
+  const handleDateSelection = (ranges) => {
+    const { startDate, endDate } = ranges.selection;
+    setTempDateRange({ startDate, endDate }); // Save selected dates temporarily
+  };
+
+  // Apply Date Filter on Show Button Click
+  const handleApplyDateFilter = () => {
+    setFilters((prev) => ({
+      ...prev,
+      startDate: tempDateRange.startDate,
+      endDate: tempDateRange.endDate,
+    }));
+    setDateFilterApplied(true); // Toggle to Clear button
+    setCurrentPage(1); // Reset to the first page
+    setShowDatePicker(false); // Close the date picker
+  };
+
+  // Clear Date Filter on Clear Button Click
+  const handleClearDateFilter = () => {
+    setFilters((prev) => ({
+      ...prev,
+      startDate: null,
+      endDate: null,
+    }));
+    setTempDateRange({ startDate: null, endDate: null }); // Clear temp date range
+    setDateFilterApplied(false); // Toggle back to Show button
+    setCurrentPage(1); // Reset to the first page
+  };
+
   // Fetch leads data
   const fetchLeads = async () => {
-    console.log("currentPage:", currentPage);
     if (currentPage === undefined || currentPage === null) {
       console.error("currentPage is not initialized yet");
       return;
@@ -235,31 +251,58 @@ const WebsiteLeads = () => {
         <div className="py-6 flex border-b border-[#cccccc] items-center flex-wrap gap-6">
           <span className="text-lg font-semibold text-[#777777]">Filter</span>
 
-          {/* Date Range Picker */}
           <div className="relative">
             <input
               type="text"
+              placeholder="Select Date Range"
+              readOnly
               value={
-                dateRange.startDate && dateRange.endDate
-                  ? `${format(dateRange.startDate, "dd/MM/yyyy")} - ${format(
-                      dateRange.endDate,
+                tempDateRange.startDate && tempDateRange.endDate
+                  ? `${format(
+                      new Date(tempDateRange.startDate),
+                      "dd/MM/yyyy"
+                    )} - ${format(
+                      new Date(tempDateRange.endDate),
                       "dd/MM/yyyy"
                     )}`
-                  : "Select Date Range"
+                  : ""
               }
+              className="px-4 py-1 border border-[#cccccc] text-sm rounded-md cursor-pointer"
               onClick={() => setShowDatePicker(!showDatePicker)}
-              readOnly
-              className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
             />
             {showDatePicker && (
               <div className="absolute z-10">
                 <DateRangePicker
-                  ranges={[dateRange]}
-                  onChange={handleDateRangeChange}
-                  moveRangeOnFirstSelection={false}
-                  rangeColors={["#ff2722"]}
+                  ranges={[
+                    {
+                      startDate: tempDateRange.startDate || new Date(),
+                      endDate: tempDateRange.endDate || new Date(),
+                      key: "selection",
+                    },
+                  ]}
+                  onChange={handleDateSelection}
+                  rangeColors={["#00aaff"]}
                 />
               </div>
+            )}
+          </div>
+
+          {/* Show or Clear Button */}
+          <div>
+            {dateFilterApplied ? (
+              <button
+                onClick={handleClearDateFilter}
+                className="px-4 py-1 bg-red-500 text-white rounded"
+              >
+                Clear
+              </button>
+            ) : (
+              <button
+                onClick={handleApplyDateFilter}
+                className="px-4 py-1 bg-green-500 text-white rounded"
+              >
+                Show
+              </button>
             )}
           </div>
 
