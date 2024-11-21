@@ -96,10 +96,19 @@ const WebsiteLeads = () => {
 
   // Apply Date Filter on Show Button Click
   const handleApplyDateFilter = () => {
+    const formatDate = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0"); // Add leading zero
+      const day = String(date.getDate()).padStart(2, "0"); // Add leading zero
+      return `${year}-${month}-${day}`;
+    };
+
+    const formattedStartDate = formatDate(tempDateRange.startDate);
+    const formattedEndDate = formatDate(tempDateRange.endDate);
     setFilters((prev) => ({
       ...prev,
-      startDate: tempDateRange.startDate,
-      endDate: tempDateRange.endDate,
+      startDate: formattedStartDate,
+      endDate: formattedEndDate,
     }));
     setDateFilterApplied(true); // Toggle to Clear button
     setCurrentPage(1); // Reset to the first page
