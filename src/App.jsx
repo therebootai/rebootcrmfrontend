@@ -30,6 +30,10 @@ import WhatsappProposal from "./pages/WhatsappProposal";
 import WhatsAppTemplateImageUpload from "./pages/WhatsAppTemplateImageUpload";
 import Proposal from "./pages/Proposal";
 import AdminProposalData from "./pages/AdminProposalData";
+import WebsiteLeads from "./pages/websiteleads/WebsiteLeads";
+import AddAndManageBlog from "./pages/blog/AddAndManageBlog";
+import Career from "./pages/careerjobpost/Career";
+import AllApplication from "./pages/careerjobpost/AllApplication";
 
 function App() {
   return (
@@ -92,6 +96,16 @@ function App() {
         />
         <Route path="/admin/brodcast/single-massage" element={<Proposal />} />
         <Route path="/admin/sales/proposal" element={<AdminProposalData />} />
+        <Route
+          path="/admin/getquotation/websiteleads"
+          element={<WebsiteLeads />}
+        />
+        <Route
+          path="/admin/blog/addandmanageblog"
+          element={<AddAndManageBlog />}
+        />
+        <Route path="/admin/career/addandmanagecareer" element={<Career />} />
+        <Route path="/admin/career/applications" element={<AllApplication />} />
 
         {/* Telecaller */}
         <Route

@@ -166,6 +166,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.onelinelimit {
+  display: -webkit-box;
+  -webkit-line-clamp: 1; /* Limits to 3 lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0; /* Ensure padding is not causing issues */
+  margin: 0;
+  line-height: 1.9;
+}
 
 .loading-container {
   display: flex;

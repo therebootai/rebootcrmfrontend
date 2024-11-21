@@ -74,8 +74,31 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
     },
     {
       icon: "/images/weblead.svg",
-      name: "Weblead",
-      links: [{ name: "Website Lead", link: "" }],
+      name: "Get Quotation",
+      links: [
+        { name: "Website Lead", link: "/admin/getquotation/websiteleads" },
+      ],
+    },
+    {
+      icon: "/images/career.svg",
+      name: "Career",
+      links: [
+        {
+          name: "Add & Manage Career",
+          link: "/admin/career/addandmanagecareer",
+        },
+        {
+          name: "Application",
+          link: "/admin/career/applications",
+        },
+      ],
+    },
+    {
+      icon: "/images/blogicon.svg",
+      name: "Blog",
+      links: [
+        { name: "Add & Manage Blog", link: "/admin/blog/addandmanageblog" },
+      ],
     },
     {
       icon: "/images/broadcast.svg",
