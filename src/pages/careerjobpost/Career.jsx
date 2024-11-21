@@ -54,9 +54,9 @@ const Career = () => {
   // Handle job deletion
   const handleDeleteJob = async (jobpostId) => {
     try {
-      await axios.delete(`${baseURL}/api/jobposts/${jobpostId}`);
+      await axios.delete(`${baseURL}/api/jobpost/delete/${jobpostId}`);
       setShowDeleteConfirmation(false);
-      fetchJobPosts(pagination.currentPage); // Refetch posts after deletion
+      fetchJobPosts(pagination.currentPage);
     } catch (error) {
       console.error("Error deleting job post:", error);
     }
