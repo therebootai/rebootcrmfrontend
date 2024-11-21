@@ -26,7 +26,7 @@ const ViewJobDetails = ({ job, onClose }) => {
           <p className="font-medium">
             <strong>Job Tags:</strong>
           </p>
-          <div className="flex flex-row items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             {job.jobTags &&
               job.jobTags.map((tag, index) => <li key={index}>{tag}</li>)}
           </div>
