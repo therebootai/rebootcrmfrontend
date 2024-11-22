@@ -26,6 +26,8 @@ const EditBlog = ({ blog, onClose, fetchBlogs }) => {
       blogTitle: blog.blogTitle || "",
       publisherName: blog.publisherName || "",
       category: blog.category || "",
+      publisherProfileLink: blog.publisherProfileLink || "",
+      metadescription: blog.metadescription || "",
     },
   });
 
@@ -80,6 +82,8 @@ const EditBlog = ({ blog, onClose, fetchBlogs }) => {
       formData.append("category", data.category);
       formData.append("bulletPoints", JSON.stringify(bulletPoints));
       formData.append("writeBlog", quillContent);
+      formData.append("publisherProfileLink", data.publisherProfileLink);
+      formData.append("metadescription", data.metadescription);
 
       // API Call to update the blog
       const response = await axios.put(
@@ -207,6 +211,31 @@ const EditBlog = ({ blog, onClose, fetchBlogs }) => {
               </div>
             )}
           </div>
+        </div>
+        <div className="w-full">
+          <div className="flex flex-col">
+            <label>Publisher Profile Link</label>
+            <input
+              type="text"
+              {...register("publisherProfileLink")}
+              className="bg-white rounded-sm p-4 border border-[#cccccc]"
+            />
+          </div>
+        </div>
+        <div className="flex flex-col">
+          <label>Meta Description</label>
+          <input
+            type="text"
+            {...register("metadescription", {
+              required: "meta description is required",
+            })}
+            className="bg-white rounded-sm p-4 border border-[#cccccc]"
+          />
+          {errors.metadescription && (
+            <span className="text-red-500">
+              {errors.metadescription.message}
+            </span>
+          )}
         </div>
         <div className="w-full">
           <div className="flex flex-col">

@@ -71,6 +71,8 @@ const AddNewBlog = ({ onClose, fetchBlogs }) => {
       formData.append("bulletPoints", JSON.stringify(bulletPoints));
       formData.append("isDraft", isDraft ? "true" : "false");
       formData.append("writeBlog", quillContent);
+      formData.append("publisherProfileLink", data.publisherProfileLink);
+      formData.append("metadescription", data.metadescription);
 
       // API Call
       const response = await axios.post(
@@ -198,7 +200,34 @@ const AddNewBlog = ({ onClose, fetchBlogs }) => {
         </div>
         <div className="w-full">
           <div className="flex flex-col">
-            <label>Bullet Points</label>
+            <label>Publisher Profile Link</label>
+            <input
+              type="text"
+              {...register("publisherProfileLink")}
+              className="bg-white rounded-sm p-4 border border-[#cccccc]"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col">
+          <label>Meta Description</label>
+          <input
+            type="text"
+            {...register("metadescription", {
+              required: isDraft ? false : "meta description is required",
+            })}
+            className="bg-white rounded-sm p-4 border border-[#cccccc]"
+          />
+          {errors.metadescription && (
+            <span className="text-red-500">
+              {errors.metadescription.message}
+            </span>
+          )}
+        </div>
+
+        <div className="w-full">
+          <div className="flex flex-col">
+            <label>Tags</label>
             <input
               type="text"
               value={tempBulletPoint}

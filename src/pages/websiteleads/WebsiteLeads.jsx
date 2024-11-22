@@ -50,7 +50,6 @@ const WebsiteLeads = () => {
 
   const baseURL = import.meta.env.VITE_BASE_URL;
 
-  // Fetch dropdown options for consultationFor and status
   const fetchDropdownOptions = async () => {
     try {
       const response = await axios.get(
@@ -66,40 +65,35 @@ const WebsiteLeads = () => {
     }
   };
 
-  // Handle search input change
   const handleSearchChange = (e) => {
     setFilters({ ...filters, search: e.target.value });
-    setCurrentPage(1); // Reset current page to 1
+    setCurrentPage(1);
   };
 
-  // Handle consultationFor dropdown change
   const handleConsultationForChange = (e) => {
     setFilters({ ...filters, consultationFor: e.target.value });
-    setCurrentPage(1); // Reset current page to 1
+    setCurrentPage(1);
   };
 
-  // Handle status dropdown change
   const handleStatusChange = (e) => {
     setFilters({ ...filters, status: e.target.value });
-    setCurrentPage(1); // Reset current page to 1
+    setCurrentPage(1);
   };
 
-  // Handle pagination
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
 
   const handleDateSelection = (ranges) => {
     const { startDate, endDate } = ranges.selection;
-    setTempDateRange({ startDate, endDate }); // Save selected dates temporarily
+    setTempDateRange({ startDate, endDate });
   };
 
-  // Apply Date Filter on Show Button Click
   const handleApplyDateFilter = () => {
     const formatDate = (date) => {
       const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0"); // Add leading zero
-      const day = String(date.getDate()).padStart(2, "0"); // Add leading zero
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}`;
     };
 
@@ -110,24 +104,22 @@ const WebsiteLeads = () => {
       startDate: formattedStartDate,
       endDate: formattedEndDate,
     }));
-    setDateFilterApplied(true); // Toggle to Clear button
-    setCurrentPage(1); // Reset to the first page
-    setShowDatePicker(false); // Close the date picker
+    setDateFilterApplied(true);
+    setCurrentPage(1);
+    setShowDatePicker(false);
   };
 
-  // Clear Date Filter on Clear Button Click
   const handleClearDateFilter = () => {
     setFilters((prev) => ({
       ...prev,
       startDate: null,
       endDate: null,
     }));
-    setTempDateRange({ startDate: null, endDate: null }); // Clear temp date range
-    setDateFilterApplied(false); // Toggle back to Show button
-    setCurrentPage(1); // Reset to the first page
+    setTempDateRange({ startDate: null, endDate: null });
+    setDateFilterApplied(false);
+    setCurrentPage(1);
   };
 
-  // Fetch leads data
   const fetchLeads = async () => {
     if (currentPage === undefined || currentPage === null) {
       console.error("currentPage is not initialized yet");
@@ -253,6 +245,56 @@ const WebsiteLeads = () => {
     }
   };
 
+  const exportToCSV = () => {
+    if (!leads || leads.length === 0) {
+      alert("No data available to export.");
+      return;
+    }
+
+    // Define the headers for the CSV
+    const headers = [
+      "Date & Time",
+      "Name",
+      "Mobile Number",
+      "Email",
+      "Message",
+      "Consultation For",
+      "Status",
+    ];
+
+    // Map the leads into CSV rows
+    const rows = leads.map((lead) => [
+      format(new Date(lead.createdAt), "dd/MM/yyyy HH:mm"),
+      lead.name,
+      lead.mobileNumber,
+      lead.email,
+      lead.massage || "N/A",
+      lead.consultationFor,
+      lead.status,
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+    const pageName = "page1webleads";
+    const currentDate = format(new Date(), "dd-MM-yyyy");
+    const fileName = `${pageName}-${currentDate}.csv`;
+
+    // Create a link to trigger download
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", fileName);
+
+    // Trigger the download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <AdminDashboardTemplate>
       <div className="flex flex-col gap-4 p-4">
@@ -359,6 +401,12 @@ const WebsiteLeads = () => {
               ))}
             </select>
           </div>
+          <button
+            onClick={exportToCSV}
+            className="px-4 p-1 bg-[#FF27221A] text-[#FF2722] text-sm font-medium rounded"
+          >
+            Export
+          </button>
         </div>
 
         {/* Leads Table */}
