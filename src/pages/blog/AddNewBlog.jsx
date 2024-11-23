@@ -174,9 +174,28 @@ const AddNewBlog = ({ onClose, fetchBlogs }) => {
               className="bg-white rounded-sm p-4 border border-[#cccccc]"
             >
               <option value="">Select Category</option>
-              <option value="Technology">Technology</option>
-              <option value="Health">Health</option>
-              <option value="Lifestyle">Lifestyle</option>
+              <option value="App Development">App Development</option>
+              <option value="SaaS Development">SaaS Development</option>
+              <option value="AI & ML">AI & ML</option>
+              <option value="Web Development">Web Development</option>
+              <option value="Performance Marketing">
+                Performance Marketing
+              </option>
+              <option value="Google Marketing & SEO">
+                Google Marketing & SEO
+              </option>
+              <option value="Social Media Marketing">
+                Social Media Marketing
+              </option>
+              <option value="Technology Trends">Technology Trends</option>
+              <option value="Case Studies and Success Stories">
+                Case Studies and Success Stories
+              </option>
+              <option value="How-To Guides and Tutorials">
+                How-To Guides and Tutorials
+              </option>
+              <option value="FAQs and Solutions">FAQs and Solutions</option>
+              <option value="Miscellaneous">Miscellaneous</option>
             </select>
             {errors.category && (
               <span className="text-red-500">{errors.category.message}</span>

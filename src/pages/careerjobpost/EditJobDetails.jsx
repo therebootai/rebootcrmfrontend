@@ -120,9 +120,13 @@ const EditJobDetails = ({ jobData, onClose, onUpdate }) => {
               className="bg-white rounded-sm p-4 border border-[#cccccc]"
             >
               <option value="">Select Role</option>
+              <option value="Sales & Marketing">Sales & Marketing</option>
+
               <option value="Web Developer">Web Developer</option>
-              <option value="Telecaller">Telecaller</option>
-              <option value="Marketing">Marketing</option>
+              <option value="App Development">App Development</option>
+
+              <option value="HR">HR</option>
+              <option value="Accounts">Accounts</option>
             </select>
             {errors.jobrole && (
               <span className="text-red-500">{errors.jobrole.message}</span>
