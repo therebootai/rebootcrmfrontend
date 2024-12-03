@@ -14,6 +14,10 @@ import EditBusinessPopup from "../EditBusinessPopup";
 
 import Modal from "react-modal";
 import SendProposalForEmployee from "../SendProposalForEmployee";
+import {
+  MdKeyboardDoubleArrowLeft,
+  MdKeyboardDoubleArrowRight,
+} from "react-icons/md";
 
 Modal.setAppElement("#root");
 
@@ -42,38 +46,96 @@ const BdeAppointmentData = () => {
   const [businessName, setBusinessName] = useState("");
   const [showProposalPopup, setShowProposalPopup] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+  const [totalPage, setTotalPages] = useState(1);
+
+  const fetchBusinesses = async (
+    bdeId,
+    currentPage,
+    itemsPerPage,
+    dateRange,
+    mobileNumber,
+    businessName,
+    city,
+    category,
+    status
+  ) => {
+    try {
+      const params = {
+        bdeId,
+        page: currentPage,
+        limit: itemsPerPage,
+        startDate: dateRange.startDate
+          ? dateRange.startDate.toISOString()
+          : null,
+        endDate: dateRange.endDate ? dateRange.endDate.toISOString() : null,
+        mobileNumber,
+        businessName,
+        city,
+        category,
+        status,
+        byTagAppointment: true,
+      };
+
+      // Making the API request
+      const response = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/api/business/get`,
+        { params }
+      );
+
+      const businessesData = response.data.businesses;
+
+      setBusinesses(businessesData);
+      setFilteredBusinesses(businessesData);
+
+      setTotalPages(response.data.totalPages);
+      setCurrentPage(response.data.currentPage);
+
+      // Extract unique values for filtering
+      const cities = [
+        ...new Set(businessesData.map((business) => business.city)),
+      ];
+      const categories = [
+        ...new Set(businessesData.map((business) => business.category)),
+      ];
+      const statuses = [
+        ...new Set(businessesData.map((business) => business.status)),
+      ];
+
+      setUniqueCities(cities);
+      setUniqueCategories(categories);
+      setUniqueStatuses(statuses);
+    } catch (error) {
+      console.error("Error fetching businesses:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchBusinesses = async () => {
-      try {
-        const response = await axios.get(
-          `${
-            import.meta.env.VITE_BASE_URL
-          }/api/business/get?bdeId=${bdeId}&byTagAppointment=true`
-        );
-        setBusinesses(response.data);
-        setFilteredBusinesses(response.data);
-
-        // Extract unique cities, categories, and statuses
-        const cities = [
-          ...new Set(response.data.map((business) => business.city)),
-        ];
-        const categories = [
-          ...new Set(response.data.map((business) => business.category)),
-        ];
-        const statuses = [
-          ...new Set(response.data.map((business) => business.status)),
-        ];
-
-        setUniqueCities(cities);
-        setUniqueCategories(categories);
-        setUniqueStatuses(statuses);
-      } catch (error) {
-        console.error("Error fetching businesses:", error);
-      }
-    };
-
-    fetchBusinesses();
-  }, [bdeId]);
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+    fetchBusinesses(
+      bdeId,
+      currentPage,
+      itemsPerPage,
+      dateRange,
+      mobileNumber,
+      businessName,
+      city,
+      category,
+      status
+    );
+  }, [
+    bdeId,
+    currentPage,
+    dateRange,
+    mobileNumber,
+    businessName,
+    city,
+    category,
+    status,
+  ]);
 
   const normalizeString = (str) => {
     return str
@@ -209,6 +271,22 @@ const BdeAppointmentData = () => {
     );
   };
 
+  const totalPages = totalPage;
+
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
+
+  const pageRange = 5;
+  let startPage = Math.max(1, currentPage - Math.floor(pageRange / 2));
+  let endPage = startPage + pageRange - 1;
+
+  if (endPage > totalPages) {
+    endPage = totalPages;
+    startPage = Math.max(1, endPage - pageRange + 1);
+  }
   return (
     <div className="w-full flex flex-col gap-4">
       <div className="py-4 border-b border-[#cccccc] w-full flex flex-wrap gap-4 items-center">
@@ -387,6 +465,49 @@ const BdeAppointmentData = () => {
         ) : (
           <p>No businesses found</p>
         )}
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex justify-center gap-4 pb-4 border-b items-center mt-4">
+        <button
+          className={`flex gap-1 text-center items-center ${
+            currentPage === 1 ? "text-[#777777]" : "text-[#D53F3A]"
+          } font-bold rounded`}
+          disabled={currentPage === 1}
+          onClick={() => handlePageChange(currentPage - 1)}
+        >
+          <div>
+            <MdKeyboardDoubleArrowLeft />
+          </div>
+          <div>Prev</div>
+        </button>
+        <div className="flex gap-2">
+          {Array.from({ length: endPage - startPage + 1 }, (_, i) => (
+            <button
+              key={startPage + i}
+              className={`px-4 py-2 ${
+                currentPage === startPage + i
+                  ? "text-[#D53F3A]"
+                  : "text-[#777777]"
+              } font-bold rounded`}
+              onClick={() => handlePageChange(startPage + i)}
+            >
+              {startPage + i}
+            </button>
+          ))}
+        </div>
+        <button
+          className={`flex gap-1 text-center items-center ${
+            currentPage === totalPages ? "text-[#777777]" : "text-[#D53F3A]"
+          } font-bold rounded`}
+          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(currentPage + 1)}
+        >
+          <div>Next</div>
+          <div>
+            <MdKeyboardDoubleArrowRight />
+          </div>
+        </button>
       </div>
 
       {showProposalPopup && selectedBusiness && (

@@ -46,7 +46,7 @@ const AddAndManageBuisness = () => {
 
   const fetchAllBusinesses = async (status, category, city, mobileNumber) => {
     try {
-      setFetchLoading(true)
+      setFetchLoading(true);
       const response = await axios.get(
         `${
           import.meta.env.VITE_BASE_URL
@@ -55,20 +55,13 @@ const AddAndManageBuisness = () => {
       const data = response.data;
 
       setAllBusinesses(data.businesses);
-      // setCurrentPage(data.currentPage);
+
       setTotalPages(data.totalPages);
       setIsNewDataImport(false);
-      // setFilteredBusinesses(applyFilters(data.businesses)); // Apply filters after fetching data
-      // setUniqueFilters(data.businesses);
-
-      // setCurrentPage(data.currentPage);
-
-      // setFilteredBusinesses(applyFilters(data)); // Apply filters after fetching data
-      // setUniqueFilters(data);
     } catch (error) {
       console.error("Error fetching businesses:", error);
-    } finally{
-      setFetchLoading(false)
+    } finally {
+      setFetchLoading(false);
     }
   };
 
