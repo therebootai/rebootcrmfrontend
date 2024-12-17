@@ -5,7 +5,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const WhatsappProposal = () => {
-  const [phoneNumbers, setPhoneNumbers] = useState("");
+  const [phoneNumbers, setPhoneNumbers] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [headerFileUrls, setHeaderFileUrls] = useState({});
@@ -17,32 +17,44 @@ const WhatsappProposal = () => {
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [error, setError] = useState({});
+  const [allMobileNumbers, setAllMobileNumbers] = useState([]);
 
   useEffect(() => {
     const fetchAllSelectData = async () => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/business/get`
+          `${import.meta.env.VITE_BASE_URL}/api/business/marketingget`,
+          {
+            params: {
+              category: selectedCategory,
+              city: selectedCity,
+              status: selectedStatus,
+            },
+          }
         );
+
         const data = response.data;
-        setBusinesses(data);
 
-        // Extract unique categories, cities, and statuses
-        const uniqueCategories = [...new Set(data.map((b) => b.category))];
-        const uniqueCities = [...new Set(data.map((b) => b.city))];
-        const uniqueStatuses = [...new Set(data.map((b) => b.status))];
-
-        setCategories(uniqueCategories);
-        setCities(uniqueCities);
-        setStatuses(uniqueStatuses);
+        setBusinesses(data.businesses || []);
+        setAllMobileNumbers(data.mobileNumbers || []);
+        setCategories(data.categories || []);
+        setCities(data.cities || []);
+        setStatuses(data.statuses || []);
       } catch (error) {
         console.error("Error fetching businesses:", error);
       }
     };
-
     fetchAllSelectData();
     fetchTemplates();
-  }, []);
+  }, [selectedCategory, selectedCity, selectedStatus]);
+
+  useEffect(() => {
+    if (allMobileNumbers.length > 0) {
+      const phoneNumbersString = allMobileNumbers.join(", ");
+
+      setPhoneNumbers(phoneNumbersString);
+    }
+  }, [allMobileNumbers]);
 
   const fetchTemplates = async () => {
     try {
@@ -53,7 +65,7 @@ const WhatsappProposal = () => {
             "auth-key": "aa61059c453fd7b25e02a9dec860e9c4e23834a61d1d26de4b",
             "app-key": "0f71de7c-53dc-4793-9469-96356a6a2e4a",
             limit: 20,
-            device_id: "66cecb0dfcac514dad358e64",
+            device_id: "67599f6c1c50a6c971f41728",
           },
         }
       );
@@ -79,33 +91,43 @@ const WhatsappProposal = () => {
   };
 
   useEffect(() => {
-    if (selectedCategory && selectedCity && selectedStatus) {
-      const filteredBusinesses = businesses.filter(
-        (b) =>
-          b.category === selectedCategory &&
-          b.city === selectedCity &&
-          b.status === selectedStatus
-      );
-      const phoneNumbers = filteredBusinesses.map((b) => b.mobileNumber);
-      setPhoneNumbers(phoneNumbers.join(", "));
+    if (selectedCategory || selectedCity || selectedStatus) {
+      const filteredBusinesses = (businesses || []).filter((b) => {
+        const matchesCategory = selectedCategory
+          ? b.category === selectedCategory
+          : true;
+        const matchesCity = selectedCity ? b.city === selectedCity : true;
+        const matchesStatus = selectedStatus
+          ? b.status === selectedStatus
+          : true;
+
+        return matchesCategory && matchesCity && matchesStatus;
+      });
+
+      if (filteredBusinesses.length > 0) {
+        const phoneNumbers = filteredBusinesses.map((b) => b.mobileNumber);
+        setPhoneNumbers(phoneNumbers.join(", "));
+        setError({});
+      }
     } else {
       setPhoneNumbers("");
+      setError({
+        message:
+          "Please select at least one filter (category, city, or status).",
+      });
     }
   }, [selectedCategory, selectedCity, selectedStatus, businesses]);
 
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value);
-    setError((prevError) => ({ ...prevError, category: "" }));
   };
 
   const handleCityChange = (e) => {
     setSelectedCity(e.target.value);
-    setError((prevError) => ({ ...prevError, city: "" }));
   };
 
   const handleStatusChange = (e) => {
     setSelectedStatus(e.target.value);
-    setError((prevError) => ({ ...prevError, status: "" }));
   };
 
   const handleSubmit = async () => {
@@ -143,7 +165,7 @@ const WhatsappProposal = () => {
         "app-key": "0f71de7c-53dc-4793-9469-96356a6a2e4a",
         destination_number: concatenatedPhoneNumbers,
         template_id: selectedTemplate,
-        device_id: "66cecb0dfcac514dad358e64",
+        device_id: "67599f6c1c50a6c971f41728",
         variables: [],
         media: "",
       };
@@ -190,9 +212,7 @@ const WhatsappProposal = () => {
               id="category"
               value={selectedCategory}
               onChange={handleCategoryChange}
-              className={`w-full h-[3.5rem] p-2 focus:outline-none bg-[white] text-black rounded-sm border ${
-                error.category ? "border-red-500" : "border-[#CCCCCC]"
-              }`}
+              className="w-full h-[3.5rem] p-2 focus:outline-none bg-[white] text-black rounded-sm border"
             >
               <option value="">Choose a category</option>
               {categories.map((category, index) => (
@@ -201,9 +221,6 @@ const WhatsappProposal = () => {
                 </option>
               ))}
             </select>
-            {error.category && (
-              <span className="text-red-500 text-sm">{error.category}</span>
-            )}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -212,9 +229,7 @@ const WhatsappProposal = () => {
               id="city"
               value={selectedCity}
               onChange={handleCityChange}
-              className={`w-full h-[3.5rem] p-2 focus:outline-none bg-[white] text-black rounded-sm border ${
-                error.city ? "border-red-500" : "border-[#CCCCCC]"
-              }`}
+              className="w-full h-[3.5rem] p-2 focus:outline-none bg-[white] text-black rounded-sm border"
             >
               <option value="">Choose a city</option>
               {cities.map((city, index) => (
@@ -223,9 +238,6 @@ const WhatsappProposal = () => {
                 </option>
               ))}
             </select>
-            {error.city && (
-              <span className="text-red-500 text-sm">{error.city}</span>
-            )}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -234,9 +246,7 @@ const WhatsappProposal = () => {
               id="status"
               value={selectedStatus}
               onChange={handleStatusChange}
-              className={`w-full h-[3.5rem] p-2 focus:outline-none bg-[white] text-black rounded-sm border ${
-                error.status ? "border-red-500" : "border-[#CCCCCC]"
-              }`}
+              className="w-full h-[3.5rem] p-2 focus:outline-none bg-[white] text-black rounded-sm border"
             >
               <option value="">Choose a status</option>
               {statuses.map((status, index) => (
@@ -245,26 +255,22 @@ const WhatsappProposal = () => {
                 </option>
               ))}
             </select>
-            {error.status && (
-              <span className="text-red-500 text-sm">{error.status}</span>
-            )}
           </div>
+        </div>
 
-          <div className="flex flex-col gap-2">
-            <label>Filtered Mobile Numbers:</label>
-            <input
-              type="text"
+        {error.message && <p className="text-red-500">{error.message}</p>}
+
+        <div className="flex flex-col gap-2 mt-4">
+          <div className="flex flex-col gap-2 mt-4">
+            <label htmlFor="phoneNumbers">Selected Phone Numbers</label>
+            <textarea
+              id="phoneNumbers"
               value={phoneNumbers}
               readOnly
-              className="w-full h-[3.5rem] p-2 bg-[white] text-black rounded-sm border border-[#CCCCCC]"
-            />
+              rows={4}
+              className="w-full p-2 focus:outline-none bg-[white] text-black rounded-sm border"
+            ></textarea>
           </div>
-
-          {error.template && (
-            <div className="text-red-500 text-sm col-span-2">
-              {error.template}
-            </div>
-          )}
         </div>
 
         <div className="grid grid-cols-3 gap-4 mt-4">

@@ -24,7 +24,7 @@ const SendProposalForEmployee = ({ business, onClose }) => {
               "auth-key": "aa61059c453fd7b25e02a9dec860e9c4e23834a61d1d26de4b",
               "app-key": "0f71de7c-53dc-4793-9469-96356a6a2e4a",
               limit: 20,
-              device_id: "66cecb0dfcac514dad358e64",
+              device_id: "67599f6c1c50a6c971f41728",
             },
           }
         );
@@ -84,7 +84,7 @@ const SendProposalForEmployee = ({ business, onClose }) => {
       "app-key": "0f71de7c-53dc-4793-9469-96356a6a2e4a",
       destination_number: formattedPhoneNumber,
       template_id: selectedTemplate,
-      device_id: "66cecb0dfcac514dad358e64",
+      device_id: "67599f6c1c50a6c971f41728",
       variables: [],
       media: "",
     };
