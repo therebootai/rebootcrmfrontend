@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 
 import Modal from "react-modal";
 import TelecallerDashboardTemplate from "../../template/TelecallerDashboardTemplate";
 import AddBuisness from "../../component/adminbuisness/AddBuisness";
 import ManageBusiness from "../../component/adminbuisness/ManageBusiness";
+import { useParams } from "react-router-dom";
 
 const TelecallerBusiness = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,6 +19,9 @@ const TelecallerBusiness = () => {
   const [uniqueCategories, setUniqueCategories] = useState([]);
   const [uniqueStatuses, setUniqueStatuses] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const { telecallerId } = useParams();
+  const [fetchLoading, setFetchLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -36,28 +40,59 @@ const TelecallerBusiness = () => {
     closeModal();
   };
 
-  const fetchAllBusinesses = async () => {
+  const fetchAllBusinesses = async (
+    status,
+    category,
+    city,
+    mobileNumber,
+    currentPage
+  ) => {
     try {
+      setFetchLoading(true);
       const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/business/get`
+        `${
+          import.meta.env.VITE_BASE_URL
+        }/api/business/get?page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&telecallerId=${telecallerId}&byTagAppointment=true`
       );
       const data = response.data;
-      setAllBusinesses(data);
-      setFilteredBusinesses(data);
-      setUniqueFilters(data);
+
+      setAllBusinesses(data.businesses);
+
+      setTotalPages(data.totalPages);
     } catch (error) {
       console.error("Error fetching businesses:", error);
+    } finally {
+      setFetchLoading(false);
     }
   };
 
-  const setUniqueFilters = (data) => {
-    const cities = [...new Set(data.map((item) => item.city))];
-    const categories = [...new Set(data.map((item) => item.category))];
-    const statuses = [...new Set(data.map((item) => item.status))];
-    setUniqueCities(cities);
-    setUniqueCategories(categories);
-    setUniqueStatuses(statuses);
-  };
+  useEffect(() => {
+    fetchAllBusinesses(
+      status,
+      category,
+      city,
+      mobileNumber,
+      currentPage,
+      telecallerId
+    );
+  }, [mobileNumber, city, category, status, currentPage, telecallerId]);
+
+  useMemo(() => {
+    async function getFilters() {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/business/getfilter`
+        );
+        const data = response.data;
+        setUniqueCities(data.cities);
+        setUniqueCategories(data.businessCategories);
+        setUniqueStatuses(data.status);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getFilters();
+  }, []);
 
   const applyFilters = (data) => {
     let filteredData = data;
@@ -84,15 +119,9 @@ const TelecallerBusiness = () => {
     return filteredData;
   };
 
-  // Fetch all businesses when the component mounts
-  useEffect(() => {
-    fetchAllBusinesses();
-  }, []);
-
   // Apply filters when the filter values or allBusinesses data changes
   useEffect(() => {
     setFilteredBusinesses(applyFilters(allBusinesses));
-    setCurrentPage(1);
   }, [mobileNumber, city, category, status, allBusinesses]);
 
   return (
@@ -162,7 +191,14 @@ const TelecallerBusiness = () => {
           </div>
         </div>
         <div>
-          <ManageBusiness businesses={filteredBusinesses} showdelete={true} />
+          <ManageBusiness
+            businesses={allBusinesses}
+            showdelete={true}
+            fetchLoading={fetchLoading}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            setCurrentPage={setCurrentPage}
+          />
         </div>
       </div>
 
