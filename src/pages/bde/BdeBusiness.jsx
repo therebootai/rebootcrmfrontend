@@ -194,7 +194,7 @@ const BdeBusiness = () => {
         <div>
           <ManageBusiness
             businesses={allBusinesses}
-            showdelete={true}
+            showdelete={false}
             fetchLoading={fetchLoading}
             currentPage={currentPage}
             totalPages={totalPages}

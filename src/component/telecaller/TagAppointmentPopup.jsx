@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const TagAppointmentPopup = ({ businessId, onClose }) => {
   const [bdeList, setBdeList] = useState([]);
@@ -56,11 +58,16 @@ const TagAppointmentPopup = ({ businessId, onClose }) => {
             </option>
           ))}
         </select>
-        <input
-          type="date"
-          className="w-full p-2 mb-4 border border-gray-300 rounded-md"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)} // Update state with the selected date
+        <DatePicker
+          selected={selectedDate}
+          onChange={(date) => setSelectedDate(date)} // Update state on change
+          showTimeSelect
+          dateFormat="Pp"
+          showMonthDropdown
+          showYearDropdown
+          dropdownMode="select"
+          className="w-full p-2 mb-4 border border-gray-300 rounded-md" // Custom styling
+          placeholderText="Select date and time"
         />
         <div className="flex justify-end gap-4">
           <button

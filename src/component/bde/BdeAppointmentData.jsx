@@ -76,6 +76,7 @@ const BdeAppointmentData = () => {
         category,
         status,
         byTagAppointment: true,
+        appointmentDate: true,
       };
 
       // Making the API request
@@ -147,10 +148,17 @@ const BdeAppointmentData = () => {
   const applyFilters = () => {
     let filteredData = businesses;
 
-    // Apply date range filter only if both dates are selected
     if (dateRange.startDate && dateRange.endDate) {
-      const start = dateRange.startDate;
-      const end = dateRange.endDate;
+      // Convert from UTC to local time
+      const start = new Date(dateRange.startDate);
+      start.setHours(0, 0, 0, 0); // Set to the start of the day in local time
+
+      const end = new Date(dateRange.endDate);
+      end.setHours(23, 59, 59, 999); // Set to the end of the day in local time
+
+      console.log("Adjusted Start Date:", start);
+      console.log("Adjusted End Date:", end);
+
       filteredData = filteredData.filter((business) => {
         const appointmentDate = new Date(business.appointmentDate);
         return appointmentDate >= start && appointmentDate <= end;
@@ -446,7 +454,12 @@ const BdeAppointmentData = () => {
                       <span>
                         <GoDotFill />
                       </span>
-                      <span>({formatDate(business.appointmentDate)})</span>
+                      <span>
+                        {format(
+                          new Date(business.appointmentDate),
+                          "dd-MM-yyyy HH:mm"
+                        )}
+                      </span>
                     </div>
                   </div>
                   <div className="flex flex-col gap-4 text-white">
