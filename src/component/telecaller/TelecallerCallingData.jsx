@@ -158,8 +158,12 @@ const TelecallerCallingData = () => {
     let filteredData = [...businesses];
 
     if (dateRange.startDate && dateRange.endDate) {
-      const start = dateRange.startDate;
-      const end = dateRange.endDate;
+      const start = new Date(dateRange.startDate);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(dateRange.endDate);
+      end.setHours(23, 59, 59, 999);
+
       filteredData = filteredData.filter((business) => {
         const followUpDate = new Date(business.followUpDate);
         return followUpDate >= start && followUpDate <= end;
