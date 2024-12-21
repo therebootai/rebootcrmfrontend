@@ -40,25 +40,36 @@ const BdeBusiness = () => {
 
     closeModal();
   };
-
   const fetchAllBusinesses = async (
     status,
     category,
     city,
     mobileNumber,
-    currentPage
+    currentPage,
+    bdeId
   ) => {
     try {
       setFetchLoading(true);
+
       const response = await axios.get(
-        `${
-          import.meta.env.VITE_BASE_URL
-        }/api/business/get?page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&bdeId=${bdeId}&byTagAppointment=true`
+        `${import.meta.env.VITE_BASE_URL}/api/business/get`,
+        {
+          params: {
+            page: currentPage,
+            limit: 20,
+            status,
+            category,
+            city,
+            mobileNumber,
+            bdeId,
+            byTagAppointment: true,
+          },
+        }
       );
+
       const data = response.data;
 
       setAllBusinesses(data.businesses);
-
       setTotalPages(data.totalPages);
     } catch (error) {
       console.error("Error fetching businesses:", error);
@@ -82,7 +93,9 @@ const BdeBusiness = () => {
     async function getFilters() {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/business/getfilter`
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/business/getfilter?bdeId=${bdeId}`
         );
         const data = response.data;
         setUniqueCities(data.cities);

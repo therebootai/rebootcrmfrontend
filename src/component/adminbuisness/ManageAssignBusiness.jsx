@@ -86,15 +86,14 @@ const ManageAssignBusiness = ({ shouldRefresh }) => {
       await axios.post(
         `${import.meta.env.VITE_BASE_URL}${urlMap[userToDelete.role]}`,
         {
-          category: selectedCategory || null,
-          city: selectedCity || null,
+          category: null,
+          city: null,
         }
       );
       alert("Assigned business deleted successfully");
       setIsDeleteModalOpen(false);
       setUserToDelete(null);
-      setSelectedCategory("");
-      setSelectedCity("");
+
       fetchData(); // Refresh the data after deletion
     } catch (error) {
       console.error("Error deleting assigned business:", error);
@@ -196,35 +195,7 @@ const ManageAssignBusiness = ({ shouldRefresh }) => {
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
           <div className="bg-white p-8 rounded-lg shadow-lg">
             <h2 className="text-lg font-bold mb-4">Confirm Delete</h2>
-            <p>Select the category or city you want to delete:</p>
-            <div className="flex gap-4">
-              <select
-                className="w-full p-2 mt-2 border rounded"
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                value={selectedCategory}
-              >
-                <option value="">Choose Category...</option>
-                {userToDelete &&
-                  userToDelete.assignCategories.map((assign, index) => (
-                    <option key={index} value={assign.category}>
-                      Category: {assign.category}
-                    </option>
-                  ))}
-              </select>
-              <select
-                className="w-full p-2 mt-2 border rounded"
-                onChange={(e) => setSelectedCity(e.target.value)}
-                value={selectedCity}
-              >
-                <option value="">Choose City...</option>
-                {userToDelete &&
-                  userToDelete.assignCities.map((assign, index) => (
-                    <option key={index} value={assign.city}>
-                      City: {assign.city}
-                    </option>
-                  ))}
-              </select>
-            </div>
+
             <div className="flex justify-end gap-4 mt-4">
               <button
                 className="px-4 py-2 bg-gray-300 rounded-lg"
@@ -235,7 +206,6 @@ const ManageAssignBusiness = ({ shouldRefresh }) => {
               <button
                 className="px-4 py-2 bg-red-500 text-white rounded-lg"
                 onClick={confirmDelete}
-                disabled={!selectedCategory && !selectedCity} // Disable if nothing is selected
               >
                 Yes
               </button>

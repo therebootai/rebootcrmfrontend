@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { FaRegEdit } from "react-icons/fa";
@@ -19,6 +19,7 @@ import {
 import SendProposalForEmployee from "../SendProposalForEmployee";
 
 import Modal from "react-modal";
+import LoadingAnimation from "../LoadingAnimation";
 
 Modal.setAppElement("#root");
 
@@ -46,6 +47,7 @@ const TelecallerCallingData = () => {
   const [showProposalPopup, setShowProposalPopup] = useState(false);
 
   const [businessName, setBusinessName] = useState("");
+  const [fetchLoading, setFetchLoading] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,6 +65,7 @@ const TelecallerCallingData = () => {
     category,
     status
   ) => {
+    setFetchLoading(true);
     try {
       const params = {
         telecallerId,
@@ -92,23 +95,10 @@ const TelecallerCallingData = () => {
 
       setTotalPages(response.data.totalPages);
       setCurrentPage(response.data.currentPage);
-
-      // Extract unique values for filtering
-      const cities = [
-        ...new Set(businessesData.map((business) => business.city)),
-      ];
-      const categories = [
-        ...new Set(businessesData.map((business) => business.category)),
-      ];
-      const statuses = [
-        ...new Set(businessesData.map((business) => business.status)),
-      ];
-
-      setUniqueCities(cities);
-      setUniqueCategories(categories);
-      setUniqueStatuses(statuses);
     } catch (error) {
       console.error("Error fetching businesses:", error);
+    } finally {
+      setFetchLoading(false);
     }
   };
 
@@ -145,6 +135,25 @@ const TelecallerCallingData = () => {
       .replace(/\s+/g, ""); // Remove all spaces
   };
 
+  useMemo(() => {
+    async function getFilters() {
+      try {
+        const response = await axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/business/getfilter?telecallerId=${telecallerId}`
+        );
+        const data = response.data;
+        setUniqueCities(data.cities);
+        setUniqueCategories(data.businessCategories);
+        setUniqueStatuses(data.status);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getFilters();
+  }, []);
+
   const applyFilters = () => {
     let filteredData = [...businesses];
 
@@ -172,13 +181,11 @@ const TelecallerCallingData = () => {
     if (city) {
       filteredData = filteredData.filter((business) => business.city === city);
     }
-
     if (category) {
       filteredData = filteredData.filter(
         (business) => business.category === category
       );
     }
-
     if (status) {
       filteredData = filteredData.filter(
         (business) => business.status === status
@@ -186,20 +193,15 @@ const TelecallerCallingData = () => {
     }
 
     setFilteredBusinesses(filteredData);
-    if (
-      dateRange.startDate ||
-      dateRange.endDate ||
-      city ||
-      category ||
-      status
-    ) {
-      setCurrentPage(1); // Reset page if needed
-    }
   };
 
   useEffect(() => {
     applyFilters();
   }, [dateRange, mobileNumber, businessName, city, category, status]);
+
+  // useEffect(() => {
+  //   setCurrentPage(1);
+  // }, [mobileNumber, city, category, status]);
 
   const handleDateRangeChange = (ranges) => {
     setDateRange(ranges.selection);
@@ -399,98 +401,102 @@ const TelecallerCallingData = () => {
       </div>
       <div>
         <div>
-          <div className="grid sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {businesses.length > 0 ? (
-              businesses.map((business, index) => (
-                <div
-                  key={index}
-                  className="bg-white text-[#2F2C49] w-full rounded-lg border border-[#CCCCCC] text-sm font-medium flex justify-between p-4"
-                >
-                  <div className="flex flex-col gap-4 w-full">
-                    <div className="flex justify-between w-full items-center">
+          {fetchLoading ? (
+            <LoadingAnimation />
+          ) : (
+            <div className="grid sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {businesses.length > 0 ? (
+                businesses.map((business, index) => (
+                  <div
+                    key={index}
+                    className="bg-white text-[#2F2C49] w-full rounded-lg border border-[#CCCCCC] text-sm font-medium flex justify-between p-4"
+                  >
+                    <div className="flex flex-col gap-4 w-full">
+                      <div className="flex justify-between w-full items-center">
+                        <div className="flex items-center gap-2">
+                          <span>
+                            <GoDotFill />
+                          </span>
+                          <span>{business.buisnessname}</span>
+                        </div>
+                        <div className="flex text-lg gap-4 ">
+                          <div
+                            className=" cursor-pointer text-[#00A3FF]"
+                            onClick={() => handleEdit(business)}
+                          >
+                            <FaRegEdit />
+                          </div>
+                          <div
+                            onClick={() => handleCopy(business)}
+                            className=" cursor-pointer text-[#777777]"
+                          >
+                            <GrCopy />
+                          </div>
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2">
                         <span>
                           <GoDotFill />
                         </span>
-                        <span>{business.buisnessname}</span>
+                        <a href={`tel:${business.mobileNumber}`}>
+                          {business.mobileNumber}
+                        </a>
                       </div>
-                      <div className="flex text-lg gap-4 ">
-                        <div
-                          className=" cursor-pointer text-[#00A3FF]"
-                          onClick={() => handleEdit(business)}
-                        >
-                          <FaRegEdit />
-                        </div>
-                        <div
-                          onClick={() => handleCopy(business)}
-                          className=" cursor-pointer text-[#777777]"
-                        >
-                          <GrCopy />
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <span>
+                          <GoDotFill />
+                        </span>
+                        <span>
+                          {business.status} - (
+                          {formatDate(business.followUpDate)})
+                        </span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span>
-                        <GoDotFill />
-                      </span>
-                      <a href={`tel:${business.mobileNumber}`}>
-                        {business.mobileNumber}
-                      </a>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span>
-                        <GoDotFill />
-                      </span>
-                      <span>
-                        {business.status} - ({formatDate(business.followUpDate)}
-                        )
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span>
-                        <GoDotFill />
-                      </span>
-                      <span>{business.category}</span>
-                    </div>
-                    <div className="flex  justify-between w-full items-center ">
-                      <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-2">
-                          <span>
-                            <GoDotFill />
-                          </span>
-                          <span>{business.city}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span>
-                            <GoDotFill />
-                          </span>
-                          <span>{business.remarks}</span>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <span>
+                          <GoDotFill />
+                        </span>
+                        <span>{business.category}</span>
                       </div>
-                      <div className="flex flex-col gap-4 text-white">
-                        <button
-                          className="px-2 p-1 bg-[#FF2722] rounded-md text-sm font-semibold"
-                          onClick={() => openProposalPopup(business)} // This opens the proposal popup
-                        >
-                          Send Proposal
-                        </button>
-                        <button
-                          className="px-2 p-1 bg-[#FF2722] rounded-md text-sm font-semibold"
-                          onClick={() =>
-                            openTagAppointmentPopup(business.businessId)
-                          }
-                        >
-                          Tag Appointment
-                        </button>
+                      <div className="flex  justify-between w-full items-center ">
+                        <div className="flex flex-col gap-4">
+                          <div className="flex items-center gap-2">
+                            <span>
+                              <GoDotFill />
+                            </span>
+                            <span>{business.city}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span>
+                              <GoDotFill />
+                            </span>
+                            <span>{business.remarks}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-4 text-white">
+                          <button
+                            className="px-2 p-1 bg-[#FF2722] rounded-md text-sm font-semibold"
+                            onClick={() => openProposalPopup(business)} // This opens the proposal popup
+                          >
+                            Send Proposal
+                          </button>
+                          <button
+                            className="px-2 p-1 bg-[#FF2722] rounded-md text-sm font-semibold"
+                            onClick={() =>
+                              openTagAppointmentPopup(business.businessId)
+                            }
+                          >
+                            Tag Appointment
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
-            ) : (
-              <p>No businesses found</p>
-            )}
-          </div>
+                ))
+              ) : (
+                <p>No businesses found</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

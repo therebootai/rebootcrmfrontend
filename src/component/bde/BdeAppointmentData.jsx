@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { FaRegEdit } from "react-icons/fa";
@@ -18,6 +18,7 @@ import {
   MdKeyboardDoubleArrowLeft,
   MdKeyboardDoubleArrowRight,
 } from "react-icons/md";
+import LoadingAnimation from "../LoadingAnimation";
 
 Modal.setAppElement("#root");
 
@@ -49,6 +50,7 @@ const BdeAppointmentData = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const [totalPage, setTotalPages] = useState(1);
+  const [fetchLoading, setFetchLoading] = useState(false);
 
   const fetchBusinesses = async (
     bdeId,
@@ -61,6 +63,7 @@ const BdeAppointmentData = () => {
     category,
     status
   ) => {
+    setFetchLoading(true);
     try {
       const params = {
         bdeId,
@@ -76,7 +79,6 @@ const BdeAppointmentData = () => {
         category,
         status,
         byTagAppointment: true,
-        appointmentDate: true,
       };
 
       // Making the API request
@@ -88,27 +90,13 @@ const BdeAppointmentData = () => {
       const businessesData = response.data.businesses;
 
       setBusinesses(businessesData);
-      setFilteredBusinesses(businessesData);
 
       setTotalPages(response.data.totalPages);
       setCurrentPage(response.data.currentPage);
-
-      // Extract unique values for filtering
-      const cities = [
-        ...new Set(businessesData.map((business) => business.city)),
-      ];
-      const categories = [
-        ...new Set(businessesData.map((business) => business.category)),
-      ];
-      const statuses = [
-        ...new Set(businessesData.map((business) => business.status)),
-      ];
-
-      setUniqueCities(cities);
-      setUniqueCategories(categories);
-      setUniqueStatuses(statuses);
     } catch (error) {
       console.error("Error fetching businesses:", error);
+    } finally {
+      setFetchLoading(false);
     }
   };
 
@@ -145,19 +133,34 @@ const BdeAppointmentData = () => {
       .replace(/\s+/g, ""); // Remove all spaces
   };
 
-  const applyFilters = () => {
+  useMemo(() => {
+    async function getFilters() {
+      try {
+        const response = await axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/business/getfilter?bdeId=${bdeId}`
+        );
+        const data = response.data;
+        setUniqueCities(data.cities);
+        setUniqueCategories(data.businessCategories);
+        setUniqueStatuses(data.status);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getFilters();
+  }, []);
+
+  const applyFilters = (businesses) => {
     let filteredData = businesses;
 
     if (dateRange.startDate && dateRange.endDate) {
-      // Convert from UTC to local time
       const start = new Date(dateRange.startDate);
-      start.setHours(0, 0, 0, 0); // Set to the start of the day in local time
+      start.setHours(0, 0, 0, 0);
 
       const end = new Date(dateRange.endDate);
-      end.setHours(23, 59, 59, 999); // Set to the end of the day in local time
-
-      console.log("Adjusted Start Date:", start);
-      console.log("Adjusted End Date:", end);
+      end.setHours(23, 59, 59, 999);
 
       filteredData = filteredData.filter((business) => {
         const appointmentDate = new Date(business.appointmentDate);
@@ -165,7 +168,6 @@ const BdeAppointmentData = () => {
       });
     }
 
-    // Apply mobile number filter
     if (mobileNumber) {
       filteredData = filteredData.filter((business) =>
         business.mobileNumber.includes(mobileNumber)
@@ -179,31 +181,29 @@ const BdeAppointmentData = () => {
       );
     }
 
-    // Apply city filter
     if (city) {
       filteredData = filteredData.filter((business) => business.city === city);
     }
 
-    // Apply category filter
     if (category) {
       filteredData = filteredData.filter(
         (business) => business.category === category
       );
     }
 
-    // Apply status filter
     if (status) {
       filteredData = filteredData.filter(
         (business) => business.status === status
       );
     }
 
-    setFilteredBusinesses(filteredData);
+    return filteredData;
   };
 
   useEffect(() => {
-    applyFilters();
-  }, [dateRange, mobileNumber, businessName, city, category, status]);
+    const filteredData = applyFilters(businesses);
+    setFilteredBusinesses(filteredData);
+  }, [mobileNumber, city, category, status, businesses]);
 
   const handleDateRangeChange = (ranges) => {
     setDateRange(ranges.selection);
@@ -391,94 +391,100 @@ const BdeAppointmentData = () => {
           </select>
         </div>
       </div>
-      <div className="grid sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredBusinesses.length > 0 ? (
-          filteredBusinesses.map((business, index) => (
-            <div
-              key={index}
-              className="bg-white text-[#2F2C49] w-full rounded-lg border border-[#CCCCCC] text-sm font-medium flex justify-between p-4"
-            >
-              <div className="flex flex-col gap-4 w-full">
-                <div className="flex justify-between w-full items-center">
+      {fetchLoading ? (
+        <LoadingAnimation />
+      ) : (
+        <div className="grid sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredBusinesses.length > 0 ? (
+            filteredBusinesses.map((business, index) => (
+              <div
+                key={index}
+                className="bg-white text-[#2F2C49] w-full rounded-lg border border-[#CCCCCC] text-sm font-medium flex justify-between p-4"
+              >
+                <div className="flex flex-col gap-4 w-full">
+                  <div className="flex justify-between w-full items-center">
+                    <div className="flex items-center gap-2">
+                      <span>
+                        <GoDotFill />
+                      </span>
+                      <span>{business.buisnessname}</span>
+                    </div>
+                    <div className="flex text-lg gap-4 ">
+                      <div
+                        className=" cursor-pointer text-[#00A3FF]"
+                        onClick={() => handleEdit(business)}
+                      >
+                        <FaRegEdit />
+                      </div>
+                      <div
+                        onClick={() => handleCopy(business)}
+                        className=" cursor-pointer text-[#777777]"
+                      >
+                        <GrCopy />
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <span>
                       <GoDotFill />
                     </span>
-                    <span>{business.buisnessname}</span>
+                    <a href={`tel:${business.mobileNumber}`}>
+                      {business.mobileNumber}
+                    </a>
                   </div>
-                  <div className="flex text-lg gap-4 ">
-                    <div
-                      className=" cursor-pointer text-[#00A3FF]"
-                      onClick={() => handleEdit(business)}
-                    >
-                      <FaRegEdit />
-                    </div>
-                    <div
-                      onClick={() => handleCopy(business)}
-                      className=" cursor-pointer text-[#777777]"
-                    >
-                      <GrCopy />
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span>
+                      <GoDotFill />
+                    </span>
+                    <span>{business.status}</span>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>
-                    <GoDotFill />
-                  </span>
-                  <a href={`tel:${business.mobileNumber}`}>
-                    {business.mobileNumber}
-                  </a>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>
-                    <GoDotFill />
-                  </span>
-                  <span>{business.status}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>
-                    <GoDotFill />
-                  </span>
-                  <span>{business.category}</span>
-                </div>
-                <div className="flex  justify-between w-full items-end ">
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center gap-2">
-                      <span>
-                        <GoDotFill />
-                      </span>
-                      <span>{business.city}</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span>
+                      <GoDotFill />
+                    </span>
+                    <span>{business.category}</span>
+                  </div>
+                  <div className="flex  justify-between w-full items-end ">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center gap-2">
+                        <span>
+                          <GoDotFill />
+                        </span>
+                        <span>{business.city}</span>
+                      </div>
 
-                    <div className="flex items-center gap-2">
-                      <span>
-                        <GoDotFill />
-                      </span>
-                      <span>
-                        {format(
-                          new Date(business.appointmentDate),
-                          "dd-MM-yyyy HH:mm"
-                        )}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span>
+                          <GoDotFill />
+                        </span>
+                        <span>
+                          {business.appointmentDate
+                            ? format(
+                                new Date(business.appointmentDate),
+                                "dd-MM-yyyy HH:mm"
+                              )
+                            : "No Appointment Date"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-4 text-white">
+                      <button
+                        onClick={() => openProposalPopup(business)}
+                        className="px-2 p-1 bg-[#FF2722] rounded-md text-sm font-semibold"
+                      >
+                        Send Proposal
+                      </button>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-4 text-white">
-                    <button
-                      onClick={() => openProposalPopup(business)}
-                      className="px-2 p-1 bg-[#FF2722] rounded-md text-sm font-semibold"
-                    >
-                      Send Proposal
-                    </button>
-                  </div>
                 </div>
+                <div className="flex flex-col  "></div>
               </div>
-              <div className="flex flex-col  "></div>
-            </div>
-          ))
-        ) : (
-          <p>No businesses found</p>
-        )}
-      </div>
+            ))
+          ) : (
+            <p>No businesses found</p>
+          )}
+        </div>
+      )}
 
       {/* Pagination Controls */}
       <div className="flex justify-center gap-4 pb-4 border-b items-center mt-4">

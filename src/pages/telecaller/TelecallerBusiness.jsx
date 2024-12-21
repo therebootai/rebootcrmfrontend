@@ -52,7 +52,7 @@ const TelecallerBusiness = () => {
       const response = await axios.get(
         `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&telecallerId=${telecallerId}&byTagAppointment=true`
+        }/api/business/get?page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&telecallerId=${telecallerId}`
       );
       const data = response.data;
 
@@ -81,7 +81,9 @@ const TelecallerBusiness = () => {
     async function getFilters() {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/business/getfilter`
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/business/getfilter?telecallerId=${telecallerId}`
         );
         const data = response.data;
         setUniqueCities(data.cities);

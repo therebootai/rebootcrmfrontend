@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { FaRegEdit } from "react-icons/fa";
@@ -44,25 +44,12 @@ const BdeCallingData = () => {
     const fetchBusinesses = async () => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/business/get?bdeId=${bdeId}`
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/business/get?bdeId=${bdeId}&byTagAppointment=true`
         );
         setBusinesses(response.data);
         setFilteredBusinesses(response.data);
-
-        // Extract unique cities, categories, and statuses
-        const cities = [
-          ...new Set(response.data.map((business) => business.city)),
-        ];
-        const categories = [
-          ...new Set(response.data.map((business) => business.category)),
-        ];
-        const statuses = [
-          ...new Set(response.data.map((business) => business.status)),
-        ];
-
-        setUniqueCities(cities);
-        setUniqueCategories(categories);
-        setUniqueStatuses(statuses);
       } catch (error) {
         console.error("Error fetching businesses:", error);
       }
@@ -77,6 +64,25 @@ const BdeCallingData = () => {
       .replace(/[-\/"",]/g, "") // Remove special characters
       .replace(/\s+/g, ""); // Remove all spaces
   };
+
+  useMemo(() => {
+    async function getFilters() {
+      try {
+        const response = await axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/business/getfilter?bdeId=${bdeId}`
+        );
+        const data = response.data;
+        setUniqueCities(data.cities);
+        setUniqueCategories(data.businessCategories);
+        setUniqueStatuses(data.status);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getFilters();
+  }, []);
 
   const applyFilters = () => {
     let filteredData = businesses;
