@@ -40,7 +40,7 @@ const AdminHeader = ({
         <div className="w-full flex flex-row gap-2 items-center">
           <div>
             <img
-              src="/images/rebootlogo.png"
+              src="/images/logo.svg"
               alt="logo"
               className=" sm:h-[1.5rem] md:h-[2rem]"
             />
