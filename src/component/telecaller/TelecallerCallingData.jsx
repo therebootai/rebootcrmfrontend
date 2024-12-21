@@ -72,9 +72,17 @@ const TelecallerCallingData = () => {
         page: currentPage,
         limit: itemsPerPage,
         startDate: dateRange.startDate
-          ? dateRange.startDate.toISOString()
+          ? new Date(
+              dateRange.startDate.getTime() -
+                dateRange.startDate.getTimezoneOffset() * 60000
+            ).toISOString()
           : null,
-        endDate: dateRange.endDate ? dateRange.endDate.toISOString() : null,
+        endDate: dateRange.endDate
+          ? new Date(
+              dateRange.endDate.getTime() -
+                dateRange.endDate.getTimezoneOffset() * 60000
+            ).toISOString()
+          : null,
         mobileNumber,
         businessName,
         city,
@@ -159,10 +167,10 @@ const TelecallerCallingData = () => {
 
     if (dateRange.startDate && dateRange.endDate) {
       const start = new Date(dateRange.startDate);
-      start.setHours(0, 0, 0, 0);
+      start.setUTCHours(0, 0, 0, 0);
 
       const end = new Date(dateRange.endDate);
-      end.setHours(23, 59, 59, 999);
+      end.setUTCHours(23, 59, 59, 999);
 
       filteredData = filteredData.filter((business) => {
         const followUpDate = new Date(business.followUpDate);

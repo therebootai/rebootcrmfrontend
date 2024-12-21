@@ -70,9 +70,17 @@ const BdeAppointmentData = () => {
         page: currentPage,
         limit: itemsPerPage,
         startDate: dateRange.startDate
-          ? dateRange.startDate.toISOString()
+          ? new Date(
+              dateRange.startDate.getTime() -
+                dateRange.startDate.getTimezoneOffset() * 60000
+            ).toISOString()
           : null,
-        endDate: dateRange.endDate ? dateRange.endDate.toISOString() : null,
+        endDate: dateRange.endDate
+          ? new Date(
+              dateRange.endDate.getTime() -
+                dateRange.endDate.getTimezoneOffset() * 60000
+            ).toISOString()
+          : null,
         mobileNumber,
         businessName,
         city,
