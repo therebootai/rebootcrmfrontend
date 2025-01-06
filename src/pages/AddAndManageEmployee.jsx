@@ -141,7 +141,10 @@ const AddAndManageEmployee = () => {
         <button onClick={closeModal} className="close-button">
           &times;
         </button>
-        <AddEmployee onAddEmployees={handleNewEmployee} />
+        <AddEmployee
+          onAddEmployees={handleNewEmployee}
+          fetchAllEmployees={fetchAllEmployees}
+        />
       </Modal>
     </AdminDashboardTemplate>
   );

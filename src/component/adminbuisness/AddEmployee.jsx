@@ -3,7 +3,7 @@ import axios from "axios";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-const AddEmployee = ({ onAddEmployees }) => {
+const AddEmployee = ({ onAddEmployees, fetchAllEmployees }) => {
   const [formData, setFormData] = useState({
     employeename: "",
     mobileNumber: "",
@@ -24,13 +24,13 @@ const AddEmployee = ({ onAddEmployees }) => {
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
     const allowedTypes = ["image/jpeg", "image/png"];
-    const maxFileSize = 8 * 1024 * 1024; // 8 MB
+    const maxFileSize = 8 * 1024 * 1024;
 
     if (name === "mobileNumber" && value.length > 10) {
-      return; // Prevent input more than 10 digits
+      return;
     }
     if (name === "emergencyNumber" && value.length > 10) {
-      return; // Prevent input more than 10 digits
+      return;
     }
 
     if (files) {
@@ -136,7 +136,7 @@ const AddEmployee = ({ onAddEmployees }) => {
         );
 
         onAddEmployees(response.data);
-        window.location.reload();
+        fetchAllEmployees();
         setFormData({
           employeename: "",
           mobileNumber: "",
@@ -153,27 +153,27 @@ const AddEmployee = ({ onAddEmployees }) => {
         });
       } catch (error) {
         console.error("Error creating Employee:", error);
-        if (
-          error.response &&
-          error.response.data.error === "Mobile number already exists"
-        ) {
-          setErrors({ mobileNumber: "Mobile number already exists" });
-        } else if (
-          error.response &&
-          error.response.data.error ===
-            "Alternative mobile number already exists"
-        ) {
-          setErrors({
-            emergencyNumber: "Alternative mobile number already exists",
-          });
+        if (error.response) {
+          const errorMessage = error.response.data.error;
+          if (errorMessage === "Mobile number already exists") {
+            setErrors({ mobileNumber: "Mobile number already exists" });
+          } else if (
+            errorMessage === "Emergency mobile number already exists"
+          ) {
+            setErrors({
+              emergencyNumber: "Emergency mobile number already exists",
+            });
+          } else {
+            alert("Failed to create Employee. Please try again.");
+          }
         } else {
           alert("Failed to create Employee. Please try again.");
         }
       } finally {
-        setSubmitting(false); // Reset submitting status after the request is completed
+        setSubmitting(false);
       }
     } else {
-      setSubmitting(false); // Reset submitting status if form is not valid
+      setSubmitting(false);
     }
   };
 
