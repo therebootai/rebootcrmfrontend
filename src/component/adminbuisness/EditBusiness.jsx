@@ -168,6 +168,8 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
     "Not Interested",
     "Invalid Data",
     "Deal Closed",
+    "Not Responding",
+    "Appointment Pending",
   ];
 
   return (

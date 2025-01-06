@@ -50,8 +50,8 @@ const TelecallerDashboard = () => {
   const calculateCounts = (data) => {
     const totalBusiness = data.totalCount;
     const followUps = data.statuscount.FollowupCount;
-    const visits = data.statuscount.dealCloseCount;
-    const dealCloses = data.statuscount.visitCount;
+    const visits = data.statuscount.visitCount;
+    const dealCloses = data.statuscount.dealCloseCount;
 
     setCounts({
       totalBusiness,

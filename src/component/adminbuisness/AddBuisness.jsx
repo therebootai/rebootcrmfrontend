@@ -207,6 +207,8 @@ const AddBuisness = ({ onAddBusiness }) => {
     "Not Interested",
     "Invalid Data",
     "Deal Closed",
+    "Not Responding",
+    "Appointment Pending",
   ];
 
   return (

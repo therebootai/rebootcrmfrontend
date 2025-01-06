@@ -56,6 +56,8 @@ const EditBusinessPopup = ({ show, onClose, business, onUpdate }) => {
           <option value="Not Interested">Not Interested</option>
           <option value="Invalid Data">Invalid Data</option>
           <option value="Deal Closed">Deal Closed</option>
+          <option value="Not Responding">Not Responding</option>
+          <option value="Appointment Pending">Appointment Pending</option>
         </select>
       </div>
       {(status === "Followup" || status === "Appointment Generated") && (
