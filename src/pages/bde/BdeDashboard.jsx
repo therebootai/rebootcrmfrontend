@@ -27,7 +27,7 @@ const BdeDashboard = () => {
 
       setBusinesses(businessData.businesses);
 
-      calculateCounts(businessData.businesses);
+      calculateCounts(businessData);
     } catch (error) {
       console.error("Error fetching businesses:", error);
     }
@@ -37,17 +37,11 @@ const BdeDashboard = () => {
     fetchBusinesses();
   }, [bdeId]);
 
-  const calculateCounts = (businesses) => {
-    const totalBusiness = businesses.length;
-    const followUps = businesses.filter(
-      (business) => business.status === "Followup"
-    ).length;
-    const visits = businesses.filter(
-      (business) => business.status === "Appointment Generated"
-    ).length;
-    const dealCloses = businesses.filter(
-      (business) => business.status === "Deal Closed"
-    ).length;
+  const calculateCounts = (data) => {
+    const totalBusiness = data.totalCount;
+    const followUps = data.statuscount.FollowupCount;
+    const visits = data.statuscount.dealCloseCount;
+    const dealCloses = data.statuscount.visitCount;
 
     setCounts({
       totalBusiness,

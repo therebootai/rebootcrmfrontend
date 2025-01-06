@@ -184,7 +184,17 @@ const AddBuisness = ({ onAddBusiness }) => {
         ) {
           setErrors({ mobileNumber: "Mobile number already exists" });
         } else {
-          alert("Failed to create Business Details. Please try again.");
+          setFormData({
+            buisnessname: "",
+            contactpersonName: "",
+            mobileNumber: "",
+            city: "",
+            category: "",
+            status: "",
+            source: "",
+            followUpDate: null,
+            remarks: "",
+          });
         }
       }
     }

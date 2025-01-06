@@ -30,13 +30,10 @@ const BdeBusiness = () => {
   const handleNewBusiness = (newBusinessResponse) => {
     const newBusiness = newBusinessResponse.newBusiness;
 
-    // Update the allBusinesses state with the new business
     const updatedBusinesses = [...allBusinesses, newBusiness];
 
-    // Update states with the new business data and reapply filters
     setAllBusinesses(updatedBusinesses);
     setFilteredBusinesses(applyFilters(updatedBusinesses));
-    setUniqueFilters(updatedBusinesses);
 
     closeModal();
   };
