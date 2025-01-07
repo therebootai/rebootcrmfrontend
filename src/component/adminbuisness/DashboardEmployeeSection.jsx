@@ -80,48 +80,14 @@ const DashboardEmployeeSection = () => {
           }&byTagAppointment=true`;
         }
         return axios.get(url).then((response) => ({
-          id: employee.id,
-          role: employee.role,
-          businessData: response.data,
+          ...employee,
+          businessData: response.data.businesses,
+          statuscount: response.data.statuscount, // Attach the status counts
+          totalCount: response.data.totalCount || 0, // Add total count
         }));
       });
 
-      const results = await Promise.all(businessPromises);
-
-      const updatedData = employees.map((employee) => {
-        const result = results.find((res) => res.id === employee.id);
-        if (result) {
-          const { businessData } = result;
-
-          const totaldata = businessData.length || 0;
-
-          const filteredBusinessData = businessData.businesses.filter(
-            (item) => {
-              const followUpDate = new Date(item.followUpDate);
-              return followUpDate >= startDate && followUpDate <= endDate;
-            }
-          );
-
-          const appointment =
-            filteredBusinessData.filter(
-              (item) => item.status === "Appointment Generated"
-            ).length || 0;
-
-          const followup =
-            filteredBusinessData.filter((item) => item.status === "Followup")
-              .length || 0;
-
-          return {
-            ...employee,
-            totaldata,
-            appointment,
-            followup,
-            targets: employee.targets || [],
-          };
-        }
-        return employee;
-      });
-
+      const updatedData = await Promise.all(businessPromises);
       setFilteredData(updatedData);
     } catch (error) {
       console.error("Error fetching business data:", error);
@@ -154,7 +120,7 @@ const DashboardEmployeeSection = () => {
     "Employee Name",
     "Role",
     "Total Data",
-    "Appointment",
+    "Visit",
     "Followup",
     "Deal Close",
     "Target",
@@ -238,10 +204,17 @@ const DashboardEmployeeSection = () => {
                 >
                   <div className="flex-1">{employee.name}</div>
                   <div className="flex-1">{employee.role}</div>
-                  <div className="flex-1">{employee.totaldata || "0"}</div>
-                  <div className="flex-1">{employee.appointment || "0"}</div>
-                  <div className="flex-1">{employee.followup || "0"}</div>
-                  <div className="flex-1">{employee.dealclose || "0"}</div>
+                  <div className="flex-1">{employee.totalCount || "0"}</div>
+                  <div className="flex-1">
+                    {employee.statuscount?.visitCount || "0"}
+                  </div>
+                  <div className="flex-1">
+                    {employee.statuscount?.FollowupCount || "0"}
+                  </div>
+                  <div className="flex-1">
+                    {employee.statuscount?.dealCloseCount || "0"}
+                  </div>
+
                   <div className="flex-1">{latestTarget.amount || "0"}</div>
                   <div className="flex-1">
                     {achievementPercentage}% ({latestTarget.achievement || "0"})

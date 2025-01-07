@@ -61,21 +61,6 @@ const EmployeeDetails = () => {
       const response = await axios.get(url);
       setData(response.data.businesses);
       setTotalPages(response.data.totalPages);
-
-      // Extract unique cities, categories, and statuses
-      // const cities = [
-      //   ...new Set(response.data.businesses.map((business) => business.city)),
-      // ];
-      // const categories = [
-      //   ...new Set(
-      //     response.data.businesses.map((business) => business.category)
-      //   ),
-      // ];
-      // const statuses = [
-      //   ...new Set(
-      //     response.data.businesses.map((business) => business.status)
-      //   ),
-      // ];
     } catch (error) {
       console.error("Error fetching business data:", error);
     } finally {
@@ -90,66 +75,27 @@ const EmployeeDetails = () => {
   useMemo(() => {
     async function getFilters() {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/business/getfilter`
-        );
-        const data = response.data;
-        setUniqueCities(data.cities);
-        setUniqueCategories(data.businessCategories);
-        setUniqueStatuses(data.status);
+        let endpointParams = {};
+        if (role === "telecaller") endpointParams.telecallerId = id;
+        if (role === "digitalmarketer") endpointParams.digitalMarketerId = id;
+        if (role === "bde") endpointParams.bdeId = id;
+
+        const queryParams = new URLSearchParams(endpointParams).toString();
+        const url = `${
+          import.meta.env.VITE_BASE_URL
+        }/api/business/getfilter?${queryParams}`;
+
+        const response = await axios.get(url);
+
+        setUniqueCities(response.data.cities || []);
+        setUniqueCategories(response.data.businessCategories || []);
+        setUniqueStatuses(response.data.status || []);
       } catch (error) {
-        console.log(error);
+        console.error("Error fetching filters:", error);
       }
     }
     getFilters();
   }, []);
-
-  useEffect(() => {
-    fetchEmployeeBusinessData();
-  }, [dateRange, mobileNumber, city, category, status]);
-
-  // const applyFilters = () => {
-  //   let filteredData = data;
-
-  //   // Apply date range filter only if both dates are selected
-  //   if (dateRange.startDate && dateRange.endDate) {
-  //     const start = dateRange.startDate;
-  //     const end = dateRange.endDate;
-  //     filteredData = filteredData.filter((business) => {
-  //       const followUpDate = new Date(business.followUpDate);
-  //       return followUpDate >= start && followUpDate <= end;
-  //     });
-  //   }
-
-  //   // Apply mobile number filter if it's entered
-  //   if (mobileNumber) {
-  //     filteredData = filteredData.filter((business) =>
-  //       business.mobileNumber.includes(mobileNumber)
-  //     );
-  //   }
-
-  //   // Apply city filter if a city is selected
-  //   if (city) {
-  //     filteredData = filteredData.filter((business) => business.city === city);
-  //   }
-
-  //   // Apply category filter if a category is selected
-  //   if (category) {
-  //     filteredData = filteredData.filter(
-  //       (business) => business.category === category
-  //     );
-  //   }
-
-  //   // Apply status filter if a status is selected
-  //   if (status) {
-  //     filteredData = filteredData.filter(
-  //       (business) => business.status === status
-  //     );
-  //   }
-
-  //   setFilteredData(filteredData);
-  //   setCurrentPage(1); // Reset to the first page whenever filters are applied
-  // };
 
   useEffect(() => {
     fetchEmployeeBusinessData();
@@ -161,17 +107,10 @@ const EmployeeDetails = () => {
     setShowDatePicker(false); // hide the date picker after selection
   };
 
-  // Pagination logic
-  // const indexOfLastItem = currentPage * itemsPerPage;
-  // const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  // const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
-  // const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
 
-  // Calculate the range of page numbers to show
   const pageRange = 5;
   let startPage = Math.max(1, currentPage - Math.floor(pageRange / 2));
   let endPage = startPage + pageRange - 1;
