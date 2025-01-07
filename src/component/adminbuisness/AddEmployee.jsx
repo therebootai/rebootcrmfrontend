@@ -23,7 +23,7 @@ const AddEmployee = ({ onAddEmployees, fetchAllEmployees }) => {
 
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
-    const allowedTypes = ["image/jpeg", "image/png"];
+    const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
     const maxFileSize = 8 * 1024 * 1024;
 
     if (name === "mobileNumber" && value.length > 10) {
@@ -39,7 +39,7 @@ const AddEmployee = ({ onAddEmployees, fetchAllEmployees }) => {
         if (!allowedTypes.includes(file.type)) {
           setErrors({
             ...errors,
-            [name]: "Only JPG and PNG files are allowed",
+            [name]: "Only JPG, PNG and PDF files are allowed",
           });
           return;
         } else if (file.size > maxFileSize) {
