@@ -29,9 +29,9 @@ const AdminDashboard = () => {
       const response = await axios.get(
         `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?category=${selectedCategory}&city=${selectedCity}&startDate=${
+        }/api/business/get?category=${selectedCategory}&city=${selectedCity}&followupstartdate=${
           dateRange.startDate?.toISOString() || ""
-        }&endDate=${dateRange.endDate?.toISOString() || ""}`
+        }&followupenddate=${dateRange.endDate?.toISOString() || ""}`
       );
       const businessData = response.data;
 

@@ -46,7 +46,9 @@ const BdeCallingData = () => {
         const response = await axios.get(
           `${
             import.meta.env.VITE_BASE_URL
-          }/api/business/get?bdeId=${bdeId}&byTagAppointment=true`
+          }/api/business/get?bdeId=${bdeId}&byTagAppointment=true&followupstartdate=${
+            dateRange.startDate?.toISOString() || ""
+          }&followupenddate=${dateRange.endDate?.toISOString() || ""}`
         );
         setBusinesses(response.data);
         setFilteredBusinesses(response.data);
@@ -88,14 +90,6 @@ const BdeCallingData = () => {
     let filteredData = businesses;
 
     // Apply date range filter only if both dates are selected
-    if (dateRange.startDate && dateRange.endDate) {
-      const start = dateRange.startDate;
-      const end = dateRange.endDate;
-      filteredData = filteredData.filter((business) => {
-        const followUpDate = new Date(business.followUpDate);
-        return followUpDate >= start && followUpDate <= end;
-      });
-    }
 
     // Apply mobile number filter
     if (mobileNumber) {
@@ -348,7 +342,11 @@ const BdeCallingData = () => {
                     <GoDotFill />
                   </span>
                   <span>
-                    {business.status} - ({formatDate(business.followUpDate)})
+                    {business.status} - (
+                    {business.followUpDate
+                      ? formatDate(business.followUpDate)
+                      : "No Date"}
+                    )
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

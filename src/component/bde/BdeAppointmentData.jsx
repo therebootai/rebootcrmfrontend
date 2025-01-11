@@ -69,13 +69,13 @@ const BdeAppointmentData = () => {
         bdeId,
         page: currentPage,
         limit: itemsPerPage,
-        startDate: dateRange.startDate
+        followupstartdate: dateRange.startDate
           ? new Date(
               dateRange.startDate.getTime() -
                 dateRange.startDate.getTimezoneOffset() * 60000
             ).toISOString()
           : null,
-        endDate: dateRange.endDate
+        followupenddate: dateRange.endDate
           ? new Date(
               dateRange.endDate.getTime() -
                 dateRange.endDate.getTimezoneOffset() * 60000
@@ -165,17 +165,16 @@ const BdeAppointmentData = () => {
 
     if (dateRange.startDate && dateRange.endDate) {
       const start = new Date(dateRange.startDate);
-      start.setHours(0, 0, 0, 0);
+      start.setUTCHours(0, 0, 0, 0);
 
       const end = new Date(dateRange.endDate);
-      end.setHours(23, 59, 59, 999);
+      end.setUTCHours(23, 59, 59, 999);
 
       filteredData = filteredData.filter((business) => {
-        const appointmentDate = new Date(business.appointmentDate);
-        return appointmentDate >= start && appointmentDate <= end;
+        const followUpDate = new Date(business.followUpDate);
+        return followUpDate >= start && followUpDate <= end;
       });
     }
-
     if (mobileNumber) {
       filteredData = filteredData.filter((business) =>
         business.mobileNumber.includes(mobileNumber)
@@ -444,7 +443,13 @@ const BdeAppointmentData = () => {
                     <span>
                       <GoDotFill />
                     </span>
-                    <span>{business.status}</span>
+                    <span>
+                      {business.status} - (
+                      {business.followUpDate
+                        ? formatDate(business.followUpDate)
+                        : "No Date"}
+                      )
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span>
