@@ -11,6 +11,7 @@ import {
   MdKeyboardDoubleArrowRight,
 } from "react-icons/md";
 import LoadingAnimation from "../LoadingAnimation";
+import { batch } from "react";
 
 const EmployeeDetails = () => {
   const { role, id } = useParams(); // Get the role and id from the URL
@@ -20,11 +21,12 @@ const EmployeeDetails = () => {
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
   const [dateRange, setDateRange] = useState({
-    startDate: null, // Default to null to avoid filtering on date initially
-    endDate: null, // Default to null to avoid filtering on date initially
+    startDate: null,
+    endDate: null,
     key: "selection",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
   const [uniqueCities, setUniqueCities] = useState([]);
   const [uniqueCategories, setUniqueCategories] = useState([]);
   const [uniqueStatuses, setUniqueStatuses] = useState([]);
@@ -32,7 +34,6 @@ const EmployeeDetails = () => {
   const [fetchLoading, setFetchLoading] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
-  // const itemsPerPage = 20; // You can adjust this to control the number of items per page
 
   const fetchEmployeeBusinessData = async () => {
     try {
@@ -41,21 +42,57 @@ const EmployeeDetails = () => {
       if (role === "telecaller") {
         url = `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?telecallerId=${id}&page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&startDate=${
-          dateRange.startDate?.toISOString() || ""
-        }&endDate=${dateRange.endDate?.toISOString() || ""}`;
+        }/api/business/get?telecallerId=${id}&page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&followupstartdate=${
+          dateRange.startDate
+            ? new Date(
+                dateRange.startDate.getTime() -
+                  dateRange.startDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : ""
+        }&followupenddate=${
+          dateRange.endDate
+            ? new Date(
+                dateRange.endDate.getTime() -
+                  dateRange.endDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : ""
+        }`;
       } else if (role === "digitalmarketer") {
         url = `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?digitalMarketerId=${id}&page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&startDate=${
-          dateRange.startDate?.toISOString() || ""
-        }&endDate=${dateRange.endDate?.toISOString() || ""}`;
+        }/api/business/get?digitalMarketerId=${id}&page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&followupstartdate=${
+          dateRange.startDate
+            ? new Date(
+                dateRange.startDate.getTime() -
+                  dateRange.startDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : ""
+        }&followupenddate=${
+          dateRange.endDate
+            ? new Date(
+                dateRange.endDate.getTime() -
+                  dateRange.endDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : ""
+        }`;
       } else if (role === "bde") {
         url = `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?bdeId=${id}&byTagAppointment=true&page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&startDate=${
-          dateRange.startDate?.toISOString() || ""
-        }&endDate=${dateRange.endDate?.toISOString() || ""}`;
+        }/api/business/get?bdeId=${id}&byTagAppointment=true&page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&appointmentstartdate=${
+          dateRange.startDate
+            ? new Date(
+                dateRange.startDate.getTime() -
+                  dateRange.startDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : ""
+        }&appointmentenddate=${
+          dateRange.endDate
+            ? new Date(
+                dateRange.endDate.getTime() -
+                  dateRange.endDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : ""
+        }`;
       }
 
       const response = await axios.get(url);
@@ -70,8 +107,43 @@ const EmployeeDetails = () => {
 
   useEffect(() => {
     fetchEmployeeBusinessData();
-  }, [role, id, currentPage]);
+  }, [dateRange, mobileNumber, city, category, status, role, id, currentPage]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [dateRange, mobileNumber, city, category, status, role, id]);
+
+  const handleDateRangeChange = (ranges) => {
+    setDateRange({
+      startDate: ranges.selection.startDate,
+      endDate: ranges.selection.endDate,
+      key: "selection",
+    });
+
+    setIsDateFilterApplied(false);
+  };
+
+  const clearDateFilter = async () => {
+    const emptyDateRange = {
+      startDate: null,
+      endDate: null,
+      key: "selection",
+    };
+
+    setFetchLoading(true);
+
+    setDateRange(emptyDateRange);
+    setMobileNumber("");
+    setCity("");
+    setCategory("");
+    setStatus("");
+    setCurrentPage(1);
+    setIsDateFilterApplied(false);
+
+    await fetchEmployeeBusinessData();
+
+    setFetchLoading(false);
+  };
   useMemo(() => {
     async function getFilters() {
       try {
@@ -96,16 +168,6 @@ const EmployeeDetails = () => {
     }
     getFilters();
   }, []);
-
-  useEffect(() => {
-    fetchEmployeeBusinessData();
-  }, [dateRange, mobileNumber, city, category, status]);
-
-  const handleDateRangeChange = (ranges) => {
-    setCurrentPage(1);
-    setDateRange(ranges.selection);
-    setShowDatePicker(false); // hide the date picker after selection
-  };
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -135,31 +197,57 @@ const EmployeeDetails = () => {
       <div className="w-full flex flex-col gap-4">
         <div className="py-4 border-b border-[#cccccc] w-full flex flex-row gap-4 items-center">
           <h1 className="text-[#777777] text-lg font-semibold">Filter</h1>
-          <div className="relative">
-            <input
-              type="text"
-              value={
-                dateRange.startDate && dateRange.endDate
-                  ? `${format(dateRange.startDate, "dd/MM/yyyy")} - ${format(
-                      dateRange.endDate,
-                      "dd/MM/yyyy"
-                    )}`
-                  : "Select Date Range"
-              }
-              onClick={() => setShowDatePicker(!showDatePicker)}
-              readOnly
-              className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
-            />
-            {showDatePicker && (
-              <div className="absolute z-10">
-                <DateRangePicker
-                  ranges={[dateRange]}
-                  onChange={handleDateRangeChange}
-                  moveRangeOnFirstSelection={false}
-                  rangeColors={["#ff2722"]}
-                />
-              </div>
-            )}
+          <div className="flex items-center gap-2 relative">
+            <div className="relative">
+              <input
+                type="text"
+                value={
+                  dateRange.startDate && dateRange.endDate
+                    ? `${format(dateRange.startDate, "dd/MM/yyyy")} - ${format(
+                        dateRange.endDate,
+                        "dd/MM/yyyy"
+                      )}`
+                    : "Select Date Range"
+                }
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                readOnly
+                className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
+              />
+
+              {showDatePicker && (
+                <div className="absolute z-10">
+                  <DateRangePicker
+                    ranges={[dateRange]}
+                    onChange={handleDateRangeChange}
+                    moveRangeOnFirstSelection={false}
+                    rangeColors={["#ff2722"]}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className=" flex items-center gap-2">
+              {!isDateFilterApplied ? (
+                <button
+                  className="px-2 py-1 bg-[#FF2722] text-white rounded-md text-sm font-medium cursor-pointer"
+                  onClick={() => {
+                    fetchEmployeeBusinessData();
+
+                    setIsDateFilterApplied(true);
+                    setShowDatePicker(false);
+                  }}
+                >
+                  Show
+                </button>
+              ) : (
+                <button
+                  className="px-2 py-1 bg-gray-300 text-black rounded-md text-sm font-medium cursor-pointer"
+                  onClick={clearDateFilter}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
           <div className="">
             <input

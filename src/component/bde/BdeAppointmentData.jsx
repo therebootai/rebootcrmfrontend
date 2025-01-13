@@ -32,7 +32,13 @@ const BdeAppointmentData = () => {
     endDate: null, // Changed from `new Date()` to `null`
     key: "selection",
   });
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pendingDateRange, setPendingDateRange] = useState({
+    startDate: null,
+    endDate: null,
+    key: "selection",
+  });
   const [mobileNumber, setMobileNumber] = useState("");
   const [city, setCity] = useState("");
   const [category, setCategory] = useState("");
@@ -50,13 +56,19 @@ const BdeAppointmentData = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const [totalPage, setTotalPages] = useState(1);
+  const [counts, setCounts] = useState({
+    totalBusiness: 0,
+    followUps: 0,
+    visits: 0,
+    dealCloses: 0,
+  });
   const [fetchLoading, setFetchLoading] = useState(false);
 
   const fetchBusinesses = async (
     bdeId,
     currentPage,
     itemsPerPage,
-    dateRange,
+    dateRange = {},
     mobileNumber,
     businessName,
     city,
@@ -69,13 +81,13 @@ const BdeAppointmentData = () => {
         bdeId,
         page: currentPage,
         limit: itemsPerPage,
-        followupstartdate: dateRange.startDate
+        appointmentstartdate: dateRange.startDate
           ? new Date(
               dateRange.startDate.getTime() -
                 dateRange.startDate.getTimezoneOffset() * 60000
             ).toISOString()
           : null,
-        followupenddate: dateRange.endDate
+        appointmentenddate: dateRange.endDate
           ? new Date(
               dateRange.endDate.getTime() -
                 dateRange.endDate.getTimezoneOffset() * 60000
@@ -95,12 +107,13 @@ const BdeAppointmentData = () => {
         { params }
       );
 
-      const businessesData = response.data.businesses;
+      const businessesData = response.data;
 
-      setBusinesses(businessesData);
+      setBusinesses(businessesData.businesses);
 
-      setTotalPages(response.data.totalPages);
-      setCurrentPage(response.data.currentPage);
+      calculateCounts(businessesData);
+      setFilteredBusinesses(businessesData.businesses || []);
+      setTotalPages(response.data.totalPages || 1);
     } catch (error) {
       console.error("Error fetching businesses:", error);
     } finally {
@@ -109,7 +122,9 @@ const BdeAppointmentData = () => {
   };
 
   useEffect(() => {
-    if (currentPage > totalPages) {
+    if (currentPage < 1) {
+      setCurrentPage(1);
+    } else if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
     fetchBusinesses(
@@ -133,6 +148,27 @@ const BdeAppointmentData = () => {
     category,
     status,
   ]);
+
+  const calculateCounts = (data) => {
+    const totalBusiness = data.totalCount;
+    const followUps = data.statuscount.FollowupCount;
+    const visits = data.statuscount.visitCount;
+    const dealCloses = data.statuscount.dealCloseCount;
+
+    setCounts({
+      totalBusiness,
+      followUps,
+      visits,
+      dealCloses,
+    });
+  };
+
+  const dashboard = [
+    { name: "Total Business", number: counts.totalBusiness },
+    { name: "Follow Ups", number: counts.followUps },
+    { name: "Visit", number: counts.visits },
+    { name: "Deal Close", number: counts.dealCloses },
+  ];
 
   const normalizeString = (str) => {
     return str
@@ -160,27 +196,27 @@ const BdeAppointmentData = () => {
     getFilters();
   }, []);
 
-  const applyFilters = (businesses) => {
-    let filteredData = businesses;
+  const applyFilters = () => {
+    let filteredData = [...businesses];
 
-    if (dateRange.startDate && dateRange.endDate) {
-      const start = new Date(dateRange.startDate);
-      start.setUTCHours(0, 0, 0, 0);
+    // if (dateRange.startDate && dateRange.endDate) {
+    //   const start = new Date(dateRange.startDate);
+    //   start.setUTCHours(0, 0, 0, 0);
 
-      const end = new Date(dateRange.endDate);
-      end.setUTCHours(23, 59, 59, 999);
+    //   const end = new Date(dateRange.endDate);
+    //   end.setUTCHours(23, 59, 59, 999);
 
-      filteredData = filteredData.filter((business) => {
-        const followUpDate = new Date(business.followUpDate);
-        return followUpDate >= start && followUpDate <= end;
-      });
-    }
+    //   filteredData = filteredData.filter((business) => {
+    //     const followUpDate = new Date(business.followUpDate);
+    //     return followUpDate >= start && followUpDate <= end;
+    //   });
+    // }
+
     if (mobileNumber) {
       filteredData = filteredData.filter((business) =>
         business.mobileNumber.includes(mobileNumber)
       );
     }
-
     if (businessName) {
       const normalizedSearchTerm = normalizeString(businessName);
       filteredData = filteredData.filter((business) =>
@@ -191,42 +227,95 @@ const BdeAppointmentData = () => {
     if (city) {
       filteredData = filteredData.filter((business) => business.city === city);
     }
-
     if (category) {
       filteredData = filteredData.filter(
         (business) => business.category === category
       );
     }
-
     if (status) {
       filteredData = filteredData.filter(
         (business) => business.status === status
       );
     }
 
-    return filteredData;
+    setFilteredBusinesses(filteredData);
   };
 
-  useEffect(() => {
-    const filteredData = applyFilters(businesses);
-    setFilteredBusinesses(filteredData);
-  }, [mobileNumber, city, category, status, businesses]);
+  // useEffect(() => {
+  //   setCurrentPage(1);
+  //   const filteredData = applyFilters(businesses);
+  //   setFilteredBusinesses(filteredData);
+  // }, [mobileNumber, city, category, status, businesses]);
 
-  const handleDateRangeChange = (ranges) => {
-    setDateRange(ranges.selection);
-    setShowDatePicker(false); // hide the date picker after selection
+  useEffect(() => {
+    setCurrentPage(1);
+    applyFilters();
+  }, [dateRange, mobileNumber, businessName, city, category, status]);
+
+  const handlePendingDateRangeChange = (ranges) => {
+    setPendingDateRange({
+      startDate: ranges.selection.startDate,
+      endDate: ranges.selection.endDate,
+      key: "selection",
+    });
+  };
+
+  const applyDateFilter = () => {
+    setDateRange(pendingDateRange);
+    setIsDateFilterApplied(true);
+    setShowDatePicker(false);
+
+    fetchBusinesses(
+      bdeId,
+      1, // Reset to first page
+      itemsPerPage,
+      pendingDateRange,
+      mobileNumber,
+      businessName,
+      city,
+      category,
+      status
+    );
+  };
+
+  const clearDateFilter = () => {
+    const emptyDateRange = {
+      startDate: null,
+      endDate: null,
+      key: "selection",
+    };
+
+    setPendingDateRange(emptyDateRange);
+    setDateRange(emptyDateRange);
+    setIsDateFilterApplied(false);
+
+    fetchBusinesses(
+      bdeId,
+      1, // Reset to first page
+      itemsPerPage,
+      emptyDateRange,
+      mobileNumber,
+      businessName,
+      city,
+      category,
+      status
+    );
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) {
-      return "";
-    }
-    const options = {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    };
-    return new Date(dateString).toLocaleDateString("en-GB", options) + " ";
+    if (!dateString) return "";
+    const date = new Date(dateString);
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+
+    let hours = date.getHours(); // Local time hours
+    const minutes = String(date.getMinutes()).padStart(2, "0"); // Local time minutes
+    const ampm = hours >= 12 ? "PM" : "AM"; // Determine AM/PM
+    hours = hours % 12 || 12; // Convert to 12-hour format (0 becomes 12)
+
+    return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
   };
 
   const handleCopy = (business) => {
@@ -306,32 +395,53 @@ const BdeAppointmentData = () => {
     <div className="w-full flex flex-col gap-4">
       <div className="py-4 border-b border-[#cccccc] w-full flex flex-wrap gap-4 items-center">
         <h1 className="text-[#777777] text-lg font-semibold">Filter</h1>
-        <div className="relative">
-          <input
-            type="text"
-            value={
-              dateRange.startDate && dateRange.endDate
-                ? `${format(dateRange.startDate, "dd/MM/yyyy")} - ${format(
-                    dateRange.endDate,
-                    "dd/MM/yyyy"
-                  )}`
-                : "Select Date Range"
-            }
-            onClick={() => setShowDatePicker(!showDatePicker)}
-            readOnly
-            className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
-          />
-          {showDatePicker && (
-            <div className="absolute z-10">
-              <DateRangePicker
-                ranges={[dateRange]}
-                onChange={handleDateRangeChange}
-                moveRangeOnFirstSelection={false}
-                rangeColors={["#ff2722"]}
-              />
-            </div>
-          )}
+        <div className="flex items-center gap-2 relative">
+          <div className="relative">
+            <input
+              type="text"
+              value={
+                pendingDateRange.startDate && pendingDateRange.endDate
+                  ? `${format(
+                      pendingDateRange.startDate,
+                      "dd/MM/yyyy"
+                    )} - ${format(pendingDateRange.endDate, "dd/MM/yyyy")}`
+                  : "Select Date Range"
+              }
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              readOnly
+              className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
+            />
+            {showDatePicker && (
+              <div className="absolute z-10">
+                <DateRangePicker
+                  ranges={[pendingDateRange]}
+                  onChange={handlePendingDateRangeChange}
+                  moveRangeOnFirstSelection={false}
+                  rangeColors={["#ff2722"]}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {!isDateFilterApplied ? (
+              <button
+                className="px-2 py-1 bg-[#FF2722] text-white rounded-md text-sm font-medium cursor-pointer"
+                onClick={applyDateFilter}
+              >
+                Show
+              </button>
+            ) : (
+              <button
+                className="px-2 py-1 bg-gray-300 text-black rounded-md text-sm font-medium cursor-pointer"
+                onClick={clearDateFilter}
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
+
         <div>
           <input
             type="text"
@@ -397,6 +507,21 @@ const BdeAppointmentData = () => {
             ))}
           </select>
         </div>
+      </div>
+      <div className="flex flex-wrap md:gap-6 sm:gap-3 lg:gap-8">
+        {dashboard.map((item, index) => (
+          <div
+            key={index}
+            className="p-4 sm:px-6 lg:px-10 text-center border border-[#CCCCCC] flex flex-col gap-0 boxsh"
+          >
+            <span className="md:text-xl sm:text-lg font-semibold text-[#777777]">
+              {item.name}
+            </span>
+            <span className="md:text-lg sm:text-base font-semibold text-[#FF2722]">
+              {item.number}
+            </span>
+          </div>
+        ))}
       </div>
       {fetchLoading ? (
         <LoadingAnimation />

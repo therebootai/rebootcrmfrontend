@@ -10,13 +10,16 @@ import { format, isSameDay, startOfDay, endOfDay } from "date-fns";
 const DashboardEmployeeSection = () => {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+
+  const navigate = useNavigate();
+
   const [dateRange, setDateRange] = useState({
-    startDate: startOfDay(new Date()), // Set start date to the start of today
-    endDate: endOfDay(new Date()), // Set end date to the end of today
+    startDate: null,
+    endDate: null,
     key: "selection",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const navigate = useNavigate();
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
 
   const fetchEmployeeData = async () => {
     try {
@@ -62,10 +65,37 @@ const DashboardEmployeeSection = () => {
     }
   };
 
-  const fetchBusinessData = async (employees, startDate, endDate) => {
+  const getLatestTarget = (targets) => {
+    if (!targets || targets.length === 0) return null;
+    return targets.reduce((latest, current) => {
+      return !latest ||
+        new Date(current.month + " " + current.year) >
+          new Date(latest.month + " " + latest.year)
+        ? current
+        : latest;
+    }, null);
+  };
+
+  const fetchBusinessData = async (employees) => {
     try {
       const businessPromises = employees.map((employee) => {
+        const params = {
+          createdstartdate: dateRange.startDate
+            ? new Date(
+                dateRange.startDate.getTime() -
+                  dateRange.startDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : null,
+          createdenddate: dateRange.endDate
+            ? new Date(
+                dateRange.endDate.getTime() -
+                  dateRange.endDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : null,
+        };
+
         let url = "";
+
         if (employee.role === "Telecaller") {
           url = `${
             import.meta.env.VITE_BASE_URL
@@ -79,12 +109,28 @@ const DashboardEmployeeSection = () => {
             employee.id
           }&byTagAppointment=true`;
         }
-        return axios.get(url).then((response) => ({
-          ...employee,
-          businessData: response.data.businesses,
-          statuscount: response.data.statuscount, // Attach the status counts
-          totalCount: response.data.totalCount || 0, // Add total count
-        }));
+
+        // Attach query params
+        return axios
+          .get(url, { params })
+          .then((response) => ({
+            ...employee,
+            businessData: response.data.businesses,
+            statuscount: response.data.statuscount,
+            totalCount: response.data.totalCount || 0,
+          }))
+          .catch((err) => {
+            console.error(
+              `Error fetching business data for ${employee.role}:`,
+              err
+            );
+            return {
+              ...employee,
+              businessData: [],
+              statuscount: {},
+              totalCount: 0,
+            };
+          });
       });
 
       const updatedData = await Promise.all(businessPromises);
@@ -94,17 +140,6 @@ const DashboardEmployeeSection = () => {
     }
   };
 
-  const getLatestTarget = (targets) => {
-    if (!targets || targets.length === 0) return null;
-    return targets.reduce((latest, current) => {
-      return !latest ||
-        new Date(current.month + " " + current.year) >
-          new Date(latest.month + " " + latest.year)
-        ? current
-        : latest;
-    }, null);
-  };
-
   useEffect(() => {
     fetchEmployeeData();
   }, []);
@@ -112,15 +147,34 @@ const DashboardEmployeeSection = () => {
   // React to date range changes
   useEffect(() => {
     if (data.length > 0) {
-      fetchBusinessData(data, dateRange.startDate, dateRange.endDate);
+      fetchBusinessData(data);
     }
   }, [dateRange, data]);
+
+  const handleDateRangeChange = (ranges) => {
+    setDateRange({
+      startDate: ranges.selection.startDate,
+      endDate: ranges.selection.endDate,
+      key: "selection",
+    });
+    setIsDateFilterApplied(false);
+  };
+
+  const clearDateFilter = () => {
+    setDateRange({
+      startDate: null,
+      endDate: null,
+      key: "selection",
+    });
+    setIsDateFilterApplied(false);
+    fetchEmployeeData();
+  };
 
   const headers = [
     "Employee Name",
     "Role",
     "Total Data",
-    "Visit",
+    "Appintments",
     "Followup",
     "Deal Close",
     "Target",
@@ -133,41 +187,62 @@ const DashboardEmployeeSection = () => {
     navigate(`/employee-details/${roleSlug}/${id}`);
   };
 
-  const handleDateRangeChange = (ranges) => {
-    setDateRange(ranges.selection);
-  };
-
   return (
     <div className="flex flex-col gap-6">
       <div className="py-4 border-b border-[#cccccc] w-full flex flex-row gap-4 items-center relative flex-wrap">
         <h1 className="text-[#777777] text-lg font-semibold">Filter</h1>
-        <div className="relative ">
-          <input
-            type="text"
-            value={
-              dateRange.startDate && dateRange.endDate
-                ? `${format(dateRange.startDate, "dd/MM/yyyy")} - ${format(
-                    dateRange.endDate,
-                    "dd/MM/yyyy"
-                  )}`
-                : "Select Date Range"
-            }
-            onClick={() => setShowDatePicker(!showDatePicker)}
-            readOnly
-            className="w-full border px-2 py-1"
-          />
-          {showDatePicker && (
-            <div className="absolute z-10 w-full sm:w-auto">
-              <DateRangePicker
-                ranges={[dateRange]}
-                moveRangeOnFirstSelection={false}
-                onChange={handleDateRangeChange}
-                rangeColors={["#ff2722"]}
-                // staticRanges={[]}
-                // inputRanges={[]}
-              />
-            </div>
-          )}
+        <div className="flex items-center gap-2 relative">
+          <div className="relative">
+            <input
+              type="text"
+              value={
+                dateRange.startDate && dateRange.endDate
+                  ? `${format(dateRange.startDate, "dd/MM/yyyy")} - ${format(
+                      dateRange.endDate,
+                      "dd/MM/yyyy"
+                    )}`
+                  : "Select Date Range"
+              }
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              readOnly
+              className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
+            />
+
+            {showDatePicker && (
+              <div className="absolute z-10">
+                <DateRangePicker
+                  ranges={[dateRange]}
+                  onChange={handleDateRangeChange}
+                  moveRangeOnFirstSelection={false}
+                  rangeColors={["#ff2722"]}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className=" flex items-center gap-2">
+            {!isDateFilterApplied ? (
+              <button
+                className="px-2 py-1 bg-[#FF2722] text-white rounded-md text-sm font-medium cursor-pointer"
+                onClick={() => {
+                  if (data.length > 0) {
+                    fetchBusinessData(data);
+                  }
+                  setIsDateFilterApplied(true);
+                  setShowDatePicker(false);
+                }}
+              >
+                Show
+              </button>
+            ) : (
+              <button
+                className="px-2 py-1 bg-gray-300 text-black rounded-md text-sm font-medium cursor-pointer"
+                onClick={clearDateFilter}
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       </div>
       <div className="flex flex-col gap-2">

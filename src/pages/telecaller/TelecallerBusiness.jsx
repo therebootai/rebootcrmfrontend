@@ -6,11 +6,15 @@ import TelecallerDashboardTemplate from "../../template/TelecallerDashboardTempl
 import AddBuisness from "../../component/adminbuisness/AddBuisness";
 import ManageBusiness from "../../component/adminbuisness/ManageBusiness";
 import { useParams } from "react-router-dom";
+import { DateRangePicker } from "react-date-range";
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
+import { format } from "date-fns";
 
 const TelecallerBusiness = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allBusinesses, setAllBusinesses] = useState([]);
-  const [filteredBusinesses, setFilteredBusinesses] = useState([]);
+
   const [mobileNumber, setMobileNumber] = useState("");
   const [city, setCity] = useState("");
   const [category, setCategory] = useState("");
@@ -22,6 +26,13 @@ const TelecallerBusiness = () => {
   const { telecallerId } = useParams();
   const [fetchLoading, setFetchLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
+  const [dateRange, setDateRange] = useState({
+    startDate: "",
+    endDate: "",
+    key: "selection",
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -29,13 +40,9 @@ const TelecallerBusiness = () => {
   const handleNewBusiness = (newBusinessResponse) => {
     const newBusiness = newBusinessResponse.newBusiness;
 
-    // Update the allBusinesses state with the new business
     const updatedBusinesses = [...allBusinesses, newBusiness];
 
-    // Update states with the new business data and reapply filters
     setAllBusinesses(updatedBusinesses);
-    setFilteredBusinesses(applyFilters(updatedBusinesses));
-    setUniqueFilters(updatedBusinesses);
 
     closeModal();
   };
@@ -45,20 +52,46 @@ const TelecallerBusiness = () => {
     category,
     city,
     mobileNumber,
-    currentPage
+    currentPage,
+    customDateRange = dateRange
   ) => {
     try {
       setFetchLoading(true);
+
+      // Build query parameters dynamically
+      const params = {
+        page: currentPage,
+        status: status || "",
+        category: category || "",
+        city: city || "",
+        mobileNumber: mobileNumber || "",
+        telecallerId,
+      };
+
+      if (customDateRange.startDate && customDateRange.endDate) {
+        params.followupstartdate = new Date(
+          customDateRange.startDate.getTime() -
+            customDateRange.startDate.getTimezoneOffset() * 60000
+        ).toISOString();
+        params.followupenddate = new Date(
+          customDateRange.endDate.getTime() -
+            customDateRange.endDate.getTimezoneOffset() * 60000
+        ).toISOString();
+      }
+
+      // Make API call with the constructed query parameters
       const response = await axios.get(
-        `${
-          import.meta.env.VITE_BASE_URL
-        }/api/business/get?page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&telecallerId=${telecallerId}`
+        `${import.meta.env.VITE_BASE_URL}/api/business/get`,
+        {
+          params,
+        }
       );
+
       const data = response.data;
 
+      // Update state with fetched data
       setAllBusinesses(data.businesses);
-
-      setTotalPages(data.totalPages);
+      setTotalPages(data.totalPages || 1);
     } catch (error) {
       console.error("Error fetching businesses:", error);
     } finally {
@@ -76,6 +109,31 @@ const TelecallerBusiness = () => {
       telecallerId
     );
   }, [mobileNumber, city, category, status, currentPage, telecallerId]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [mobileNumber, city, category, status, dateRange]);
+
+  const handleDateRangeChange = (ranges) => {
+    setDateRange({
+      startDate: ranges.selection.startDate,
+      endDate: ranges.selection.endDate,
+      key: "selection",
+    });
+
+    setIsDateFilterApplied(false);
+  };
+
+  const clearDateFilter = () => {
+    const emptyDateRange = {
+      startDate: "",
+      endDate: "",
+      key: "selection",
+    };
+    setDateRange(emptyDateRange);
+    setIsDateFilterApplied(false);
+    fetchAllBusinesses(status, category, city, mobileNumber, 1, emptyDateRange);
+  };
 
   useMemo(() => {
     async function getFilters() {
@@ -96,41 +154,71 @@ const TelecallerBusiness = () => {
     getFilters();
   }, []);
 
-  const applyFilters = (data) => {
-    let filteredData = data;
-
-    if (mobileNumber) {
-      filteredData = filteredData.filter((business) =>
-        business.mobileNumber.includes(mobileNumber)
-      );
-    }
-    if (city) {
-      filteredData = filteredData.filter((business) => business.city === city);
-    }
-    if (category) {
-      filteredData = filteredData.filter(
-        (business) => business.category === category
-      );
-    }
-    if (status) {
-      filteredData = filteredData.filter(
-        (business) => business.status === status
-      );
-    }
-
-    return filteredData;
-  };
-
-  // Apply filters when the filter values or allBusinesses data changes
-  useEffect(() => {
-    setFilteredBusinesses(applyFilters(allBusinesses));
-  }, [mobileNumber, city, category, status, allBusinesses]);
-
   return (
     <TelecallerDashboardTemplate>
       <div className="flex flex-col gap-4 p-4">
         <div className="py-6 flex border-b border-[#cccccc] items-center flex-wrap gap-6">
           <span className="text-lg font-semibold text-[#777777]">Filter</span>
+
+          <div className="flex items-center gap-2 relative">
+            <div className="relative">
+              <input
+                type="text"
+                value={
+                  dateRange.startDate && dateRange.endDate
+                    ? `${format(dateRange.startDate, "dd/MM/yyyy")} - ${format(
+                        dateRange.endDate,
+                        "dd/MM/yyyy"
+                      )}`
+                    : "Select Date Range"
+                }
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                readOnly
+                className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
+              />
+
+              {showDatePicker && (
+                <div className="absolute z-10">
+                  <DateRangePicker
+                    ranges={[dateRange]}
+                    onChange={handleDateRangeChange}
+                    moveRangeOnFirstSelection={false}
+                    rangeColors={["#ff2722"]}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className=" flex items-center gap-2">
+              {!isDateFilterApplied ? (
+                <button
+                  className="px-2 py-1 bg-[#FF2722] text-white rounded-md text-sm font-medium cursor-pointer"
+                  onClick={() => {
+                    fetchAllBusinesses(
+                      status,
+                      category,
+                      city,
+                      mobileNumber,
+                      currentPage,
+                      telecallerId
+                    );
+                    setIsDateFilterApplied(true);
+                    setShowDatePicker(!showDatePicker);
+                  }}
+                >
+                  Show
+                </button>
+              ) : (
+                <button
+                  className="px-2 py-1 bg-gray-300 text-black rounded-md text-sm font-medium cursor-pointer"
+                  onClick={clearDateFilter}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
           <div>
             <input
               type="number"

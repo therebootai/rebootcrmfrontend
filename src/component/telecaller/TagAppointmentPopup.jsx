@@ -69,21 +69,6 @@ const TagAppointmentPopup = ({ businessId, onClose }) => {
           className="w-full p-2 mb-4 border border-gray-300 rounded-md" // Custom styling
           placeholderText="Select date and time"
         />
-        <div className="flex justify-end gap-4">
-          <button
-            className="px-4 py-2 bg-gray-500 text-white rounded-md"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-          <button
-            className="px-4 py-2 bg-blue-500 text-white rounded-md"
-            onClick={handleTagAppointment}
-            disabled={!selectedBdeId || !selectedDate} // Ensure both BDE and date are selected
-          >
-            Tag
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -23,21 +23,33 @@ const AdminDashboard = () => {
     key: "selection",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
 
   const fetchBusinesses = async () => {
     try {
       const response = await axios.get(
         `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?category=${selectedCategory}&city=${selectedCity}&followupstartdate=${
-          dateRange.startDate?.toISOString() || ""
-        }&followupenddate=${dateRange.endDate?.toISOString() || ""}`
+        }/api/business/get?category=${selectedCategory}&city=${selectedCity}&createdstartdate=${
+          dateRange.startDate
+            ? new Date(
+                dateRange.startDate.getTime() -
+                  dateRange.startDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : ""
+        }&createdenddate=${
+          dateRange.endDate
+            ? new Date(
+                dateRange.endDate.getTime() -
+                  dateRange.endDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : ""
+        }`
       );
       const businessData = response.data;
 
       setBusinesses(businessData.businesses);
 
-      // Set the initial state to display all businesses
       calculateCounts(businessData);
     } catch (error) {
       console.error("Error fetching businesses:", error);
@@ -82,38 +94,25 @@ const AdminDashboard = () => {
     });
   };
 
-  // const filterAndSetData = () => {
-  //   let filtered = businesses;
-
-  //   // Apply date range filter only if both dates are selected
-  //   if (dateRange.startDate && dateRange.endDate) {
-  //     filtered = filtered.filter((business) => {
-  //       const appointmentDate = new Date(business.appointmentDate);
-  //       return (
-  //         appointmentDate >= dateRange.startDate &&
-  //         appointmentDate <= dateRange.endDate
-  //       );
-  //     });
-  //   }
-
-  //   // Apply category filter if selected
-  //   if (selectedCategory) {
-  //     filtered = filtered.filter(
-  //       (business) => business.category === selectedCategory
-  //     );
-  //   }
-
-  //   // Apply city filter if selected
-  //   if (selectedCity) {
-  //     filtered = filtered.filter((business) => business.city === selectedCity);
-  //   }
-
-  //   // Update state with filtered data and recalculate counts
-  //   calculateCounts(filtered);
-  // };
-
   const handleDateRangeChange = (ranges) => {
-    setDateRange(ranges.selection);
+    setDateRange({
+      startDate: ranges.selection.startDate,
+      endDate: ranges.selection.endDate,
+      key: "selection",
+    });
+
+    setIsDateFilterApplied(false);
+  };
+
+  const clearDateFilter = () => {
+    const emptyDateRange = {
+      startDate: "",
+      endDate: "",
+      key: "selection",
+    };
+    setDateRange(emptyDateRange);
+    setIsDateFilterApplied(false);
+    fetchBusinesses(category, city, mobileNumber, 1, emptyDateRange);
   };
 
   const handleCategoryChange = (e) => {
@@ -136,31 +135,56 @@ const AdminDashboard = () => {
       <div className="p-4 flex flex-col gap-4">
         <div className="py-4 border-b border-[#cccccc] w-full flex flex-row gap-4 items-center relative">
           <h1 className="text-[#777777] text-lg font-semibold">Filter</h1>
-          <div className="relative">
-            <input
-              type="text"
-              value={
-                dateRange.startDate && dateRange.endDate
-                  ? `${format(dateRange.startDate, "dd/MM/yyyy")} - ${format(
-                      dateRange.endDate,
-                      "dd/MM/yyyy"
-                    )}`
-                  : "Select Date Range"
-              }
-              onClick={() => setShowDatePicker(!showDatePicker)}
-              readOnly
-              className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
-            />
-            {showDatePicker && (
-              <div className="absolute z-10">
-                <DateRangePicker
-                  ranges={[dateRange]}
-                  onChange={handleDateRangeChange}
-                  moveRangeOnFirstSelection={false}
-                  rangeColors={["#ff2722"]}
-                />
-              </div>
-            )}
+          <div className="flex items-center gap-2 relative">
+            <div className="relative">
+              <input
+                type="text"
+                value={
+                  dateRange.startDate && dateRange.endDate
+                    ? `${format(dateRange.startDate, "dd/MM/yyyy")} - ${format(
+                        dateRange.endDate,
+                        "dd/MM/yyyy"
+                      )}`
+                    : "Select Date Range"
+                }
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                readOnly
+                className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
+              />
+
+              {showDatePicker && (
+                <div className="absolute z-10">
+                  <DateRangePicker
+                    ranges={[dateRange]}
+                    onChange={handleDateRangeChange}
+                    moveRangeOnFirstSelection={false}
+                    rangeColors={["#ff2722"]}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className=" flex items-center gap-2">
+              {!isDateFilterApplied ? (
+                <button
+                  className="px-2 py-1 bg-[#FF2722] text-white rounded-md text-sm font-medium cursor-pointer"
+                  onClick={() => {
+                    fetchBusinesses();
+                    setIsDateFilterApplied(true);
+                    setShowDatePicker(!showDatePicker);
+                  }}
+                >
+                  Show
+                </button>
+              ) : (
+                <button
+                  className="px-2 py-1 bg-gray-300 text-black rounded-md text-sm font-medium cursor-pointer"
+                  onClick={clearDateFilter}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
           <div>
             <select

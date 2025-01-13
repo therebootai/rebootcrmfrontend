@@ -37,7 +37,13 @@ const TelecallerCallingData = () => {
     endDate: null,
     key: "selection",
   });
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pendingDateRange, setPendingDateRange] = useState({
+    startDate: null,
+    endDate: null,
+    key: "selection",
+  });
   const [uniqueCities, setUniqueCities] = useState([]);
   const [uniqueCategories, setUniqueCategories] = useState([]);
   const [uniqueStatuses, setUniqueStatuses] = useState([]);
@@ -53,17 +59,23 @@ const TelecallerCallingData = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const [totalPage, setTotalPages] = useState(1);
+  const [counts, setCounts] = useState({
+    totalBusiness: 0,
+    followUps: 0,
+    visits: 0,
+    dealCloses: 0,
+  });
 
   const fetchBusinesses = async (
     telecallerId,
     currentPage,
     itemsPerPage,
-    dateRange,
-    mobileNumber,
-    businessName,
-    city,
-    category,
-    status
+    dateRange = {},
+    mobileNumber = "",
+    businessName = "",
+    city = "",
+    category = "",
+    status = ""
   ) => {
     setFetchLoading(true);
     try {
@@ -90,19 +102,17 @@ const TelecallerCallingData = () => {
         status,
       };
 
-      // Making the API request
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/api/business/get`,
         { params }
       );
 
-      const businessesData = response.data.businesses;
+      const businessesData = response.data;
 
-      setBusinesses(businessesData);
-      setFilteredBusinesses(businessesData);
-
-      setTotalPages(response.data.totalPages);
-      setCurrentPage(response.data.currentPage);
+      setBusinesses(businessesData.businesses || []);
+      setFilteredBusinesses(businessesData.businesses || []);
+      calculateCounts(businessesData);
+      setTotalPages(businessesData.totalPages || 1);
     } catch (error) {
       console.error("Error fetching businesses:", error);
     } finally {
@@ -110,8 +120,31 @@ const TelecallerCallingData = () => {
     }
   };
 
+  const calculateCounts = (data) => {
+    const totalBusiness = data.totalCount;
+    const followUps = data.statuscount.FollowupCount;
+    const visits = data.statuscount.visitCount;
+    const dealCloses = data.statuscount.dealCloseCount;
+
+    setCounts({
+      totalBusiness,
+      followUps,
+      visits,
+      dealCloses,
+    });
+  };
+
+  const dashboard = [
+    { name: "Total Business", number: counts.totalBusiness },
+    { name: "Follow Ups", number: counts.followUps },
+    { name: "Appointment Generated", number: counts.visits },
+    { name: "Deal Close", number: counts.dealCloses },
+  ];
+
   useEffect(() => {
-    if (currentPage > totalPages) {
+    if (currentPage < 1) {
+      setCurrentPage(1);
+    } else if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
     fetchBusinesses(
@@ -165,18 +198,18 @@ const TelecallerCallingData = () => {
   const applyFilters = () => {
     let filteredData = [...businesses];
 
-    if (dateRange.startDate && dateRange.endDate) {
-      const start = new Date(dateRange.startDate);
-      start.setUTCHours(0, 0, 0, 0);
+    // if (dateRange.startDate && dateRange.endDate) {
+    //   const start = new Date(dateRange.startDate);
+    //   start.setUTCHours(0, 0, 0, 0);
 
-      const end = new Date(dateRange.endDate);
-      end.setUTCHours(23, 59, 59, 999);
+    //   const end = new Date(dateRange.endDate);
+    //   end.setUTCHours(23, 59, 59, 999);
 
-      filteredData = filteredData.filter((business) => {
-        const followUpDate = new Date(business.followUpDate);
-        return followUpDate >= start && followUpDate <= end;
-      });
-    }
+    //   filteredData = filteredData.filter((business) => {
+    //     const followUpDate = new Date(business.followUpDate);
+    //     return followUpDate >= start && followUpDate <= end;
+    //   });
+    // }
 
     if (mobileNumber) {
       filteredData = filteredData.filter((business) =>
@@ -208,6 +241,7 @@ const TelecallerCallingData = () => {
   };
 
   useEffect(() => {
+    setCurrentPage(1);
     applyFilters();
   }, [dateRange, mobileNumber, businessName, city, category, status]);
 
@@ -215,21 +249,71 @@ const TelecallerCallingData = () => {
   //   setCurrentPage(1);
   // }, [mobileNumber, city, category, status]);
 
-  const handleDateRangeChange = (ranges) => {
-    setDateRange(ranges.selection);
-    setShowDatePicker(false);
+  const handlePendingDateRangeChange = (ranges) => {
+    setPendingDateRange({
+      startDate: ranges.selection.startDate,
+      endDate: ranges.selection.endDate,
+      key: "selection",
+    });
+  };
+
+  const applyDateFilter = () => {
+    setDateRange(pendingDateRange);
+    setIsDateFilterApplied(true);
+
+    fetchBusinesses(
+      telecallerId,
+      1, // Reset to first page
+      itemsPerPage,
+      pendingDateRange,
+      mobileNumber,
+      businessName,
+      city,
+      category,
+      status
+    );
+
+    setShowDatePicker(false); // Close the date picker
+  };
+
+  const clearDateFilter = () => {
+    const emptyDateRange = {
+      startDate: null,
+      endDate: null,
+      key: "selection",
+    };
+
+    setPendingDateRange(emptyDateRange);
+    setDateRange(emptyDateRange);
+    setIsDateFilterApplied(false);
+
+    fetchBusinesses(
+      telecallerId,
+      1, // Reset to first page
+      itemsPerPage,
+      emptyDateRange,
+      mobileNumber,
+      businessName,
+      city,
+      category,
+      status
+    );
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
-    const options = {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    };
-    return new Date(dateString).toLocaleDateString("en-GB", options) + " ";
+    const date = new Date(dateString);
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+
+    let hours = date.getHours(); // Local time hours
+    const minutes = String(date.getMinutes()).padStart(2, "0"); // Local time minutes
+    const ampm = hours >= 12 ? "PM" : "AM"; // Determine AM/PM
+    hours = hours % 12 || 12; // Convert to 12-hour format (0 becomes 12)
+
+    return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
   };
 
   const handleCopy = (business) => {
@@ -250,14 +334,6 @@ const TelecallerCallingData = () => {
       .catch((error) => {
         console.error("Error copying lead:", error);
       });
-  };
-
-  const openTagAppointmentPopup = (businessId) => {
-    setSelectedBusinessId(businessId);
-  };
-
-  const closePopup = () => {
-    setSelectedBusinessId(null);
   };
 
   const openProposalPopup = (business) => {
@@ -283,14 +359,14 @@ const TelecallerCallingData = () => {
   const handleUpdate = (updatedBusiness) => {
     setBusinesses((prevBusinesses) =>
       prevBusinesses.map((business) =>
-        business.businessId === selectedBusiness.businessId
+        business.businessId === updatedBusiness.businessId
           ? { ...business, ...updatedBusiness }
           : business
       )
     );
     setFilteredBusinesses((prevFilteredBusinesses) =>
       prevFilteredBusinesses.map((business) =>
-        business.businessId === selectedBusiness.businessId
+        business.businessId === updatedBusiness.businessId
           ? { ...business, ...updatedBusiness }
           : business
       )
@@ -319,32 +395,53 @@ const TelecallerCallingData = () => {
       <div className="py-4 border-b border-[#cccccc] w-full flex flex-wrap gap-4 items-center">
         <h1 className="text-[#777777] text-lg font-semibold">Filter</h1>
         {/* Date range input */}
-        <div className="relative">
-          <input
-            type="text"
-            value={
-              dateRange.startDate && dateRange.endDate
-                ? `${format(dateRange.startDate, "dd/MM/yyyy")} - ${format(
-                    dateRange.endDate,
-                    "dd/MM/yyyy"
-                  )}`
-                : "Select Date Range"
-            }
-            onClick={() => setShowDatePicker(!showDatePicker)}
-            readOnly
-            className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
-          />
-          {showDatePicker && (
-            <div className="absolute z-10">
-              <DateRangePicker
-                ranges={[dateRange]}
-                onChange={handleDateRangeChange}
-                moveRangeOnFirstSelection={false}
-                rangeColors={["#ff2722"]}
-              />
-            </div>
-          )}
+        <div className="flex items-center gap-2 relative">
+          <div className="relative">
+            <input
+              type="text"
+              value={
+                pendingDateRange.startDate && pendingDateRange.endDate
+                  ? `${format(
+                      pendingDateRange.startDate,
+                      "dd/MM/yyyy"
+                    )} - ${format(pendingDateRange.endDate, "dd/MM/yyyy")}`
+                  : "Select Date Range"
+              }
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              readOnly
+              className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
+            />
+            {showDatePicker && (
+              <div className="absolute z-10">
+                <DateRangePicker
+                  ranges={[pendingDateRange]}
+                  onChange={handlePendingDateRangeChange}
+                  moveRangeOnFirstSelection={false}
+                  rangeColors={["#ff2722"]}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {!isDateFilterApplied ? (
+              <button
+                className="px-2 py-1 bg-[#FF2722] text-white rounded-md text-sm font-medium cursor-pointer"
+                onClick={applyDateFilter}
+              >
+                Show
+              </button>
+            ) : (
+              <button
+                className="px-2 py-1 bg-gray-300 text-black rounded-md text-sm font-medium cursor-pointer"
+                onClick={clearDateFilter}
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
+
         <div>
           <input
             type="text"
@@ -410,6 +507,21 @@ const TelecallerCallingData = () => {
             ))}
           </select>
         </div>
+      </div>
+      <div className="flex flex-wrap gap-8">
+        {dashboard.map((item, index) => (
+          <div
+            key={index}
+            className="p-4 px-10 text-center border border-[#CCCCCC] flex flex-col gap-0 boxsh"
+          >
+            <span className="text-xl font-semibold text-[#777777]">
+              {item.name}
+            </span>
+            <span className="text-lg font-semibold text-[#FF2722]">
+              {item.number}
+            </span>
+          </div>
+        ))}
       </div>
       <div>
         <div>
@@ -483,6 +595,16 @@ const TelecallerCallingData = () => {
                             </span>
                             <span>{business.remarks}</span>
                           </div>
+                          <div className="flex items-center gap-2">
+                            <span>
+                              <GoDotFill />
+                            </span>
+                            <span>
+                              {business.appointmentDate
+                                ? formatDate(business.appointmentDate)
+                                : "No Appointment Date"}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex flex-col gap-4 text-white">
                           <button
@@ -491,14 +613,14 @@ const TelecallerCallingData = () => {
                           >
                             Send Proposal
                           </button>
-                          <button
+                          {/* <button
                             className="px-2 p-1 bg-[#FF2722] rounded-md text-sm font-semibold"
                             onClick={() =>
                               openTagAppointmentPopup(business.businessId)
                             }
                           >
                             Tag Appointment
-                          </button>
+                          </button> */}
                         </div>
                       </div>
                     </div>
@@ -575,12 +697,12 @@ const TelecallerCallingData = () => {
       )}
 
       {/* Tag Appointment Popup */}
-      {selectedBusinessId && (
+      {/* {selectedBusinessId && (
         <TagAppointmentPopup
           businessId={selectedBusinessId}
           onClose={closePopup}
         />
-      )}
+      )} */}
 
       {/* Edit Business Popup */}
       {selectedBusiness && (
