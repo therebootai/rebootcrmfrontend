@@ -97,8 +97,8 @@ const AddAndManageBuisness = () => {
   };
 
   useEffect(() => {
-    fetchAllBusinesses(status, category, city, mobileNumber);
-  }, [currentPage]);
+    fetchAllBusinesses(status, category, city, mobileNumber, dateRange);
+  }, [status, category, city, mobileNumber, dateRange, currentPage]);
 
   const handleDateRangeChange = (ranges) => {
     setDateRange({
@@ -121,23 +121,23 @@ const AddAndManageBuisness = () => {
     fetchAllBusinesses(category, status, city, mobileNumber, 1, emptyDateRange);
   };
 
-  // Apply filters when any filter or business data changes
-  useEffect(() => {
-    // setFilteredBusinesses(applyFilters(allBusinesses));
+  // // Apply filters when any filter or business data changes
+  // useEffect(() => {
+  //   // setFilteredBusinesses(applyFilters(allBusinesses));
 
-    fetchAllBusinesses(status, category, city, mobileNumber);
+  //   fetchAllBusinesses(status, category, city, mobileNumber);
 
-    // setCurrentPage(1);  Reset to the first page when filters are applied
-  }, [mobileNumber, city, category, status, isNewDataImport]);
+  //   // setCurrentPage(1);  Reset to the first page when filters are applied
+  // }, [mobileNumber, city, category, status, isNewDataImport]);
 
-  // const setUniqueFilters = (data) => {
-  //   const cities = [...new Set(data.map((item) => item.city))];
-  //   const categories = [...new Set(data.map((item) => item.category))];
-  //   const statuses = [...new Set(data.map((item) => item.status))];
-  //   setUniqueCities(cities);
-  //   setUniqueCategories(categories);
-  //   setUniqueStatuses(statuses);
-  // };
+  // // const setUniqueFilters = (data) => {
+  // //   const cities = [...new Set(data.map((item) => item.city))];
+  // //   const categories = [...new Set(data.map((item) => item.category))];
+  // //   const statuses = [...new Set(data.map((item) => item.status))];
+  // //   setUniqueCities(cities);
+  // //   setUniqueCategories(categories);
+  // //   setUniqueStatuses(statuses);
+  // // };
 
   useMemo(() => {
     async function getFilters() {
