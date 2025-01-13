@@ -7,6 +7,10 @@ import ManageBusiness from "../component/adminbuisness/ManageBusiness";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import DuplicatePopup from "../component/DuplicatePopup";
+import { DateRangePicker } from "react-date-range";
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
+import { format } from "date-fns";
 
 const AddAndManageBuisness = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,6 +30,13 @@ const AddAndManageBuisness = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isNewDataImport, setIsNewDataImport] = useState(false);
+  const [dateRange, setDateRange] = useState({
+    startDate: "",
+    endDate: "",
+    key: "selection",
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -44,13 +55,33 @@ const AddAndManageBuisness = () => {
     closeModal();
   };
 
-  const fetchAllBusinesses = async (status, category, city, mobileNumber) => {
+  const fetchAllBusinesses = async (
+    status,
+    category,
+    city,
+    mobileNumber,
+    dateRange = { startDate: "", endDate: "" }
+  ) => {
     try {
       setFetchLoading(true);
       const response = await axios.get(
         `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}`
+        }/api/business/get?page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&createdstartdate=${
+          dateRange.startDate
+            ? new Date(
+                dateRange.startDate.getTime() -
+                  dateRange.startDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : ""
+        }&createdenddate=${
+          dateRange.endDate
+            ? new Date(
+                dateRange.endDate.getTime() -
+                  dateRange.endDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : ""
+        }`
       );
       const data = response.data;
 
@@ -68,6 +99,27 @@ const AddAndManageBuisness = () => {
   useEffect(() => {
     fetchAllBusinesses(status, category, city, mobileNumber);
   }, [currentPage]);
+
+  const handleDateRangeChange = (ranges) => {
+    setDateRange({
+      startDate: ranges.selection.startDate,
+      endDate: ranges.selection.endDate,
+      key: "selection",
+    });
+
+    setIsDateFilterApplied(false);
+  };
+
+  const clearDateFilter = () => {
+    const emptyDateRange = {
+      startDate: "",
+      endDate: "",
+      key: "selection",
+    };
+    setDateRange(emptyDateRange);
+    setIsDateFilterApplied(false);
+    fetchAllBusinesses(category, status, city, mobileNumber, 1, emptyDateRange);
+  };
 
   // Apply filters when any filter or business data changes
   useEffect(() => {
@@ -227,6 +279,64 @@ const AddAndManageBuisness = () => {
       <div className="flex flex-col gap-4 p-4">
         <div className="py-6 flex border-b border-[#cccccc] items-center flex-wrap gap-6">
           <span className="text-lg font-semibold text-[#777777]">Filter</span>
+          <div className="flex items-center gap-2 relative">
+            <div className="relative">
+              <input
+                type="text"
+                value={
+                  dateRange.startDate && dateRange.endDate
+                    ? `${format(dateRange.startDate, "dd/MM/yyyy")} - ${format(
+                        dateRange.endDate,
+                        "dd/MM/yyyy"
+                      )}`
+                    : "Select Date Range"
+                }
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                readOnly
+                className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
+              />
+
+              {showDatePicker && (
+                <div className="absolute z-10">
+                  <DateRangePicker
+                    ranges={[dateRange]}
+                    onChange={handleDateRangeChange}
+                    moveRangeOnFirstSelection={false}
+                    rangeColors={["#ff2722"]}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className=" flex items-center gap-2">
+              {!isDateFilterApplied ? (
+                <button
+                  className="px-2 py-1 bg-[#FF2722] text-white rounded-md text-sm font-medium cursor-pointer"
+                  onClick={() => {
+                    fetchAllBusinesses(
+                      category,
+                      status,
+                      city,
+                      mobileNumber,
+
+                      dateRange
+                    );
+                    setIsDateFilterApplied(true);
+                    setShowDatePicker(!showDatePicker);
+                  }}
+                >
+                  Show
+                </button>
+              ) : (
+                <button
+                  className="px-2 py-1 bg-gray-300 text-black rounded-md text-sm font-medium cursor-pointer"
+                  onClick={clearDateFilter}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
           <div>
             <input
               type="number"
