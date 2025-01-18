@@ -54,12 +54,12 @@ const AddBuisness = ({ onAddBusiness }) => {
     const fetchData = async () => {
       try {
         const cityResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/city/get`
+          `${import.meta.env.VITE_BASE_URL}/api/city/get?sorting=true`
         );
         setCity(cityResponse.data);
 
         const categoryResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/category/get`
+          `${import.meta.env.VITE_BASE_URL}/api/category/get?sorting=true`
         );
         setCategory(categoryResponse.data);
 

@@ -36,12 +36,12 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
     const fetchData = async () => {
       try {
         const cityResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/city/get`
+          `${import.meta.env.VITE_BASE_URL}/api/city/get?sorting=true`
         );
         setCitys(cityResponse.data);
 
         const categoryResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/category/get`
+          `${import.meta.env.VITE_BASE_URL}/api/category/get?sorting=true`
         );
         setCategories(categoryResponse.data);
 
