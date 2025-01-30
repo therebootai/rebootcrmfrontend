@@ -55,15 +55,12 @@ const AddAssignBusiness = ({ closeModal, triggerRefresh }) => {
   useEffect(() => {
     const fetchAssign = async () => {
       try {
-        const cityResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/city/get?sorting=true`
+        const response = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/business/getfilter`
         );
-        setCity(cityResponse.data);
+        setCity(response.data.cities);
 
-        const categoryResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/category/get?sorting=true`
-        );
-        setCategory(categoryResponse.data);
+        setCategory(response.data.businessCategories);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -155,8 +152,8 @@ const AddAssignBusiness = ({ closeModal, triggerRefresh }) => {
           >
             <option value="">Choose</option>
             {citys.map((city) => (
-              <option key={city.cityId} value={city.cityname}>
-                {city.cityname}
+              <option key={city} value={city}>
+                {city}
               </option>
             ))}
           </select>
@@ -171,8 +168,8 @@ const AddAssignBusiness = ({ closeModal, triggerRefresh }) => {
           >
             <option value="">Choose</option>
             {categories.map((category) => (
-              <option key={category.categoryId} value={category.categoryname}>
-                {category.categoryname}
+              <option key={category} value={category}>
+                {category}
               </option>
             ))}
           </select>
