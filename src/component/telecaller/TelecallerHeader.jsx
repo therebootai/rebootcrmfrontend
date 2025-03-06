@@ -38,6 +38,9 @@ const TelecallerHeader = ({
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("name");
+    localStorage.removeItem("telecallerId");
+    localStorage.removeItem("role");
+
     window.location.href = "/";
   };
 

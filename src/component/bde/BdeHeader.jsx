@@ -38,6 +38,9 @@ const BdeHeader = ({
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("name");
+    localStorage.removeItem("bdeId");
+    localStorage.removeItem("role");
+
     window.location.href = "/";
   };
 

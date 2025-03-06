@@ -74,6 +74,14 @@ const EmployeeLogin = () => {
 
       localStorage.setItem("token", token);
       localStorage.setItem("name", name);
+      localStorage.setItem("role", role);
+      if (role === "telecaller") {
+        localStorage.setItem("telecallerId", id);
+      } else if (role === "bde") {
+        localStorage.setItem("bdeId", id);
+      } else if (role === "digitalMarketer") {
+        localStorage.setItem("digitalMarketerId", id);
+      }
 
       if (role === "bde") {
         navigate(`/bde/bde-dashboard/${id}`);

@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { TbRefresh } from "react-icons/tb";
 import { Link, useNavigate } from "react-router-dom";
+import ForgotPassword from "./ForgotPassword";
+import OTPLogin from "./OTPLogin";
 
 const AdminLogin = () => {
   const [emailorphone, setEmailorphone] = useState("");
@@ -14,7 +16,9 @@ const AdminLogin = () => {
   const [passwordError, setPasswordError] = useState("");
   const [captchaError, setCaptchaError] = useState("");
   const navigate = useNavigate();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showOtpLogin, setShowOtpLogin] = useState(false);
   useEffect(() => {
     generateCaptcha();
   }, []);
@@ -69,6 +73,8 @@ const AdminLogin = () => {
       const { token, name } = response.data;
       localStorage.setItem("token", token);
       localStorage.setItem("name", name);
+      localStorage.setItem("role", "admin");
+
       console.log("Login successful");
       navigate("/admin/dashboard");
     } catch (error) {
@@ -87,6 +93,10 @@ const AdminLogin = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOtpLogin = () => {
+    setShowOtpLogin(true);
   };
 
   return (
@@ -175,10 +185,19 @@ const AdminLogin = () => {
           </div>
         </div>
       </form>
-      <div className="flex flex-col text-[#777777] gap-1">
-        <span>Forgot my password</span>
-        <span>Forgot my email</span>
+      <div className="flex flex-col text-[#777777] gap-1 items-start">
+        <button onClick={() => setShowForgotPassword(true)}>
+          {" "}
+          Forgot my password
+        </button>
+        <button type="button" onClick={handleOtpLogin}>
+          Login With OTP
+        </button>
       </div>
+      {showForgotPassword && (
+        <ForgotPassword onClose={() => setShowForgotPassword(false)} />
+      )}
+      {showOtpLogin && <OTPLogin onClose={() => setShowOtpLogin(false)} />}
     </div>
   );
 };

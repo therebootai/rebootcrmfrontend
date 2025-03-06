@@ -40,6 +40,9 @@ const DigitalHeader = ({
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("name");
+    localStorage.removeItem("digitalMarketerId");
+    localStorage.removeItem("role");
+
     window.location.href = "/";
   };
 

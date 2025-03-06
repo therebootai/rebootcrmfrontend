@@ -18,6 +18,8 @@ const AdminHeader = ({
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("name");
+    localStorage.removeItem("role");
+
     window.location.href = "/";
   };
 
