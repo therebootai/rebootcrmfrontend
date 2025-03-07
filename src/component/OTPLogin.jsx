@@ -116,7 +116,7 @@ const OTPLogin = ({ onClose }) => {
               maxLength={10}
               minLength={10}
               onChange={(e) => setMobileNumber(e.target.value)}
-              className="w-full p-2 border rounded focus:outline outline-green-800"
+              className="w-full p-2 border rounded focus:outline outline-green-800 "
               placeholder="Enter your mobile number"
             />
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}

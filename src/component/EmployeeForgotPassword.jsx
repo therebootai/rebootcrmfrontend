@@ -25,12 +25,16 @@ const EmployeeForgotPassword = ({ onClose }) => {
       );
 
       if (response.data.exists) {
+        if (!response.data.active) {
+          alert("Your account is inactive. Please contact support.");
+          return;
+        }
         sendOtp();
       } else {
         alert("Phone number not found. Please enter a valid number.");
       }
     } catch (error) {
-      setError("Error checking number.");
+      setError("Error checking mobile number.");
     } finally {
       setLoading(false);
     }
