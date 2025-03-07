@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { TbRefresh } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
+import EmployeeForgotPassword from "./EmployeeForgotPassword";
+import EmployeeOTPLogin from "./EmployeeOTPLogin";
 
 const EmployeeLogin = () => {
   const [mobileNumber, setMobileNumber] = useState("");
@@ -15,6 +17,8 @@ const EmployeeLogin = () => {
   const [captchaError, setCaptchaError] = useState("");
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showOtpLogin, setShowOtpLogin] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   useEffect(() => {
     generateCaptcha();
@@ -108,6 +112,10 @@ const EmployeeLogin = () => {
     }
   };
 
+  const handleOtpLogin = () => {
+    setShowOtpLogin(true);
+  };
+
   return (
     <div>
       <form
@@ -188,10 +196,22 @@ const EmployeeLogin = () => {
           </div>
         </div>
       </form>
-      <div className="flex flex-col text-[#FF2722] gap-1">
-        <span>Forgot my password</span>
-        <span>Forgot my email</span>
+      <div className="flex flex-col text-[#777777] gap-1 items-start">
+        <button onClick={() => setShowForgotPassword(true)}>
+          {" "}
+          Forgot my password
+        </button>
+        <button type="button" onClick={handleOtpLogin}>
+          Login With OTP
+        </button>
       </div>
+
+      {showForgotPassword && (
+        <EmployeeForgotPassword onClose={() => setShowForgotPassword(false)} />
+      )}
+      {showOtpLogin && (
+        <EmployeeOTPLogin onClose={() => setShowOtpLogin(false)} />
+      )}
     </div>
   );
 };

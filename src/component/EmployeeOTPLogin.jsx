@@ -2,7 +2,7 @@ import axios from "axios";
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-const OTPLogin = ({ onClose }) => {
+const EmployeeOTPLogin = ({ onClose }) => {
   const [mobileNumber, setMobileNumber] = useState("");
   const [otp, setOtp] = useState(new Array(6).fill(""));
   const [error, setError] = useState("");
@@ -16,13 +16,17 @@ const OTPLogin = ({ onClose }) => {
     setError("");
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/users/checknumber`,
+        `${import.meta.env.VITE_BASE_URL}/api/employees/checknumber`,
         {
           params: { phone: mobileNumber },
         }
       );
 
       if (response.data.exists) {
+        if (!response.data.active) {
+          alert("Your account is inactive. Please contact support.");
+          return;
+        }
         sendOtp();
       } else {
         alert("Phone number not found. Please enter a valid number.");
@@ -39,13 +43,51 @@ const OTPLogin = ({ onClose }) => {
       setLoading(true);
       setError("");
 
-      await axios.post(`${import.meta.env.VITE_BASE_URL}/api/users/send-otp`, {
-        phone: mobileNumber,
-      });
+      await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/api/employees/send-otp`,
+        {
+          phone: mobileNumber,
+        }
+      );
 
       setStep(2);
     } catch (error) {
       setError("Failed to send OTP.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const otpCode = otp.join("");
+      const response = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/api/employees/verify-with-otp`,
+        { phone: mobileNumber, otp: otpCode }
+      );
+
+      if (response.data.success) {
+        const { token, name, role, id } = response.data;
+        localStorage.setItem("token", token);
+        localStorage.setItem("name", name);
+        localStorage.setItem("role", role);
+        if (role === "telecaller") {
+          localStorage.setItem("telecallerId", id);
+          navigate(`/telecaler/telecaller-dashboard/${id}`);
+        } else if (role === "bde") {
+          localStorage.setItem("bdeId", id);
+          navigate(`/bde/bde-dashboard/${id}`);
+        } else if (role === "digitalMarketer") {
+          localStorage.setItem("digitalMarketerId", id);
+          navigate(`/digitalmarketer/digitalmarketer-dashboard/${id}`);
+        }
+      } else {
+        setError("Invalid OTP. Try again.");
+      }
+    } catch (error) {
+      setError("Error verifying OTP.");
     } finally {
       setLoading(false);
     }
@@ -72,41 +114,10 @@ const OTPLogin = ({ onClose }) => {
     }
   };
 
-  const verifyOtp = async () => {
-    setLoading(true);
-    setError("");
-
-    const otpCode = otp.join("");
-    try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/api/users/verify-with-otp`,
-        { phone: mobileNumber, otp: otpCode }
-      );
-
-      if (response.data.success) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("name", response.data.user.name);
-        localStorage.setItem("role", "admin");
-
-        navigate("/admin/dashboard");
-
-        onClose(); // Close the OTP modal
-      } else {
-        setError("Invalid OTP. Please try again.");
-      }
-    } catch (error) {
-      setError("Error verifying OTP.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
       <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-        <h2 className="text-xl font-bold mb-4">OTP Login</h2>
-
-        {/* Step 1: Mobile Number Input */}
+        <h2 className="text-xl font-bold mb-4">Employee OTP Login</h2>
         {step === 1 && (
           <>
             <label className="block text-sm mb-2">Enter Mobile Number</label>
@@ -129,7 +140,6 @@ const OTPLogin = ({ onClose }) => {
           </>
         )}
 
-        {/* Step 2: OTP Input */}
         {step === 2 && (
           <>
             <label className="block text-sm mb-2">Enter OTP</label>
@@ -156,7 +166,6 @@ const OTPLogin = ({ onClose }) => {
             </button>
           </>
         )}
-
         <button onClick={onClose} className="text-red-500 mt-3 w-full">
           Close
         </button>
@@ -165,4 +174,4 @@ const OTPLogin = ({ onClose }) => {
   );
 };
 
-export default OTPLogin;
+export default EmployeeOTPLogin;

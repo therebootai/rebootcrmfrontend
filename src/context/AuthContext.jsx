@@ -50,7 +50,7 @@ const AuthContextProvider = ({ children }) => {
           localStorage.setItem("telecallerId", telecallerId);
         }
 
-        if (!teamleaderId) {
+        if (!telecallerId) {
           console.error("Error: teamleaderId is undefined after API call");
           return;
         }

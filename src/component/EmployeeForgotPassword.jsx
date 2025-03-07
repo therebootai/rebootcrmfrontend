@@ -2,7 +2,7 @@ import axios from "axios";
 import React, { useRef, useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
-const ForgotPassword = ({ onClose }) => {
+const EmployeeForgotPassword = ({ onClose }) => {
   const [mobileNumber, setMobileNumber] = useState("");
   const [otp, setOtp] = useState(new Array(6).fill(""));
   const [newPassword, setNewPassword] = useState("");
@@ -11,16 +11,14 @@ const ForgotPassword = ({ onClose }) => {
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState("");
   const otpRefs = useRef([]);
 
-  // Check if mobile number exists in the backend
   const handleCheckNumber = async () => {
     setLoading(true);
     setError("");
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/users/checknumber`,
+        `${import.meta.env.VITE_BASE_URL}/api/employees/checknumber`,
         {
           params: { phone: mobileNumber },
         }
@@ -32,25 +30,47 @@ const ForgotPassword = ({ onClose }) => {
         alert("Phone number not found. Please enter a valid number.");
       }
     } catch (error) {
-      console.error("Error checking number:", error);
+      setError("Error checking number.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Send OTP
   const sendOtp = async () => {
     try {
       setLoading(true);
       setError("");
-
-      await axios.post(`${import.meta.env.VITE_BASE_URL}/api/users/send-otp`, {
-        phone: mobileNumber,
-      });
-
-      setStep(2); // Move to OTP input step
+      await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/api/employees/send-otp`,
+        {
+          phone: mobileNumber,
+        }
+      );
+      setStep(2);
     } catch (error) {
       setError("Failed to send OTP.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const otpCode = otp.join("");
+      const response = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/api/employees/verify-otp`,
+        { phone: mobileNumber, otp: otpCode }
+      );
+
+      if (response.data.success) {
+        setStep(3);
+      } else {
+        setError("Invalid OTP. Try again.");
+      }
+    } catch (error) {
+      setError("Error verifying OTP.");
     } finally {
       setLoading(false);
     }
@@ -80,51 +100,23 @@ const ForgotPassword = ({ onClose }) => {
     }
   };
 
-  // Verify OTP
-  const verifyOtp = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const otpCode = otp.join(""); // Convert array to string
-      const response = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/api/users/verify-otp`,
-        { phone: mobileNumber, otp: otpCode }
-      );
-
-      if (response.data.success) {
-        setStep(3); // Move to Reset Password step
-      } else {
-        setError("Invalid OTP. Try again.");
-      }
-    } catch (error) {
-      setError("Error verifying OTP.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Reset Password
   const resetPassword = async () => {
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
-
     setLoading(true);
     setError("");
-
     try {
       await axios.put(
-        `${import.meta.env.VITE_BASE_URL}/api/users/reset-password`,
+        `${import.meta.env.VITE_BASE_URL}/api/employees/reset-password`,
         {
           mobileNumber,
           newPassword,
         }
       );
-
       alert("Password reset successfully!");
-      onClose(); // Close modal
+      onClose();
     } catch (error) {
       setError("Failed to reset password.");
     } finally {
@@ -135,16 +127,16 @@ const ForgotPassword = ({ onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
       <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-        <h2 className="text-xl font-bold mb-4">Forgot Password</h2>
+        <h2 className="text-xl font-bold mb-4">Employee Forgot Password</h2>
         {step === 1 && (
           <>
             <label className="block text-sm mb-2">Enter Mobile Number</label>
             <input
               type="text"
               value={mobileNumber}
+              onChange={(e) => setMobileNumber(e.target.value)}
               maxLength={10}
               minLength={10}
-              onChange={(e) => setMobileNumber(e.target.value)}
               className="w-full p-2 border rounded"
               placeholder="Enter your mobile number"
             />
@@ -157,7 +149,6 @@ const ForgotPassword = ({ onClose }) => {
             </button>
           </>
         )}
-
         {step === 2 && (
           <>
             <label className="block text-sm mb-2">Enter OTP</label>
@@ -202,7 +193,6 @@ const ForgotPassword = ({ onClose }) => {
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </span>
             </div>
-
             <label className="block text-sm mt-3 mb-2">Confirm Password</label>
             <input
               type="password"
@@ -211,7 +201,6 @@ const ForgotPassword = ({ onClose }) => {
               className="w-full p-2 border rounded"
               placeholder="Re-enter password"
             />
-
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
             <button
               onClick={resetPassword}
@@ -221,7 +210,6 @@ const ForgotPassword = ({ onClose }) => {
             </button>
           </>
         )}
-
         <button onClick={onClose} className="text-red-500 mt-3 w-full">
           Close
         </button>
@@ -230,4 +218,4 @@ const ForgotPassword = ({ onClose }) => {
   );
 };
 
-export default ForgotPassword;
+export default EmployeeForgotPassword;
