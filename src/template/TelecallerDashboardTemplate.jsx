@@ -50,7 +50,7 @@ const TelecallerDashboardTemplate = ({ children }) => {
           isMobileSidebarOpen={isMobileSidebarOpen}
           closeMobileSidebar={closeMobileSidebar}
         />
-        <div className="w-full p-4 overflow-auto no-scrollbar md:ml-[3rem] lg:ml-[3rem] xlg:ml-[6rem] xl:ml-[10rem]">
+        <div className="w-full p-4 overflow-auto no-scrollbar md:ml-[3rem] lg:ml-[4rem] xlg:ml-[6rem] xl:ml-[8rem]">
           {children}
         </div>
       </div>

@@ -53,7 +53,7 @@ const BdeDashboardTemplate = ({ children }) => {
           isMobileSidebarOpen={isMobileSidebarOpen}
           closeMobileSidebar={closeMobileSidebar}
         />
-        <div className="w-full p-4 overflow-auto no-scrollbar md:ml-[3rem] lg:ml-[3rem] xlg:ml-[6rem] xl:ml-[10rem]">
+        <div className="w-full p-4 overflow-auto no-scrollbar md:ml-[3rem] lg:ml-[4rem] xlg:ml-[5rem] xl:ml-[6rem]">
           {children}
         </div>
       </div>

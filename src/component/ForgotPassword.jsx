@@ -145,7 +145,7 @@ const ForgotPassword = ({ onClose }) => {
               maxLength={10}
               minLength={10}
               onChange={(e) => setMobileNumber(e.target.value)}
-              className="w-full p-2 border rounded focus:outline outline-green-800"
+              className="w-full p-2 border rounded focus:outline outline-green-800 border-none"
               placeholder="Enter your mobile number"
             />
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
@@ -168,7 +168,7 @@ const ForgotPassword = ({ onClose }) => {
                   type="text"
                   value={digit}
                   maxLength="1"
-                  className="w-10 h-10 border rounded text-center text-lg focus:outline outline-green-800"
+                  className="w-10 h-10 border rounded text-center text-lg focus:outline outline-green-800 border-none"
                   onChange={(e) => handleOtpChange(index, e.target.value)}
                   onKeyDown={(e) => handleOtpBackspace(index, e)}
                   ref={(el) => (otpRefs.current[index] = el)}
