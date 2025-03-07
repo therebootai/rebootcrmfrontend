@@ -116,13 +116,13 @@ const OTPLogin = ({ onClose }) => {
               maxLength={10}
               minLength={10}
               onChange={(e) => setMobileNumber(e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded focus:outline outline-green-800"
               placeholder="Enter your mobile number"
             />
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
             <button
               onClick={handleCheckNumber}
-              className="w-full bg-blue-500 text-white p-2 mt-3 rounded"
+              className="w-full bg-[#FF2722] buttonshinehover transition-colors duration-300 hover:bg-blue-500 text-white p-2 mt-3 rounded"
             >
               {loading ? "Checking..." : "Send OTP"}
             </button>
@@ -150,7 +150,7 @@ const OTPLogin = ({ onClose }) => {
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
             <button
               onClick={verifyOtp}
-              className="w-full bg-blue-500 text-white p-2 mt-3 rounded"
+              className="w-full bg-blue-500 buttonshinehover transition-colors duration-300 hover:bg-green-500 text-white p-2 mt-3 rounded"
             >
               {loading ? "Verifying..." : "Verify OTP"}
             </button>

@@ -160,7 +160,7 @@ const AdminLogin = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-sm sm:h-[2.5rem] xl:h-[3.5rem] flex justify-center items-center text-[#FF2722] text-lg font-medium bg-[#FF27221A]"
+              className="w-full buttonshine rounded-sm sm:h-[2.5rem] xl:h-[3.5rem] flex justify-center items-center text-[#FF2722] text-lg font-medium bg-[#FF27221A]"
             >
               {loading ? "Wait..." : "Login"}
             </button>
@@ -185,12 +185,19 @@ const AdminLogin = () => {
           </div>
         </div>
       </form>
-      <div className="flex flex-col text-[#777777] gap-1 items-start">
-        <button onClick={() => setShowForgotPassword(true)}>
+      <div className="flex flex-col text-[#777777] gap-1 items-start font-medium">
+        <button
+          className="text-[#777777] hover:text-[#FF2722]"
+          onClick={() => setShowForgotPassword(true)}
+        >
           {" "}
           Forgot my password
         </button>
-        <button type="button" onClick={handleOtpLogin}>
+        <button
+          className="text-[#777777] hover:text-[#FF2722]"
+          type="button"
+          onClick={handleOtpLogin}
+        >
           Login With OTP
         </button>
       </div>

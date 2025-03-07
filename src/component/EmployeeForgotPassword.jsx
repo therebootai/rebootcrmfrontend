@@ -137,13 +137,13 @@ const EmployeeForgotPassword = ({ onClose }) => {
               onChange={(e) => setMobileNumber(e.target.value)}
               maxLength={10}
               minLength={10}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded focus:outline outline-green-800"
               placeholder="Enter your mobile number"
             />
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
             <button
               onClick={handleCheckNumber}
-              className="w-full bg-blue-500 text-white p-2 mt-3 rounded"
+              className="w-full bg-[#FF2722] buttonshinehover transition-colors duration-300 hover:bg-blue-500 text-white p-2 mt-3 rounded"
             >
               {loading ? "Checking..." : "Send OTP"}
             </button>
@@ -159,7 +159,7 @@ const EmployeeForgotPassword = ({ onClose }) => {
                   type="text"
                   value={digit}
                   maxLength="1"
-                  className="w-10 h-10 border rounded text-center text-lg"
+                  className="w-10 h-10 border rounded text-center text-lg focus:outline outline-green-800"
                   onChange={(e) => handleOtpChange(index, e.target.value)}
                   onKeyDown={(e) => handleOtpBackspace(index, e)}
                   ref={(el) => (otpRefs.current[index] = el)}
@@ -169,7 +169,7 @@ const EmployeeForgotPassword = ({ onClose }) => {
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
             <button
               onClick={verifyOtp}
-              className="w-full bg-blue-500 text-white p-2 mt-3 rounded"
+              className="w-full bg-blue-500 buttonshinehover transition-colors duration-300 hover:bg-green-500 text-white p-2 mt-3 rounded"
             >
               {loading ? "Verifying..." : "Verify OTP"}
             </button>
@@ -183,7 +183,7 @@ const EmployeeForgotPassword = ({ onClose }) => {
                 type={showPassword ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full outline-none"
+                className="w-full outline-none "
                 placeholder="Enter new password"
               />
               <span
@@ -204,7 +204,7 @@ const EmployeeForgotPassword = ({ onClose }) => {
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
             <button
               onClick={resetPassword}
-              className="w-full bg-green-500 text-white p-2 mt-3 rounded"
+              className="w-full bg-green-500 buttonshinehover transition-colors duration-300 hover:bg-green-800 text-white p-2 mt-3 rounded"
             >
               {loading ? "Updating..." : "Reset Password"}
             </button>
