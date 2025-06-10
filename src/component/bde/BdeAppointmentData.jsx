@@ -61,6 +61,11 @@ const BdeAppointmentData = () => {
     followUps: 0,
     visits: 0,
     dealCloses: 0,
+    target: {
+      amount: 0,
+      achievement: 0,
+      percentage: 0,
+    },
   });
   const [fetchLoading, setFetchLoading] = useState(false);
 
@@ -107,11 +112,17 @@ const BdeAppointmentData = () => {
         { params }
       );
 
+      const bdeResponse = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/api/bde/get/${bdeId}`
+      );
+
       const businessesData = response.data;
+
+      const bdeData = bdeResponse.data;
 
       setBusinesses(businessesData.businesses);
 
-      calculateCounts(businessesData);
+      calculateCounts({ ...businessesData, ...bdeData });
       setFilteredBusinesses(businessesData.businesses || []);
       setTotalPages(response.data.totalPages || 1);
     } catch (error) {
@@ -149,17 +160,71 @@ const BdeAppointmentData = () => {
     status,
   ]);
 
+  const getLatestTarget = (targets, currentMonth) => {
+    if (!targets || targets.length === 0 || !currentMonth) return null;
+
+    const [monthName, year] = currentMonth.split(" ");
+
+    return targets.find(
+      (target) =>
+        target.month.toLowerCase() === monthName.toLowerCase() &&
+        String(target.year) === String(year)
+    );
+  };
+
   const calculateCounts = (data) => {
+    console.log(data);
     const totalBusiness = data.totalCount;
     const followUps = data.statuscount.FollowupCount;
     const visits = data.statuscount.visitCount;
     const dealCloses = data.statuscount.dealCloseCount;
+
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const startDate = dateRange?.startDate
+      ? new Date(dateRange.startDate)
+      : new Date();
+
+    const monthIndex = startDate.getMonth(); // 0–11
+    const year = startDate.getFullYear();
+
+    const currentMonthStr = `${monthNames[monthIndex]} ${year}`;
+
+    console.log(getLatestTarget(data.targets, currentMonthStr));
+
+    const latestTarget = getLatestTarget(data.targets, currentMonthStr) || {
+      amount: 0,
+      achievement: 0,
+    };
+
+    const achievementPercentage =
+      latestTarget.amount && latestTarget.achievement
+        ? ((latestTarget.achievement / latestTarget.amount) * 100).toFixed(2)
+        : 0;
 
     setCounts({
       totalBusiness,
       followUps,
       visits,
       dealCloses,
+      target: {
+        amount: latestTarget.amount ?? 0,
+        achievement: latestTarget.achievement ?? 0,
+        percentage: achievementPercentage,
+      },
     });
   };
 
@@ -168,6 +233,11 @@ const BdeAppointmentData = () => {
     { name: "Follow Ups", number: counts.followUps },
     { name: "Visit", number: counts.visits },
     { name: "Deal Close", number: counts.dealCloses },
+    {
+      name: "Achievement",
+      number: `${counts.target.achievement} (${counts.target.percentage}%)`,
+    },
+    { name: "Target", number: counts.target.amount },
   ];
 
   const normalizeString = (str) => {
