@@ -44,7 +44,7 @@ const DigitalMarketerAchievement = () => {
     }));
   };
 
-  const headers = ["Month", "Year", "Target", "Achievement", "Actions"];
+  const headers = ["Month", "Year", "Target", "Achievement"];
 
   return (
     <DigitalDashboardTemplate>
@@ -89,14 +89,14 @@ const DigitalMarketerAchievement = () => {
                     <div className="flex-1">
                       {achievementPercentage}% ({target.achievement || "0"})
                     </div>
-                    <div className="flex flex-1 flex-row items-center gap-2">
+                    {/* <div className="flex flex-1 flex-row items-center gap-2">
                       <button
                         className="text-[#5BC0DE]"
                         onClick={() => handleEditClick(target)}
                       >
                         <FiEdit />
                       </button>
-                    </div>
+                    </div> */}
                   </div>
                 );
               })

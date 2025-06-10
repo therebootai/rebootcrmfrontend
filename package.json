@@ -17,7 +17,6 @@
     "@react-pdf/renderer": "^3.4.4",
     "axios": "^1.7.3",
     "date-fns": "^3.6.0",
-    "dotenv": "^16.4.5",
     "file-saver": "^2.0.5",
     "pdfjs-dist": "^4.6.82",
     "react": "^18.3.1",
@@ -29,9 +28,7 @@
     "react-modal": "^3.16.1",
     "react-quill": "^2.0.0",
     "react-router-dom": "^6.26.0",
-    "react-slick": "^0.30.2",
     "react-toastify": "^10.0.5",
-    "slick-carousel": "^1.8.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

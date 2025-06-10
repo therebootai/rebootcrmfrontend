@@ -70,6 +70,10 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
           name: "Add/Manage Target",
           link: "/admin/sales/add-manage-target",
         },
+        {
+          name: "Add/Manage Achievement",
+          link: "/admin/sales/add-manage-achievement",
+        },
       ],
     },
     {
