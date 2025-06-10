@@ -34,6 +34,7 @@ import WebsiteLeads from "./pages/websiteleads/WebsiteLeads";
 import AddAndManageBlog from "./pages/blog/AddAndManageBlog";
 import Career from "./pages/careerjobpost/Career";
 import AllApplication from "./pages/careerjobpost/AllApplication";
+import AddAndManageAchievement from "./pages/AddAndManageAchievement";
 
 function App() {
   return (
@@ -72,6 +73,10 @@ function App() {
       <Route
         path="/admin/sales/add-manage-target"
         element={<AddAndManageTarget />}
+      />
+      <Route
+        path="/admin/sales/add-manage-achievement"
+        element={<AddAndManageAchievement />}
       />
       <Route
         path="/admin/user/add-manage-assign-business"

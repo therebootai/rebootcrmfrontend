@@ -37,6 +37,8 @@ const AddAndManageBuisness = () => {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
+  const [allSources, setAllSources] = useState([]);
+  const [currentSource, setCurrentSource] = useState("");
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -81,7 +83,7 @@ const AddAndManageBuisness = () => {
                   dateRange.endDate.getTimezoneOffset() * 60000
               ).toISOString()
             : ""
-        }`
+        }&source=${currentSource}`
       );
       const data = response.data;
 
@@ -98,7 +100,15 @@ const AddAndManageBuisness = () => {
 
   useEffect(() => {
     fetchAllBusinesses(status, category, city, mobileNumber, dateRange);
-  }, [status, category, city, mobileNumber, dateRange, currentPage]);
+  }, [
+    status,
+    category,
+    city,
+    mobileNumber,
+    dateRange,
+    currentPage,
+    currentSource,
+  ]);
 
   const handleDateRangeChange = (ranges) => {
     setDateRange({
@@ -145,11 +155,15 @@ const AddAndManageBuisness = () => {
         const response = await axios.get(
           `${import.meta.env.VITE_BASE_URL}/api/business/getfilter`
         );
+        const sourcesResponse = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/source/get`
+        );
         const data = response.data;
         setUniqueCities(data.cities);
         setUniqueCategories(data.businessCategories);
         setUniqueStatuses(data.status);
         setIsNewDataImport(false);
+        setAllSources(sourcesResponse.data);
       } catch (error) {
         console.log(error);
       }
@@ -399,6 +413,24 @@ const AddAndManageBuisness = () => {
               {uniqueStatuses.map((sts, index) => (
                 <option key={index} value={sts}>
                   {sts}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <select
+              name="source"
+              value={currentSource}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setCurrentSource(e.target.value);
+              }}
+              className="px-4 p-1 border border-[#cccccc] text-sm rounded-md"
+            >
+              <option value="">All Sources</option>
+              {allSources.map((sts) => (
+                <option key={sts.sourceId} value={sts.sourcename}>
+                  {sts.sourcename}
                 </option>
               ))}
             </select>

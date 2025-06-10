@@ -18,12 +18,12 @@ const AdminDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [dateRange, setDateRange] = useState({
-    startDate: null,
-    endDate: null,
+    startDate: new Date(),
+    endDate: new Date(),
     key: "selection",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(true);
 
   const fetchBusinesses = async () => {
     try {
