@@ -33,6 +33,8 @@ const TelecallerBusiness = () => {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
+  const [allSources, setAllSources] = useState([]);
+  const [currentSource, setCurrentSource] = useState("");
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -53,7 +55,8 @@ const TelecallerBusiness = () => {
     city,
     mobileNumber,
     currentPage,
-    customDateRange = dateRange
+    customDateRange = dateRange,
+    currentSource
   ) => {
     try {
       setFetchLoading(true);
@@ -66,6 +69,7 @@ const TelecallerBusiness = () => {
         city: city || "",
         mobileNumber: mobileNumber || "",
         telecallerId,
+        source: currentSource || "",
       };
 
       if (customDateRange.startDate && customDateRange.endDate) {
@@ -106,13 +110,22 @@ const TelecallerBusiness = () => {
       city,
       mobileNumber,
       currentPage,
-      telecallerId
+      dateRange,
+      currentSource
     );
-  }, [mobileNumber, city, category, status, currentPage, telecallerId]);
+  }, [
+    mobileNumber,
+    city,
+    category,
+    status,
+    currentPage,
+    telecallerId,
+    currentSource,
+  ]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [mobileNumber, city, category, status, dateRange]);
+  }, [mobileNumber, city, category, status, dateRange, currentSource]);
 
   const handleDateRangeChange = (ranges) => {
     setDateRange({
@@ -143,10 +156,14 @@ const TelecallerBusiness = () => {
             import.meta.env.VITE_BASE_URL
           }/api/business/getfilter?telecallerId=${telecallerId}`
         );
+        const sourcesResponse = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/source/get`
+        );
         const data = response.data;
         setUniqueCities(data.cities);
         setUniqueCategories(data.businessCategories);
         setUniqueStatuses(data.status);
+        setAllSources(sourcesResponse.data);
       } catch (error) {
         console.log(error);
       }
@@ -269,6 +286,23 @@ const TelecallerBusiness = () => {
               {uniqueStatuses.map((sts, index) => (
                 <option key={index} value={sts}>
                   {sts}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <select
+              name="source"
+              value={currentSource}
+              onChange={(e) => {
+                setCurrentSource(e.target.value);
+              }}
+              className="px-4 p-1 border border-[#cccccc] text-sm rounded-md"
+            >
+              <option value="">All Sources</option>
+              {allSources.map((sts) => (
+                <option key={sts.sourceId} value={sts.sourcename}>
+                  {sts.sourcename}
                 </option>
               ))}
             </select>
