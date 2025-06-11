@@ -173,7 +173,6 @@ const BdeAppointmentData = () => {
   };
 
   const calculateCounts = (data) => {
-    console.log(data);
     const totalBusiness = data.totalCount;
     const followUps = data.statuscount.FollowupCount;
     const visits = data.statuscount.visitCount;
@@ -202,8 +201,6 @@ const BdeAppointmentData = () => {
     const year = startDate.getFullYear();
 
     const currentMonthStr = `${monthNames[monthIndex]} ${year}`;
-
-    console.log(getLatestTarget(data.targets, currentMonthStr));
 
     const latestTarget = getLatestTarget(data.targets, currentMonthStr) || {
       amount: 0,
