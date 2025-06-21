@@ -5,10 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css"; // Import date picker styles
 import "react-date-range/dist/theme/default.css"; // Import theme styles
-import { format, isSameDay, startOfDay, endOfDay } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import Modal from "react-modal";
-import { Link } from "react-router-dom";
 import { GoDotFill } from "react-icons/go";
+import InfiniteScroll from "../InfiniteScroll";
 
 const formatDate = (dateString) => {
   if (!dateString) return "";
@@ -28,6 +28,9 @@ const DashboardEmployeeSection = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [modalData, setModalData] = useState([]);
+  const [modalPage, setModalPage] = useState(1);
+  const [openFor, setOpenFor] = useState("");
+  const [allModalPages, setAllModalPages] = useState(1);
 
   const navigate = useNavigate();
 
@@ -39,7 +42,13 @@ const DashboardEmployeeSection = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(true);
 
-  const fetchEmployeeBusinessData = async (role, id, status, dateRange) => {
+  const fetchEmployeeBusinessData = async (
+    role,
+    id,
+    status,
+    dateRange,
+    page = 1
+  ) => {
     try {
       let url = "";
       if (role === "telecaller") {
@@ -59,7 +68,7 @@ const DashboardEmployeeSection = () => {
                   dateRange.endDate.getTimezoneOffset() * 60000
               ).toISOString()
             : ""
-        }`;
+        }&page=${page}`;
       } else if (role === "digitalmarketer") {
         url = `${
           import.meta.env.VITE_BASE_URL
@@ -77,7 +86,7 @@ const DashboardEmployeeSection = () => {
                   dateRange.endDate.getTimezoneOffset() * 60000
               ).toISOString()
             : ""
-        }`;
+        }&page=${page}`;
       } else if (role === "bde") {
         url = `${
           import.meta.env.VITE_BASE_URL
@@ -95,12 +104,13 @@ const DashboardEmployeeSection = () => {
                   dateRange.endDate.getTimezoneOffset() * 60000
               ).toISOString()
             : ""
-        }`;
+        }&page=${page}`;
       }
 
       const response = await axios.get(url);
-      console.log(response.data.businesses);
-      setModalData(response.data.businesses);
+      setModalData([...modalData, ...response.data.businesses]);
+      setModalPage(response.data.currentPage);
+      setAllModalPages(response.data.totalPages);
     } catch (error) {
       console.error("Error fetching business data:", error);
     }
@@ -115,11 +125,14 @@ const DashboardEmployeeSection = () => {
       dateRange
     );
     setIsModalOpen(true);
+    setOpenFor(openFor);
   };
 
   const closeModal = () => {
     setSelectedEmployee(null);
     setIsModalOpen(false);
+    setModalData([]);
+    setOpenFor("");
   };
 
   const fetchEmployeeData = async () => {
@@ -389,7 +402,7 @@ const DashboardEmployeeSection = () => {
                   </div>
                   <div
                     className="flex-1 cursor-pointer"
-                    onClick={() => openModal(employee, "Followup  ")}
+                    onClick={() => openModal(employee, "Followup")}
                   >
                     {employee.statuscount?.FollowupCount || "0"}
                   </div>
@@ -432,12 +445,12 @@ const DashboardEmployeeSection = () => {
         <button onClick={closeModal} className="close-button">
           &times;
         </button>
-        <div className="grid grid-cols-3 place-items-stretch gap-4">
+        <div className="grid place-items-stretch justify-items-stretch gap-4">
           {modalData && modalData.length > 0 ? (
             modalData.map((data) => (
               <div
                 key={data._id}
-                className="bg-white text-[#2F2C49] w-full rounded-lg border border-[#CCCCCC] text-sm font-medium flex justify-between p-4"
+                className="bg-white text-[#2F2C49] rounded-lg border border-[#CCCCCC] text-sm font-medium flex justify-between p-4"
               >
                 <div className="flex flex-col gap-4 w-full">
                   <div className="flex justify-between w-full items-center">
@@ -486,17 +499,22 @@ const DashboardEmployeeSection = () => {
               <h1>No Data Found</h1>
             </div>
           )}
+          <InfiniteScroll
+            modalPage={modalPage}
+            fn={() =>
+              fetchEmployeeBusinessData(
+                selectedEmployee.role.toLowerCase(),
+                selectedEmployee.telecallerId ??
+                  selectedEmployee.bdeId ??
+                  selectedEmployee.digitalMarketerId,
+                openFor,
+                dateRange,
+                modalPage + 1
+              )
+            }
+            allModalPages={allModalPages}
+          />
         </div>
-        <Link
-          to={`/employee-details/${selectedEmployee?.role.toLowerCase()}/${
-            selectedEmployee?.telecallerId ??
-            selectedEmployee?.bdeId ??
-            selectedEmployee?.digitalMarketerId
-          }`}
-          className={`text-blue-600 underline float-right mt-4`}
-        >
-          {modalData.length > 0 ? "View More" : "View All"}
-        </Link>
       </Modal>
     </div>
   );
