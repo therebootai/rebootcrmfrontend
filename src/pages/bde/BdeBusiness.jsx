@@ -34,6 +34,8 @@ const BdeBusiness = () => {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
+  const [allSources, setAllSources] = useState([]);
+  const [currentSource, setCurrentSource] = useState("");
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -48,6 +50,7 @@ const BdeBusiness = () => {
 
     closeModal();
   };
+
   const fetchAllBusinesses = async (
     status,
     category,
@@ -55,7 +58,8 @@ const BdeBusiness = () => {
     mobileNumber,
     currentPage,
     bdeId,
-    customDateRange = dateRange
+    customDateRange = dateRange,
+    currentSource
   ) => {
     try {
       setFetchLoading(true);
@@ -68,6 +72,7 @@ const BdeBusiness = () => {
         mobileNumber: mobileNumber || "",
         bdeId,
         byTagAppointment: true,
+        source: currentSource || "",
       };
 
       // Only add date filters if they are defined
@@ -112,12 +117,15 @@ const BdeBusiness = () => {
       city,
       mobileNumber,
       currentPage,
-      bdeId
+      bdeId,
+      dateRange,
+      currentSource
     );
-  }, [mobileNumber, city, category, status, currentPage, bdeId]);
+  }, [mobileNumber, city, category, status, currentPage, bdeId, currentSource]);
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [mobileNumber, city, category, status, dateRange]);
+  }, [mobileNumber, city, category, status, dateRange, currentSource]);
 
   const handleDateRangeChange = (ranges) => {
     setDateRange({
@@ -159,10 +167,14 @@ const BdeBusiness = () => {
             import.meta.env.VITE_BASE_URL
           }/api/business/getfilter?bdeId=${bdeId}`
         );
+        const sourcesResponse = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/source/get`
+        );
         const data = response.data;
         setUniqueCities(data.cities);
         setUniqueCategories(data.businessCategories);
         setUniqueStatuses(data.status);
+        setAllSources(sourcesResponse.data);
       } catch (error) {
         console.log(error);
       }
@@ -283,6 +295,23 @@ const BdeBusiness = () => {
               {uniqueStatuses.map((sts, index) => (
                 <option key={index} value={sts}>
                   {sts}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <select
+              name="source"
+              value={currentSource}
+              onChange={(e) => {
+                setCurrentSource(e.target.value);
+              }}
+              className="px-4 p-1 border border-[#cccccc] text-sm rounded-md"
+            >
+              <option value="">All Sources</option>
+              {allSources.map((sts) => (
+                <option key={sts.sourceId} value={sts.sourcename}>
+                  {sts.sourcename}
                 </option>
               ))}
             </select>

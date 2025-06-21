@@ -64,8 +64,20 @@ const TelecallerCallingData = () => {
     followUps: 0,
     visits: 0,
     dealCloses: 0,
+    target: {
+      amount: 0,
+      achievement: 0,
+      percentage: 0,
+    },
   });
 
+  /*************  ✨ Windsurf Command ⭐  *************/
+  /**
+ * Fetches a list of businesses with pagination and filtering.
+ *
+ * @param {number} telecallerId - ID of the telecaller.
+
+/*******  1027e979-4542-4f1c-996a-ba8089d46eb1  *******/
   const fetchBusinesses = async (
     telecallerId,
     currentPage,
@@ -107,11 +119,17 @@ const TelecallerCallingData = () => {
         { params }
       );
 
+      const telecallerResponse = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/api/telecaller/get/${telecallerId}`
+      );
+
       const businessesData = response.data;
+
+      const teleData = telecallerResponse.data;
 
       setBusinesses(businessesData.businesses || []);
       setFilteredBusinesses(businessesData.businesses || []);
-      calculateCounts(businessesData);
+      calculateCounts({ ...businessesData, ...teleData });
       setTotalPages(businessesData.totalPages || 1);
     } catch (error) {
       console.error("Error fetching businesses:", error);
@@ -125,12 +143,50 @@ const TelecallerCallingData = () => {
     const followUps = data.statuscount.FollowupCount;
     const visits = data.statuscount.visitCount;
     const dealCloses = data.statuscount.dealCloseCount;
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const startDate = dateRange?.startDate
+      ? new Date(dateRange.startDate)
+      : new Date();
+
+    const monthIndex = startDate.getMonth(); // 0–11
+    const year = startDate.getFullYear();
+
+    const currentMonthStr = `${monthNames[monthIndex]} ${year}`;
+
+    const latestTarget = getLatestTarget(data.targets, currentMonthStr) || {
+      amount: 0,
+      achievement: 0,
+    };
+
+    const achievementPercentage =
+      latestTarget.amount && latestTarget.achievement
+        ? ((latestTarget.achievement / latestTarget.amount) * 100).toFixed(2)
+        : 0;
 
     setCounts({
       totalBusiness,
       followUps,
       visits,
       dealCloses,
+      target: {
+        amount: latestTarget.amount ?? 0,
+        achievement: latestTarget.achievement ?? 0,
+        percentage: achievementPercentage,
+      },
     });
   };
 
@@ -139,6 +195,11 @@ const TelecallerCallingData = () => {
     { name: "Follow Ups", number: counts.followUps },
     { name: "Appointment Generated", number: counts.visits },
     { name: "Deal Close", number: counts.dealCloses },
+    {
+      name: "Achievement",
+      number: `${counts.target.achievement} (${counts.target.percentage}%)`,
+    },
+    { name: "Target", number: counts.target.amount },
   ];
 
   useEffect(() => {
