@@ -46,11 +46,25 @@ const AdminDashboard = () => {
             : ""
         }`
       );
+      const [telecallers, digitalMarketers, bdes] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/digitalmarketer/get`),
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+      ]);
+
       const businessData = response.data;
 
       setBusinesses(businessData.businesses);
 
-      calculateCounts(businessData);
+      const combinedData = {
+        target: [
+          ...telecallers.data.map((item) => item.targets),
+          ...digitalMarketers.data.map((item) => item.targets),
+          ...bdes.data.map((item) => item.targets),
+        ].flat(),
+      };
+
+      calculateCounts({ ...businessData, ...combinedData });
     } catch (error) {
       console.error("Error fetching businesses:", error);
     }
@@ -86,11 +100,39 @@ const AdminDashboard = () => {
     const visits = data.statuscount.visitCount;
     const dealCloses = data.statuscount.dealCloseCount;
 
+    let targets = 0,
+      achievements = 0;
+
+    for (const item of data.target) {
+      if (dateRange && dateRange.startDate) {
+        const startDate = new Date(dateRange.startDate);
+        const itemMonthIndex = new Date(
+          Date.parse(item.month + " 1, " + item.year)
+        ).getMonth(); // Convert month name to 0-11 index
+        const itemYear = item.year;
+
+        // Compare by month (0-11 index) and year
+        if (
+          itemMonthIndex === startDate.getMonth() &&
+          itemYear === startDate.getFullYear()
+        ) {
+          targets += item.amount;
+          achievements += parseInt(item.achievement);
+        }
+      } else {
+        // If no dateRange.startDate is provided, sum all amounts
+        targets += item.amount;
+        achievements += parseInt(item.achievement ?? 0);
+      }
+    }
+
     setCounts({
       totalBusiness,
       followUps,
       visits,
       dealCloses,
+      targets,
+      achievements,
     });
   };
 
@@ -128,6 +170,8 @@ const AdminDashboard = () => {
     { name: "Follow Ups", number: counts.followUps },
     { name: "Visit", number: counts.visits },
     { name: "Deal Close", number: counts.dealCloses },
+    { name: "Targets", number: counts.targets },
+    { name: "Achievements", number: counts.achievements },
   ];
 
   return (
