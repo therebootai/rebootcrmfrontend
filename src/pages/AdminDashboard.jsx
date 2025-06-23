@@ -18,8 +18,8 @@ const AdminDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(),
-    endDate: new Date(),
+    startDate: null,
+    endDate: null,
     key: "selection",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
