@@ -76,14 +76,13 @@ const DataDisplayTable = ({
   };
 
   useEffect(() => {
-    setVisualData(filteredData);
-  }, [filteredData]);
-
-  useEffect(() => {
-    if (visualData.length > 0) {
-      fetchBusinessData(visualData);
+    if (filteredData && filteredData.length > 0) {
+      fetchBusinessData(filteredData);
+    } else {
+      // If filteredData is empty, clear visualData
+      setVisualData([]);
     }
-  }, [dateRange]);
+  }, [filteredData, dateRange]);
 
   const getLatestTarget = (targets) => {
     if (!targets || targets.length === 0) return null;
@@ -106,8 +105,8 @@ const DataDisplayTable = ({
         ))}
       </div>
       <div className="flex flex-col gap-4">
-        {filteredData?.length > 0 ? (
-          filteredData?.map((employee, rowIndex) => {
+        {visualData?.length > 0 ? (
+          visualData?.map((employee, rowIndex) => {
             const latestTarget = getLatestTarget(employee.targets) || {
               amount: 0,
               achievement: 0,
