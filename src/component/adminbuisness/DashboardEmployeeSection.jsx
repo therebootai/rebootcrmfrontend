@@ -19,7 +19,7 @@ const formatDate = (dateString) => {
     hour: "2-digit",
     minute: "2-digit",
   };
-  return new Date(dateString).toLocaleDateString("en-GB", options) + " ";
+  return new Date(dateString).toLocaleDateString("en-IN", options) + " ";
 };
 
 const DashboardEmployeeSection = () => {
