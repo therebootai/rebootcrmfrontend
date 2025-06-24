@@ -6,7 +6,6 @@ import AdminDashboardTemplate from "../template/AdminDashboardTemplate";
 import DashboardEmployeeSection from "../component/adminbuisness/DashboardEmployeeSection";
 
 const AdminDashboard = () => {
-  const [businesses, setBusinesses] = useState([]);
   const [counts, setCounts] = useState({
     totalBusiness: 0,
     followUps: 0,
@@ -24,6 +23,13 @@ const AdminDashboard = () => {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(true);
+
+  const rupeeFormatter = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 0, // No decimal places for whole rupees
+    maximumFractionDigits: 0,
+  });
 
   const fetchBusinesses = async () => {
     try {
@@ -53,8 +59,6 @@ const AdminDashboard = () => {
       ]);
 
       const businessData = response.data;
-
-      setBusinesses(businessData.businesses);
 
       const combinedData = {
         target: [
@@ -170,8 +174,11 @@ const AdminDashboard = () => {
     { name: "Follow Ups", number: counts.followUps },
     { name: "Visit", number: counts.visits },
     { name: "Deal Close", number: counts.dealCloses },
-    { name: "Targets", number: counts.targets },
-    { name: "Achievements", number: counts.achievements },
+    { name: "Targets", number: rupeeFormatter.format(counts.targets) },
+    {
+      name: "Achievements",
+      number: rupeeFormatter.format(counts.achievements),
+    },
   ];
 
   return (
