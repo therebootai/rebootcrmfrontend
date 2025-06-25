@@ -22,7 +22,7 @@ const AdminDashboard = () => {
     key: "selection",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isDateFilterApplied, setIsDateFilterApplied] = useState(true);
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
 
   const rupeeFormatter = new Intl.NumberFormat("en-IN", {
     style: "currency",

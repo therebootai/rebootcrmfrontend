@@ -5,10 +5,10 @@ import { FaRegEdit } from "react-icons/fa";
 import { GoDotFill } from "react-icons/go";
 import { GrCopy } from "react-icons/gr";
 import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+
 import TagAppointmentPopup from "./TagAppointmentPopup";
 import { DateRangePicker } from "react-date-range";
-import "react-date-range/dist/styles.css";
+
 import "react-date-range/dist/theme/default.css";
 import { format } from "date-fns";
 import EditBusinessPopup from "../EditBusinessPopup";

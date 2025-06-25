@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "react-date-range";
-import "react-date-range/dist/styles.css"; // Import date picker styles
-import "react-date-range/dist/theme/default.css"; // Import theme styles
 import { format } from "date-fns";
 import Modal from "react-modal";
 import { GoDotFill } from "react-icons/go";
@@ -31,7 +29,6 @@ const DashboardEmployeeSection = () => {
   const [allModalPages, setAllModalPages] = useState(1);
   const [bdeData, setBdeData] = useState([]);
   const [telecallerData, setTelecallerData] = useState([]);
-  const [digitalMarketerData, setDigitalMarketerData] = useState([]);
 
   const navigate = useNavigate();
 
@@ -163,16 +160,6 @@ const DashboardEmployeeSection = () => {
           targets: item.targets || [],
         })),
       ]);
-
-      setDigitalMarketerData([
-        ...digitalMarketers.data.map((item) => ({
-          ...item,
-          role: "Digital Marketer",
-          name: item.digitalMarketername,
-          id: item.digitalMarketerId,
-          targets: item.targets || [],
-        })),
-      ]);
     } catch (error) {
       console.error("Error fetching employee data:", error);
     }
@@ -291,23 +278,6 @@ const DashboardEmployeeSection = () => {
             "Action",
           ]}
           filteredData={telecallerData}
-          openModal={openModal}
-          handleViewDetails={handleViewDetails}
-          dateRange={dateRange}
-        />
-        <hr className="border border-[#CCCCCC]" />
-        <DataDisplayTable
-          headers={[
-            "Digital Marketer Name",
-            "Total Data",
-            "Appointments",
-            "Followup",
-            "Deal Close",
-            "Target",
-            "Achievement",
-            "Action",
-          ]}
-          filteredData={digitalMarketerData}
           openModal={openModal}
           handleViewDetails={handleViewDetails}
           dateRange={dateRange}

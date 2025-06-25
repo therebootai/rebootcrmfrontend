@@ -7,7 +7,7 @@ import AddBuisness from "../../component/adminbuisness/AddBuisness";
 import ManageBusiness from "../../component/adminbuisness/ManageBusiness";
 import { useParams } from "react-router-dom";
 import { DateRangePicker } from "react-date-range";
-import "react-date-range/dist/styles.css";
+
 import "react-date-range/dist/theme/default.css";
 import { format } from "date-fns";
 

@@ -75,7 +75,6 @@ const AdminLogin = () => {
       localStorage.setItem("name", name);
       localStorage.setItem("role", "admin");
 
-      console.log("Login successful");
       navigate("/admin/dashboard");
     } catch (error) {
       if (error.response && error.response.data) {

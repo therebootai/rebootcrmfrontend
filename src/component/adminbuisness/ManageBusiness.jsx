@@ -21,6 +21,8 @@ const ManageBusiness = ({
   setCurrentPage,
   totalPages,
   fetchLoading,
+  setProposalNumber,
+  setProposalModal,
 }) => {
   const [data, setData] = useState([]);
   const [selectedBusiness, setSelectedBusiness] = useState(null);
@@ -237,7 +239,15 @@ const ManageBusiness = ({
                         {row.buisnessname}
                       </div>
                       <div className="flex-1">{row.contactpersonName}</div>
-                      <div className="flex-1">{row.mobileNumber}</div>
+                      <div
+                        className="flex-1 cursor-pointer"
+                        onClick={() => {
+                          setProposalNumber(row.mobileNumber);
+                          setProposalModal(true);
+                        }}
+                      >
+                        {row.mobileNumber}
+                      </div>
                       <div className="flex-1">{row.city}</div>
                       <div className="flex-1">{row.category}</div>
                       <div className="flex-1">{row.source}</div>

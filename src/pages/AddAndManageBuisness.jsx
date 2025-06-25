@@ -8,9 +8,10 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import DuplicatePopup from "../component/DuplicatePopup";
 import { DateRangePicker } from "react-date-range";
-import "react-date-range/dist/styles.css";
+
 import "react-date-range/dist/theme/default.css";
 import { format } from "date-fns";
+import SendSingleProposal from "../component/adminbuisness/SendSingleProposal";
 
 const AddAndManageBuisness = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,6 +40,8 @@ const AddAndManageBuisness = () => {
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
   const [allSources, setAllSources] = useState([]);
   const [currentSource, setCurrentSource] = useState("");
+  const [proposalModal, setProposalModal] = useState(false);
+  const [proposalNumber, setProposalNumber] = useState("");
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -450,7 +453,7 @@ const AddAndManageBuisness = () => {
           <div className="px-2 p-1 bg-[#FF2722] text-white rounded-md text-sm font-medium cursor-pointer">
             <label className="cursor-pointer flex items-center">
               {loading ? (
-                <div className="loader mr-2"></div> // Display loader
+                <div className="loader mr-2" /> // Display loader
               ) : (
                 "Import"
               )}
@@ -472,6 +475,8 @@ const AddAndManageBuisness = () => {
             currentPage={currentPage}
             totalPages={totalPages}
             setCurrentPage={setCurrentPage}
+            setProposalNumber={setProposalNumber}
+            setProposalModal={setProposalModal}
           />
         </div>
       </div>
@@ -487,6 +492,22 @@ const AddAndManageBuisness = () => {
           &times;
         </button>
         <AddBuisness onAddBusiness={handleNewBusiness} />
+      </Modal>
+
+      <Modal
+        isOpen={proposalModal}
+        onRequestClose={() => setProposalModal(false)}
+        contentLabel="Send Proposal Modal"
+        className="modal-content"
+        overlayClassName="modal-overlay"
+      >
+        <button
+          onClick={() => setProposalModal(false)}
+          className="close-button"
+        >
+          &times;
+        </button>
+        <SendSingleProposal phoneNumber={proposalNumber} />
       </Modal>
 
       <DuplicatePopup
