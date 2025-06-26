@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Modal from "react-modal";
 import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 const SendProposalForEmployee = ({ business, onClose }) => {
   const [phoneNumber, setPhoneNumber] = useState(business?.mobileNumber || "");

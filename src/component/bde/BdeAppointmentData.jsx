@@ -6,10 +6,10 @@ import { GoDotFill } from "react-icons/go";
 import { GrCopy } from "react-icons/gr";
 import { ToastContainer, toast } from "react-toastify";
 import { DateRangePicker } from "react-date-range";
-import "react-date-range/dist/styles.css"; // main style file
-import "react-date-range/dist/theme/default.css"; // theme css file
+// main style file
+// theme css file
 import { format } from "date-fns";
-import "react-toastify/dist/ReactToastify.css";
+
 import EditBusinessPopup from "../EditBusinessPopup";
 
 import Modal from "react-modal";

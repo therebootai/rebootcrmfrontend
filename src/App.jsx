@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import "./App.css";
 
 import AdminDashboard from "./pages/AdminDashboard";
@@ -24,7 +24,6 @@ import TelecallerAchievement from "./pages/telecaller/TelecallerAchievement";
 import BdeAchievement from "./pages/bde/BdeAchievement";
 import DigitalMarketerAchievement from "./pages/digitalmarketer/DigitalMarketerAchievement";
 import EmployeeDetails from "./component/adminbuisness/EmployeeDetails";
-import TelecallerCallingData from "./component/telecaller/TelecallerCallingData";
 import TelecallerCallingDataPage from "./pages/telecaller/TelecallerCallingDataPage";
 import WhatsappProposal from "./pages/WhatsappProposal";
 import WhatsAppTemplateImageUpload from "./pages/WhatsAppTemplateImageUpload";
