@@ -1,5 +1,5 @@
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 
 const EditUser = ({ user, onClose, onUpdate }) => {
   const [name, setName] = useState(user.name);

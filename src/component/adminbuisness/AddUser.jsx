@@ -7,6 +7,7 @@ const AddUser = ({ closeModal }) => {
   const [mobileNumber, setMobileNumber] = useState("");
   const [organizationRole, setOrganizationRole] = useState("");
   const [password, setPassword] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,6 +29,7 @@ const AddUser = ({ closeModal }) => {
     setSelectedEmployee(employeeName);
     const employee = employees.find((emp) => emp.employeename === employeeName);
     setMobileNumber(employee ? employee.mobileNumber : "");
+    setEmployeeId(employee ? employee._id : "");
   };
 
   const handleRoleChange = (e) => {
@@ -62,6 +64,7 @@ const AddUser = ({ closeModal }) => {
       mobileNumber,
       organizationrole: organizationRole,
       password,
+      employee_ref: employeeId,
     };
 
     try {

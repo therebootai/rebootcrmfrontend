@@ -95,6 +95,79 @@ const DataDisplayTable = ({
     }, null);
   };
 
+  function calculateTotalDayCountByDate(attendanceList, targetDateObj = null) {
+    let totalDayCount = 0;
+
+    let useMonthYearFilter = false;
+    let targetMonth = -1; // 0-indexed
+    let targetYear = -1;
+
+    // Determine if a valid targetDateObj was provided for filtering
+    if (targetDateObj instanceof Date && !isNaN(targetDateObj.getTime())) {
+      useMonthYearFilter = true;
+      targetMonth = targetDateObj.getMonth();
+      targetYear = targetDateObj.getFullYear();
+    }
+
+    if (!attendanceList || attendanceList.length === 0) {
+      return totalDayCount;
+    }
+
+    attendanceList.forEach((record) => {
+      // Ensure the record has a 'date' field and it's a valid date string from MongoDB
+      if (record.date && record.date) {
+        const recordDate = new Date(record.date);
+
+        // Validate that the parsed recordDate is actually a valid Date
+        if (isNaN(recordDate.getTime())) {
+          console.warn(
+            `Warning: Invalid date string '${record.date}' in attendance record. Skipping.`
+          );
+          return; // Skip this record
+        }
+
+        // Apply filter if a valid targetDateObj was provided
+        if (useMonthYearFilter) {
+          if (
+            recordDate.getMonth() === targetMonth &&
+            recordDate.getFullYear() === targetYear
+          ) {
+            const dayCountValue = parseFloat(record.day_count);
+            if (!isNaN(dayCountValue)) {
+              totalDayCount += dayCountValue;
+            } else {
+              console.warn(
+                `Warning: Invalid day_count '${
+                  record.day_count
+                }' for record on ${
+                  recordDate.toISOString().split("T")[0]
+                }. Skipping.`
+              );
+            }
+          }
+        } else {
+          // No valid targetDateObj, sum all day_count values
+          const dayCountValue = parseFloat(record.day_count);
+          if (!isNaN(dayCountValue)) {
+            totalDayCount += dayCountValue;
+          } else {
+            console.warn(
+              `Warning: Invalid day_count '${record.day_count}' for record on ${
+                recordDate.toISOString().split("T")[0]
+              }. Skipping.`
+            );
+          }
+        }
+      } else {
+        console.warn(
+          "Warning: Attendance record missing valid 'date.$date' field. Skipping."
+        );
+      }
+    });
+
+    return totalDayCount;
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
@@ -126,6 +199,12 @@ const DataDisplayTable = ({
                 className="flex flex-row text-center gap-2 text-[#777777] text-sm font-medium flex-wrap"
               >
                 <div className="flex-1">{employee.name}</div>
+                <div className="flex-1">
+                  {calculateTotalDayCountByDate(
+                    employee.attendence_list,
+                    dateRange.startDate
+                  )}
+                </div>
                 <div className="flex-1">{employee.totalCount || "0"}</div>
                 <div
                   className="flex-1 cursor-pointer"
@@ -144,6 +223,12 @@ const DataDisplayTable = ({
                   onClick={() => openModal(employee, "Deal Closed")}
                 >
                   {employee.statuscount?.dealCloseCount || "0"}
+                </div>
+                <div
+                  className="flex-1 cursor-pointer"
+                  onClick={() => openModal(employee, "New Data")}
+                >
+                  {employee.statuscount?.created_business_count || "0"}
                 </div>
 
                 <div className="flex-1">{latestTarget.amount || "0"}</div>
