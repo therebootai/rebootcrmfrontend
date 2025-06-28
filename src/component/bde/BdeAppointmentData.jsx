@@ -19,6 +19,7 @@ import {
   MdKeyboardDoubleArrowRight,
 } from "react-icons/md";
 import LoadingAnimation from "../LoadingAnimation";
+import BdeMarkVisit from "./BdeMarkVisit";
 
 Modal.setAppElement("#root");
 
@@ -68,6 +69,7 @@ const BdeAppointmentData = () => {
     },
   });
   const [fetchLoading, setFetchLoading] = useState(false);
+  const [showVistPopup, setShowVisitPopup] = useState(false);
 
   const fetchBusinesses = async (
     bdeId,
@@ -266,19 +268,6 @@ const BdeAppointmentData = () => {
   const applyFilters = () => {
     let filteredData = [...businesses];
 
-    // if (dateRange.startDate && dateRange.endDate) {
-    //   const start = new Date(dateRange.startDate);
-    //   start.setUTCHours(0, 0, 0, 0);
-
-    //   const end = new Date(dateRange.endDate);
-    //   end.setUTCHours(23, 59, 59, 999);
-
-    //   filteredData = filteredData.filter((business) => {
-    //     const followUpDate = new Date(business.followUpDate);
-    //     return followUpDate >= start && followUpDate <= end;
-    //   });
-    // }
-
     if (mobileNumber) {
       filteredData = filteredData.filter((business) =>
         business.mobileNumber.includes(mobileNumber)
@@ -307,12 +296,6 @@ const BdeAppointmentData = () => {
 
     setFilteredBusinesses(filteredData);
   };
-
-  // useEffect(() => {
-  //   setCurrentPage(1);
-  //   const filteredData = applyFilters(businesses);
-  //   setFilteredBusinesses(filteredData);
-  // }, [mobileNumber, city, category, status, businesses]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -672,12 +655,21 @@ const BdeAppointmentData = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-4 text-white">
+                    <div className="flex gap-4 text-white">
                       <button
                         onClick={() => openProposalPopup(business)}
                         className="px-2 p-1 bg-[#FF2722] rounded-md text-sm font-semibold"
                       >
                         Send Proposal
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedBusiness(business);
+                          setShowVisitPopup(true);
+                        }}
+                        className="px-2 p-1 bg-green-500 rounded-md text-sm font-semibold"
+                      >
+                        Mark Visited
                       </button>
                     </div>
                   </div>
@@ -752,10 +744,22 @@ const BdeAppointmentData = () => {
         </Modal>
       )}
 
-      {selectedBusiness && (
+      {selectedBusiness && showEditPopup && (
         <EditBusinessPopup
           show={showEditPopup}
           onClose={handlePopupClose}
+          business={selectedBusiness}
+          onUpdate={handleUpdate}
+        />
+      )}
+
+      {selectedBusiness && showVistPopup && (
+        <BdeMarkVisit
+          show={showVistPopup}
+          onClose={() => {
+            setShowVisitPopup(false);
+            setSelectedBusiness(null);
+          }}
           business={selectedBusiness}
           onUpdate={handleUpdate}
         />
