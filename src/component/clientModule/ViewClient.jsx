@@ -206,11 +206,13 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
       </h2>
       <p>
         <strong>Business Name:</strong>{" "}
-        {viewClient.businessNameDoc.buisnessname}
+        {viewClient.businessNameDoc?.buisnessname ||
+          viewClient.businessName?.buisnessname}
       </p>
       <p>
         <strong>Mobile Number:</strong>{" "}
-        {viewClient.businessNameDoc.mobileNumber}
+        {viewClient.businessNameDoc?.mobileNumber ||
+          viewClient.businessName?.mobileNumber}
       </p>
       <p>
         <strong>Service Taken:</strong> {viewClient.serviceTaken}
