@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { FiEdit } from "react-icons/fi";
+import { FiDelete, FiEdit } from "react-icons/fi";
 import {
+  MdDeleteForever,
   MdKeyboardDoubleArrowLeft,
   MdKeyboardDoubleArrowRight,
   MdOutlineVisibility,
@@ -9,6 +10,7 @@ import AddClient from "./AddClient";
 import Modal from "react-modal";
 import ViewClient from "./ViewClient";
 import LoadingAnimation from "../LoadingAnimation";
+import axios from "axios";
 
 const ManageClient = ({
   allClient,
@@ -22,6 +24,8 @@ const ManageClient = ({
   const [showModal, setShowModal] = useState(false);
   const [viewClient, setViewClient] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleEditClick = (client) => {
     setEditingClient(client);
@@ -44,6 +48,31 @@ const ManageClient = ({
   };
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
+  };
+
+  const handleDelete = async (client) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete "${
+        client.businessNameDoc?.buisnessname || "this client"
+      }"?`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      const response = await axios.delete(
+        `${import.meta.env.VITE_BASE_URL}/api/client/delete/${client.clientId}`
+      );
+
+      if (response.data.success) {
+        fetchAllClients();
+      } else {
+        alert("Failed to delete the client.");
+      }
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      alert("Something went wrong while deleting the client.");
+    }
   };
 
   const pageRange = 5;
@@ -114,7 +143,7 @@ const ManageClient = ({
                         )
                       : ""}
                   </div>
-                  <div className="flex-1 flex gap-2 items-center ">
+                  <div className="flex-1 flex gap-2 items-center text-lg">
                     <button
                       onClick={() => handleViewClick(client)}
                       className="text-[#00D23B]"
@@ -126,6 +155,12 @@ const ManageClient = ({
                       className="text-[#5BC0DE]"
                     >
                       <FiEdit />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(client)}
+                      className="text-[#a92828]"
+                    >
+                      <MdDeleteForever />
                     </button>
                   </div>
                 </div>
