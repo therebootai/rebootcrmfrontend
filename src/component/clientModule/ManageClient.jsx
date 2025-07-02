@@ -24,8 +24,6 @@ const ManageClient = ({
   const [showModal, setShowModal] = useState(false);
   const [viewClient, setViewClient] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [clientToDelete, setClientToDelete] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleEditClick = (client) => {
     setEditingClient(client);
