@@ -16,6 +16,7 @@ const AddAndManageCandidate = () => {
   const [rating, setRating] = useState("");
   const [uniqueCities, setUniqueCities] = useState([]);
   const [uniqueInterestPosts, setUniqueInterestPosts] = useState([]);
+  
   const [uniqueStatuses, setUniqueStatuses] = useState([]);
   const [uniqueRatings, setUniqueRatings] = useState([]);
 

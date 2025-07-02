@@ -45,64 +45,85 @@ const DashboardEmployeeSection = () => {
     id,
     status,
     dateRange,
-    page = 1
+    page = 1,
+    created_business
   ) => {
     try {
       let url = "";
-      if (role === "telecaller") {
+      if (status === "New Data") {
         url = `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?telecallerId=${id}&status=${status}&followupstartdate=${
+        }/api/business/get?page=${page}&createdBy=${created_business}&createdstartdate=${
           dateRange.startDate
             ? new Date(
                 dateRange.startDate.getTime() -
                   dateRange.startDate.getTimezoneOffset() * 60000
               ).toISOString()
             : ""
-        }&followupenddate=${
+        }&createdenddate=${
           dateRange.endDate
             ? new Date(
                 dateRange.endDate.getTime() -
                   dateRange.endDate.getTimezoneOffset() * 60000
               ).toISOString()
             : ""
-        }&page=${page}`;
-      } else if (role === "digitalmarketer") {
-        url = `${
-          import.meta.env.VITE_BASE_URL
-        }/api/business/get?digitalMarketerId=${id}&status=${status}&category=${category}&followupstartdate=${
-          dateRange.startDate
-            ? new Date(
-                dateRange.startDate.getTime() -
-                  dateRange.startDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }&followupenddate=${
-          dateRange.endDate
-            ? new Date(
-                dateRange.endDate.getTime() -
-                  dateRange.endDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }&page=${page}`;
-      } else if (role === "bde") {
-        url = `${
-          import.meta.env.VITE_BASE_URL
-        }/api/business/get?bdeId=${id}&byTagAppointment=true&status=${status}&appointmentstartdate=${
-          dateRange.startDate
-            ? new Date(
-                dateRange.startDate.getTime() -
-                  dateRange.startDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }&appointmentenddate=${
-          dateRange.endDate
-            ? new Date(
-                dateRange.endDate.getTime() -
-                  dateRange.endDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }&page=${page}`;
+        }`;
+      } else {
+        if (role === "telecaller") {
+          url = `${
+            import.meta.env.VITE_BASE_URL
+          }/api/business/get?telecallerId=${id}&status=${status}&followupstartdate=${
+            dateRange.startDate
+              ? new Date(
+                  dateRange.startDate.getTime() -
+                    dateRange.startDate.getTimezoneOffset() * 60000
+                ).toISOString()
+              : ""
+          }&followupenddate=${
+            dateRange.endDate
+              ? new Date(
+                  dateRange.endDate.getTime() -
+                    dateRange.endDate.getTimezoneOffset() * 60000
+                ).toISOString()
+              : ""
+          }&page=${page}`;
+        } else if (role === "digitalmarketer") {
+          url = `${
+            import.meta.env.VITE_BASE_URL
+          }/api/business/get?digitalMarketerId=${id}&status=${status}&category=${category}&followupstartdate=${
+            dateRange.startDate
+              ? new Date(
+                  dateRange.startDate.getTime() -
+                    dateRange.startDate.getTimezoneOffset() * 60000
+                ).toISOString()
+              : ""
+          }&followupenddate=${
+            dateRange.endDate
+              ? new Date(
+                  dateRange.endDate.getTime() -
+                    dateRange.endDate.getTimezoneOffset() * 60000
+                ).toISOString()
+              : ""
+          }&page=${page}`;
+        } else if (role === "bde") {
+          url = `${
+            import.meta.env.VITE_BASE_URL
+          }/api/business/get?bdeId=${id}&byTagAppointment=true&status=${status}&appointmentstartdate=${
+            dateRange.startDate
+              ? new Date(
+                  dateRange.startDate.getTime() -
+                    dateRange.startDate.getTimezoneOffset() * 60000
+                ).toISOString()
+              : ""
+          }&appointmentenddate=${
+            dateRange.endDate
+              ? new Date(
+                  dateRange.endDate.getTime() -
+                    dateRange.endDate.getTimezoneOffset() * 60000
+                ).toISOString()
+              : ""
+          }&page=${page}`;
+        }
       }
 
       const response = await axios.get(url);
@@ -120,7 +141,9 @@ const DashboardEmployeeSection = () => {
       emp.role.toLowerCase(),
       emp.telecallerId ?? emp.bdeId ?? emp.digitalMarketerId,
       openFor,
-      dateRange
+      dateRange,
+      1,
+      emp._id
     );
     setIsModalOpen(true);
     setOpenFor(openFor);
@@ -135,9 +158,8 @@ const DashboardEmployeeSection = () => {
 
   const fetchEmployeeData = async () => {
     try {
-      const [telecallers, digitalMarketers, bdes] = await Promise.all([
+      const [telecallers, bdes] = await Promise.all([
         axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/digitalmarketer/get`),
         axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
       ]);
 
@@ -252,10 +274,12 @@ const DashboardEmployeeSection = () => {
         <DataDisplayTable
           headers={[
             "BDE Name",
+            "Day Count",
             "Total Data",
             "Appointments",
             "Followup",
             "Deal Close",
+            "New Data",
             "Target",
             "Achievement",
             "Action",
@@ -269,10 +293,12 @@ const DashboardEmployeeSection = () => {
         <DataDisplayTable
           headers={[
             "Telecaller Name",
+            "Day Count",
             "Total Data",
             "Appointments",
             "Followup",
             "Deal Close",
+            "New Data",
             "Target",
             "Achievement",
             "Action",
@@ -357,7 +383,8 @@ const DashboardEmployeeSection = () => {
                   selectedEmployee.digitalMarketerId,
                 openFor,
                 dateRange,
-                modalPage + 1
+                modalPage + 1,
+                selectedEmployee._id
               )
             }
             allModalPages={allModalPages}

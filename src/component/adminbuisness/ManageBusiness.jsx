@@ -251,7 +251,11 @@ const ManageBusiness = ({
                       <div className="flex-1">{row.city}</div>
                       <div className="flex-1">{row.category}</div>
                       <div className="flex-1">{row.source}</div>
-                      <div className="flex-1">{row.status}</div>
+                      <div className="flex-1">
+                        {row.status === "Visited"
+                          ? `Visited (${row.visit_result.reason})`
+                          : row.status}
+                      </div>
                       <div className="flex flex-1 flex-row items-center gap-2">
                         <button
                           className="text-[#00D23B]"

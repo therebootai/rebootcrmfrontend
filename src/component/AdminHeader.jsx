@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { HiViewGrid } from "react-icons/hi";
-import { IoNotificationsSharp, IoSearchSharp } from "react-icons/io5";
+import { IoNotificationsSharp } from "react-icons/io5";
 import { TfiMenuAlt } from "react-icons/tfi";
 import { IoIosLogOut } from "react-icons/io";
-import { useNavigate } from "react-router-dom";
 import { AiOutlineClose } from "react-icons/ai"; // Import close icon
 
 const AdminHeader = ({

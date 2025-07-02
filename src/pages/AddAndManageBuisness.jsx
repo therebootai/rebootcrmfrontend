@@ -42,11 +42,33 @@ const AddAndManageBuisness = () => {
   const [currentSource, setCurrentSource] = useState("");
   const [proposalModal, setProposalModal] = useState(false);
   const [proposalNumber, setProposalNumber] = useState("");
+  const [createdby, setCreatedBy] = useState("");
+  const [allUser, setAllUser] = useState([]);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
   const openPopup = () => setIsPopupOpen(true);
   const closePopup = () => setIsPopupOpen(false);
+
+  async function getAllUser() {
+    try {
+      const [bde, telecaller, admin] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/users`),
+      ]);
+      setAllUser([
+        ...bde.data.map((bde) => ({ id: bde.bdeId, name: bde.bdename })),
+        ...telecaller.data.map((tele) => ({
+          id: tele.telecallerId,
+          name: tele.telecallername,
+        })),
+        ...admin.data.map((user) => ({ id: user._id, name: user.name })),
+      ]);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   const handleNewBusiness = (newBusinessResponse) => {
     const newBusiness = newBusinessResponse.newBusiness;
@@ -65,7 +87,8 @@ const AddAndManageBuisness = () => {
     category,
     city,
     mobileNumber,
-    dateRange = { startDate: "", endDate: "" }
+    dateRange = { startDate: "", endDate: "" },
+    createdBy = ""
   ) => {
     try {
       setFetchLoading(true);
@@ -86,7 +109,7 @@ const AddAndManageBuisness = () => {
                   dateRange.endDate.getTimezoneOffset() * 60000
               ).toISOString()
             : ""
-        }&source=${currentSource}`
+        }&source=${currentSource}&createdBy=${createdBy}`
       );
       const data = response.data;
 
@@ -102,7 +125,14 @@ const AddAndManageBuisness = () => {
   };
 
   useEffect(() => {
-    fetchAllBusinesses(status, category, city, mobileNumber, dateRange);
+    fetchAllBusinesses(
+      status,
+      category,
+      city,
+      mobileNumber,
+      dateRange,
+      createdby
+    );
   }, [
     status,
     category,
@@ -111,6 +141,7 @@ const AddAndManageBuisness = () => {
     dateRange,
     currentPage,
     currentSource,
+    createdby,
   ]);
 
   const handleDateRangeChange = (ranges) => {
@@ -134,24 +165,6 @@ const AddAndManageBuisness = () => {
     fetchAllBusinesses(category, status, city, mobileNumber, 1, emptyDateRange);
   };
 
-  // // Apply filters when any filter or business data changes
-  // useEffect(() => {
-  //   // setFilteredBusinesses(applyFilters(allBusinesses));
-
-  //   fetchAllBusinesses(status, category, city, mobileNumber);
-
-  //   // setCurrentPage(1);  Reset to the first page when filters are applied
-  // }, [mobileNumber, city, category, status, isNewDataImport]);
-
-  // // const setUniqueFilters = (data) => {
-  // //   const cities = [...new Set(data.map((item) => item.city))];
-  // //   const categories = [...new Set(data.map((item) => item.category))];
-  // //   const statuses = [...new Set(data.map((item) => item.status))];
-  // //   setUniqueCities(cities);
-  // //   setUniqueCategories(categories);
-  // //   setUniqueStatuses(statuses);
-  // // };
-
   useMemo(() => {
     async function getFilters() {
       try {
@@ -172,6 +185,7 @@ const AddAndManageBuisness = () => {
       }
     }
     getFilters();
+    getAllUser();
   }, [isNewDataImport]);
 
   const applyFilters = (data) => {
@@ -434,6 +448,24 @@ const AddAndManageBuisness = () => {
               {allSources.map((sts) => (
                 <option key={sts.sourceId} value={sts.sourcename}>
                   {sts.sourcename}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <select
+              name="user"
+              value={createdby}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setCreatedBy(e.target.value);
+              }}
+              className="px-4 p-1 border border-[#cccccc] text-sm rounded-md"
+            >
+              <option value="">All Users</option>
+              {allUser.map((sts) => (
+                <option key={sts.id} value={sts.id}>
+                  {sts.name}
                 </option>
               ))}
             </select>

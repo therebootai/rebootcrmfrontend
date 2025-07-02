@@ -450,6 +450,17 @@ const TelecallerCallingData = () => {
     endPage = totalPages;
     startPage = Math.max(1, endPage - pageRange + 1);
   }
+  const getLatestTarget = (targets, currentMonth) => {
+    if (!targets || targets.length === 0 || !currentMonth) return null;
+
+    const [monthName, year] = currentMonth.split(" ");
+
+    return targets.find(
+      (target) =>
+        target.month.toLowerCase() === monthName.toLowerCase() &&
+        String(target.year) === String(year)
+    );
+  };
 
   return (
     <div className="w-full flex flex-col gap-4 ">

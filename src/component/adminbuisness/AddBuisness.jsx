@@ -159,8 +159,15 @@ const AddBuisness = ({ onAddBusiness }) => {
         // Send data to backend
         const response = await axios.post(
           `${import.meta.env.VITE_BASE_URL}/api/business/create`,
-          formData
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
         );
+
+        const newBusiness = response.data.newBusiness;
 
         onAddBusiness(response.data);
 
