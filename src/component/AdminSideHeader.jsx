@@ -36,6 +36,16 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
       ],
     },
     {
+      icon: "/images/client.svg",
+      name: "Client",
+      links: [
+        {
+          name: "Add & Manage Client",
+          link: "/admin/business/add-manage-client",
+        },
+      ],
+    },
+    {
       icon: "/images/hricon.svg",
       name: "HR",
       links: [
