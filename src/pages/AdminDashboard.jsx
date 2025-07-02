@@ -6,7 +6,6 @@ import AdminDashboardTemplate from "../template/AdminDashboardTemplate";
 import DashboardEmployeeSection from "../component/adminbuisness/DashboardEmployeeSection";
 
 const AdminDashboard = () => {
-  const [businesses, setBusinesses] = useState([]);
   const [counts, setCounts] = useState({
     totalBusiness: 0,
     followUps: 0,
@@ -18,12 +17,19 @@ const AdminDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(),
-    endDate: new Date(),
+    startDate: null,
+    endDate: null,
     key: "selection",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isDateFilterApplied, setIsDateFilterApplied] = useState(true);
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
+
+  const rupeeFormatter = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 0, // No decimal places for whole rupees
+    maximumFractionDigits: 0,
+  });
 
   const fetchBusinesses = async () => {
     try {
@@ -46,11 +52,23 @@ const AdminDashboard = () => {
             : ""
         }`
       );
+      const [telecallers, digitalMarketers, bdes] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/digitalmarketer/get`),
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+      ]);
+
       const businessData = response.data;
 
-      setBusinesses(businessData.businesses);
+      const combinedData = {
+        target: [
+          ...telecallers.data.map((item) => item.targets),
+          ...digitalMarketers.data.map((item) => item.targets),
+          ...bdes.data.map((item) => item.targets),
+        ].flat(),
+      };
 
-      calculateCounts(businessData);
+      calculateCounts({ ...businessData, ...combinedData });
     } catch (error) {
       console.error("Error fetching businesses:", error);
     }
@@ -86,11 +104,39 @@ const AdminDashboard = () => {
     const visits = data.statuscount.visitCount;
     const dealCloses = data.statuscount.dealCloseCount;
 
+    let targets = 0,
+      achievements = 0;
+
+    for (const item of data.target) {
+      if (dateRange && dateRange.startDate) {
+        const startDate = new Date(dateRange.startDate);
+        const itemMonthIndex = new Date(
+          Date.parse(item.month + " 1, " + item.year)
+        ).getMonth(); // Convert month name to 0-11 index
+        const itemYear = item.year;
+
+        // Compare by month (0-11 index) and year
+        if (
+          itemMonthIndex === startDate.getMonth() &&
+          itemYear === startDate.getFullYear()
+        ) {
+          targets += item.amount;
+          achievements += parseInt(item.achievement);
+        }
+      } else {
+        // If no dateRange.startDate is provided, sum all amounts
+        targets += item.amount;
+        achievements += parseInt(item.achievement ?? 0);
+      }
+    }
+
     setCounts({
       totalBusiness,
       followUps,
       visits,
       dealCloses,
+      targets,
+      achievements,
     });
   };
 
@@ -128,6 +174,11 @@ const AdminDashboard = () => {
     { name: "Follow Ups", number: counts.followUps },
     { name: "Visit", number: counts.visits },
     { name: "Deal Close", number: counts.dealCloses },
+    { name: "Targets", number: rupeeFormatter.format(counts.targets) },
+    {
+      name: "Achievements",
+      number: rupeeFormatter.format(counts.achievements),
+    },
   ];
 
   return (

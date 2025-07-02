@@ -7,9 +7,10 @@ import AddBuisness from "../../component/adminbuisness/AddBuisness";
 import ManageBusiness from "../../component/adminbuisness/ManageBusiness";
 import { useParams } from "react-router-dom";
 import { DateRangePicker } from "react-date-range";
-import "react-date-range/dist/styles.css";
+
 import "react-date-range/dist/theme/default.css";
 import { format } from "date-fns";
+import SendSingleProposal from "../../component/adminbuisness/SendSingleProposal";
 
 const TelecallerBusiness = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,6 +36,8 @@ const TelecallerBusiness = () => {
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
   const [allSources, setAllSources] = useState([]);
   const [currentSource, setCurrentSource] = useState("");
+  const [proposalModal, setProposalModal] = useState(false);
+  const [proposalNumber, setProposalNumber] = useState("");
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -337,6 +340,21 @@ const TelecallerBusiness = () => {
           &times;
         </button>
         <AddBuisness onAddBusiness={handleNewBusiness} />
+      </Modal>
+      <Modal
+        isOpen={proposalModal}
+        onRequestClose={() => setProposalModal(false)}
+        contentLabel="Send Proposal Modal"
+        className="modal-content"
+        overlayClassName="modal-overlay"
+      >
+        <button
+          onClick={() => setProposalModal(false)}
+          className="close-button"
+        >
+          &times;
+        </button>
+        <SendSingleProposal phoneNumber={proposalNumber} />
       </Modal>
     </TelecallerDashboardTemplate>
   );

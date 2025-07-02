@@ -35,7 +35,18 @@ const BdeHeader = ({
     fetchLeads();
   }, [bdeId]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const resp = await axios.get(
+      `${import.meta.env.VITE_BASE_URL}/api/logout`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    console.log(resp.data);
+
     localStorage.removeItem("token");
     localStorage.removeItem("name");
     localStorage.removeItem("bdeId");

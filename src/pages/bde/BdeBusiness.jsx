@@ -7,9 +7,10 @@ import ManageBusiness from "../../component/adminbuisness/ManageBusiness";
 import BdeDashboardTemplate from "../../template/BdeDashboardTemplate";
 import { useParams } from "react-router-dom";
 import { DateRangePicker } from "react-date-range";
-import "react-date-range/dist/styles.css";
+
 import "react-date-range/dist/theme/default.css";
 import { format } from "date-fns";
+import SendSingleProposal from "../../component/adminbuisness/SendSingleProposal";
 
 const BdeBusiness = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,6 +25,9 @@ const BdeBusiness = () => {
   const [uniqueStatuses, setUniqueStatuses] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [fetchLoading, setFetchLoading] = useState(false);
+  const [proposalModal, setProposalModal] = useState(false);
+  const [proposalNumber, setProposalNumber] = useState("");
+
   const { bdeId } = useParams();
 
   const [totalPages, setTotalPages] = useState(1);
@@ -331,6 +335,8 @@ const BdeBusiness = () => {
             currentPage={currentPage}
             totalPages={totalPages}
             setCurrentPage={setCurrentPage}
+            setProposalNumber={setProposalNumber}
+            setProposalModal={setProposalModal}
           />
         </div>
       </div>
@@ -346,6 +352,21 @@ const BdeBusiness = () => {
           &times;
         </button>
         <AddBuisness onAddBusiness={handleNewBusiness} />
+      </Modal>
+      <Modal
+        isOpen={proposalModal}
+        onRequestClose={() => setProposalModal(false)}
+        contentLabel="Send Proposal Modal"
+        className="modal-content"
+        overlayClassName="modal-overlay"
+      >
+        <button
+          onClick={() => setProposalModal(false)}
+          className="close-button"
+        >
+          &times;
+        </button>
+        <SendSingleProposal phoneNumber={proposalNumber} />
       </Modal>
     </BdeDashboardTemplate>
   );

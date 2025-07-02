@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { DateRangePicker } from "react-date-range";
-import "react-date-range/dist/styles.css"; // main style file
-import "react-date-range/dist/theme/default.css"; // theme css file
+// main style file
+// theme css file
 import { format } from "date-fns";
 import AdminDashboardTemplate from "../../template/AdminDashboardTemplate";
 import {

@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import "./App.css";
 
 import AdminDashboard from "./pages/AdminDashboard";
@@ -24,7 +24,6 @@ import TelecallerAchievement from "./pages/telecaller/TelecallerAchievement";
 import BdeAchievement from "./pages/bde/BdeAchievement";
 import DigitalMarketerAchievement from "./pages/digitalmarketer/DigitalMarketerAchievement";
 import EmployeeDetails from "./component/adminbuisness/EmployeeDetails";
-import TelecallerCallingData from "./component/telecaller/TelecallerCallingData";
 import TelecallerCallingDataPage from "./pages/telecaller/TelecallerCallingDataPage";
 import WhatsappProposal from "./pages/WhatsappProposal";
 import WhatsAppTemplateImageUpload from "./pages/WhatsAppTemplateImageUpload";
@@ -35,6 +34,7 @@ import AddAndManageBlog from "./pages/blog/AddAndManageBlog";
 import Career from "./pages/careerjobpost/Career";
 import AllApplication from "./pages/careerjobpost/AllApplication";
 import AddAndManageAchievement from "./pages/AddAndManageAchievement";
+import AddAndManageClient from "./pages/AddAndManageClient";
 
 function App() {
   return (
@@ -45,6 +45,10 @@ function App() {
       <Route
         path="/admin/business/add-manage-business"
         element={<AddAndManageBuisness />}
+      />
+      <Route
+        path="/admin/business/add-manage-client"
+        element={<AddAndManageClient />}
       />
       <Route
         path="/admin/business/add-manage-city-town"
