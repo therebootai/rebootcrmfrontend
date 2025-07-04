@@ -88,16 +88,18 @@ const ManageClient = ({
   }
   return (
     <div className="flex flex-col">
-      <div className="flex flex-row gap-2 text-xs xl:text-sm font-medium items-center text-[#333333] p-2 xl:p-3 border-b border-t border-[#cccccc]">
+      <div className="flex flex-row gap-2 text-xs xl:text-xs font-medium items-center text-[#333333] p-2 xl:p-3 border-b border-t border-[#cccccc]">
         <div className="flex-1">Client Name</div>
         <div className="flex-1">Mobile Number</div>
         <div className="flex-1">Service Taken</div>
-        <div className="flex-1">Website</div>
-        <div className="flex-1">Expire</div>
         <div className="flex-1">BDE Name</div>
         <div className="flex-1">TME Name</div>
-        <div className="flex-1">Amount</div>
-        <div className="flex-1">Clear</div>
+        <div className="flex-1">Website</div>
+        <div className="flex-1">Expire</div>
+
+        <div className="flex-1">Deal Amount</div>
+        <div className="flex-1">Cleared</div>
+        <div className="flex-1">Total Value</div>
         <div className="flex-1">Action</div>
       </div>
 
@@ -110,30 +112,36 @@ const ManageClient = ({
               allClient.map((client, index) => (
                 <div
                   key={index}
-                  className="flex flex-row gap-2 text-xs  xl:text-sm p-2 xl:p-3 text-[#333333] border-b border-[#eeeeee]"
+                  className="flex flex-row gap-2 text-xs   xl:text-xs p-2 xl:p-3 text-[#333333] border-b border-[#eeeeee]"
                 >
-                  <div className="flex-1">
+                  <div className="flex-1 line-clamp-1">
                     {client.businessNameDoc.buisnessname || ""}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 line-clamp-1">
                     {client.businessNameDoc.mobileNumber || ""}
                   </div>
-                  <div className="flex-1">{client.serviceTaken || ""}</div>
-                  <div className="flex-1   break-words break-all ">
+                  <div className="flex-1 line-clamp-1">
+                    {client.serviceTaken || ""}
+                  </div>
+                  <div className="flex-1 line-clamp-1">
+                    {" "}
+                    {client.bdeName?.bdename}
+                  </div>
+                  <div className="flex-1 line-clamp-1">
+                    {client.tmeLeads?.telecallername || ""}
+                  </div>
+                  <div className="flex-1 line-clamp-1  break-words break-all ">
                     {client.website || ""}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 line-clamp-1">
                     {" "}
                     {client.expiryDate
                       ? new Date(client.expiryDate).toLocaleDateString("en-GB")
                       : ""}
                   </div>
-                  <div className="flex-1"> {client.bdeName?.bdename}</div>
-                  <div className="flex-1">
-                    {client.tmeLeads?.telecallername || ""}
-                  </div>
-                  <div className="flex-1">{client.dealAmount}</div>
-                  <div className="flex-1">
+
+                  <div className="flex-1 line-clamp-1">{client.dealAmount}</div>
+                  <div className="flex-1 line-clamp-1">
                     {Array.isArray(client.cleardAmount)
                       ? client.cleardAmount.reduce(
                           (sum, item) => sum + (item.amount || 0),
@@ -141,7 +149,10 @@ const ManageClient = ({
                         )
                       : ""}
                   </div>
-                  <div className="flex-1 flex gap-2 items-center text-lg">
+                  <div className="flex-1 line-clamp-1  break-words break-all ">
+                    {client.totalAmount || ""}
+                  </div>
+                  <div className="flex-1 flex gap-2 items-center text-base">
                     <button
                       onClick={() => handleViewClick(client)}
                       className="text-[#00D23B]"
@@ -172,7 +183,7 @@ const ManageClient = ({
         )}
       </div>
 
-      <div className="flex justify-center gap-4 pb-4 items-center mt-4">
+      <div className="flex justify-center gap-4 pb-4 items-center mt-4 text-sm">
         <button
           className={`flex gap-1 text-center items-center ${
             currentPage === 1 ? "text-[#333333]" : "text-[#0A5BFF]"
