@@ -20,10 +20,11 @@ const AddClient = ({ closeModal, existingData = null, fetchAllClients }) => {
     address: "",
     pincode: "",
     gstNo: "",
-    bdeName: "" || null,
-    tmeLeads: "" || null,
+    bdeName: null,
+    tmeLeads: null,
     dealAmount: "",
     cleardAmount: [],
+    remarks: "",
   });
 
   useEffect(() => {
@@ -75,10 +76,11 @@ const AddClient = ({ closeModal, existingData = null, fetchAllClients }) => {
         address: existingData.address || "",
         pincode: existingData.pincode || "",
         gstNo: existingData.gstNo || "",
-        bdeName: existingData.bdeName?._id || "",
-        tmeLeads: existingData.tmeLeads?._id || "",
+        bdeName: existingData.bdeName?._id || null,
+        tmeLeads: existingData.tmeLeads?._id || null,
         dealAmount: existingData.dealAmount || "",
         cleardAmount: existingData.cleardAmount || [],
+        remarks: existingData.remarks || "",
       });
       setSearchQuery(
         `${existingData.businessNameDoc.buisnessname} - ${existingData.businessNameDoc.mobileNumber}`
@@ -117,11 +119,8 @@ const AddClient = ({ closeModal, existingData = null, fetchAllClients }) => {
     let finalFormData = { ...formData };
 
     if (clearedAmountInput && clearedAmountInput > 0) {
-      const currentDate = new Date();
       const newClearedAmount = {
         amount: Number(clearedAmountInput),
-        month: currentDate.toLocaleString("default", { month: "long" }),
-        year: currentDate.getFullYear(),
       };
 
       finalFormData = {
@@ -159,6 +158,7 @@ const AddClient = ({ closeModal, existingData = null, fetchAllClients }) => {
         tmeLeads: "",
         dealAmount: "",
         cleardAmount: [],
+        remarks: "",
       });
       setClearedAmountInput("");
       closeModal();
@@ -355,13 +355,26 @@ const AddClient = ({ closeModal, existingData = null, fetchAllClients }) => {
               />
             </div>
           )}
+          <div className=" w-full">
+            <label htmlFor="" className=" text-sm text-[#333333] font-medium">
+              Remarks
+            </label>
+            <input
+              type="text"
+              id="remarks"
+              name="remarks"
+              value={formData.remarks}
+              onChange={handleInputChange}
+              className="h-[3.5rem] px-2 border border-[#CCCCCC] outline-none w-full"
+            />
+          </div>
+          <button
+            type="submit"
+            className="bg-[#0A5BFF] text-white h-[3.5rem]  mt-6"
+          >
+            {existingData ? "Update" : "Create"}
+          </button>
         </div>
-        <button
-          type="submit"
-          className="bg-blue-500 text-white p-2 rounded mt-4"
-        >
-          {existingData ? "Update" : "Create"}
-        </button>
       </form>
     </div>
   );

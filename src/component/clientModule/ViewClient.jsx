@@ -2,20 +2,28 @@ import React, { useState } from "react";
 import { AiOutlinePlusCircle } from "react-icons/ai";
 import { TbEdit } from "react-icons/tb";
 import axios from "axios";
-import EditMonthlyPayment from "./EditMonthlyPayment";
+import { BiCheckCircle, BiSolidEditAlt } from "react-icons/bi";
 
 const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
   const [amountToEdit, setAmountToEdit] = useState(null);
   const [newAmount, setNewAmount] = useState("");
-  const [monthlyInput, setMonthlyInput] = useState("");
-  const [activePaymentIndex, setActivePaymentIndex] = useState(null);
-  const [editingPaymentIndex, setEditingPaymentIndex] = useState(null);
-  const [editedAmount, setEditedAmount] = useState("");
-  const [editingEmiIndex, setEditingEmiIndex] = useState(null);
-  const [editingEmiValues, setEditingEmiValues] = useState({
-    amount: "",
-    due: "",
-  });
+  const [monthlyService, setMonthlyService] = useState("");
+  const [monthlyAmount, setMonthlyAmount] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedItem, setEditedItem] = useState(null);
+  const [newServiceName, setNewServiceName] = useState("");
+
+  const calculateTotalClearedAmount = () => {
+    return viewClient.cleardAmount.reduce(
+      (total, item) => total + item.amount,
+      0
+    );
+  };
+
+  const calculateDueAmount = () => {
+    const totalClearedAmount = calculateTotalClearedAmount();
+    return viewClient.dealAmount - totalClearedAmount;
+  };
 
   const handleEditAmount = (item) => {
     setAmountToEdit(item);
@@ -51,12 +59,20 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
 
   // Handle Add Amount (Plus button)
   const handleAddAmount = async () => {
-    const currentDate = new Date();
     const newClearedAmount = {
-      month: currentDate.toLocaleString("default", { month: "long" }),
-      year: currentDate.getFullYear(),
       amount: newAmount,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
+
+    const existingAmount = viewClient.cleardAmount.find(
+      (item) => item.amount === newClearedAmount.amount
+    );
+
+    if (existingAmount) {
+      alert("This amount already exists in the cleared amounts list.");
+      return;
+    }
 
     const updatedClearedAmount = [...viewClient.cleardAmount, newClearedAmount];
 
@@ -76,126 +92,84 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
     }
   };
 
-  const handleMonthlyPaymentCreate = async () => {
-    if (!monthlyInput || isNaN(monthlyInput)) {
-      alert("Enter a valid amount");
+  const handleAddMonthlyPayment = async () => {
+    if (!monthlyService || !monthlyAmount) {
+      alert("Service and amount are required");
       return;
     }
 
-    const newEntry = {
-      totalAmount: Number(monthlyInput),
-      emis: [],
+    const newPayment = {
+      serviceName: monthlyService,
+      totalAmount: Number(monthlyAmount),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
-    const updatedArray = [...viewClient.monthlyPaymentAmount, newEntry];
+    const updatedMonthlyPayments = [
+      ...viewClient.monthlyPaymentAmount,
+      newPayment,
+    ];
 
     try {
       const response = await axios.put(
         `${import.meta.env.VITE_BASE_URL}/api/client/update/${
           viewClient.clientId
         }`,
-        { monthlyPaymentAmount: updatedArray }
+        { monthlyPaymentAmount: updatedMonthlyPayments }
       );
+
       setViewClient(response.data.client);
-      setMonthlyInput("");
+      setMonthlyService("");
+      setMonthlyAmount("");
       fetchAllClients();
     } catch (error) {
-      console.error("Error adding monthly amount", error);
-      alert("Failed to add monthly payment");
+      console.error("Error saving monthly payment", error);
+      alert("Failed to save monthly payment");
     }
   };
 
-  const handleAddEmi = async (emiEntry, monthlyIndex) => {
-    const allMonthlyPayments = [...viewClient.monthlyPaymentAmount];
+  const handleEditMonthlyPayment = (item) => {
+    setIsEditing(true);
+    setEditedItem(item);
+    setNewServiceName(item.serviceName);
+    setNewAmount(item.totalAmount);
+  };
 
-    const selectedPayment = allMonthlyPayments[monthlyIndex];
+  const handleSaveEditMonthlyPayment = async () => {
+    if (!newServiceName || !newAmount) {
+      alert("Service name and amount cannot be empty");
+      return;
+    }
 
-    emiEntry.installmentNumber = selectedPayment.emis.length + 1;
-
-    selectedPayment.emis.push(emiEntry);
+    const updatedMonthlyPayments = viewClient.monthlyPaymentAmount.map((item) =>
+      item._id === editedItem._id
+        ? {
+            ...item,
+            serviceName: newServiceName,
+            totalAmount: Number(newAmount),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+        : item
+    );
 
     try {
       const response = await axios.put(
         `${import.meta.env.VITE_BASE_URL}/api/client/update/${
           viewClient.clientId
         }`,
-        { monthlyPaymentAmount: allMonthlyPayments }
+        { monthlyPaymentAmount: updatedMonthlyPayments }
       );
+
       setViewClient(response.data.client);
-      setActivePaymentIndex(null);
+      setIsEditing(false);
+      setEditedItem(null);
+      setNewServiceName("");
+      setNewAmount("");
       fetchAllClients();
     } catch (error) {
-      console.error("Error saving EMI", error);
-      alert("Failed to save EMI");
-    }
-  };
-
-  const handleSaveMonthlyAmount = async (index) => {
-    const updated = [...viewClient.monthlyPaymentAmount];
-    updated[index].totalAmount = Number(editedAmount);
-
-    try {
-      const response = await axios.put(
-        `${import.meta.env.VITE_BASE_URL}/api/client/update/${
-          viewClient.clientId
-        }`,
-        { monthlyPaymentAmount: updated }
-      );
-      setViewClient(response.data.client);
-      setEditingPaymentIndex(null);
-      setEditedAmount("");
-      fetchAllClients();
-    } catch (err) {
-      console.error("Error updating monthly amount", err);
-      alert("Failed to update monthly payment amount");
-    }
-  };
-
-  const handleEditEmiClick = (emi, emiIndex) => {
-    setEditingEmiIndex(emiIndex);
-    setEditingEmiValues({
-      amount: emi.amount,
-      due: emi.due,
-    });
-  };
-
-  const handleEmiDueChange = (value, totalAmount, originalAmount) => {
-    const due = parseFloat(value) || 0;
-    let newAmount = parseFloat(originalAmount) || 0;
-
-    if (due === 0 || value === "") {
-      newAmount = totalAmount;
-    } else {
-      newAmount = totalAmount - due;
-    }
-
-    setEditingEmiValues({
-      amount: Math.floor(newAmount),
-      due: value,
-    });
-  };
-
-  const handleSaveEditedEmi = async (monthlyIndex) => {
-    const updated = [...viewClient.monthlyPaymentAmount];
-    const selected = updated[monthlyIndex];
-
-    selected.emis[editingEmiIndex].amount = editingEmiValues.amount;
-    selected.emis[editingEmiIndex].due = editingEmiValues.due;
-
-    try {
-      const response = await axios.put(
-        `${import.meta.env.VITE_BASE_URL}/api/client/update/${
-          viewClient.clientId
-        }`,
-        { monthlyPaymentAmount: updated }
-      );
-      setViewClient(response.data.client);
-      setEditingEmiIndex(null);
-      setEditingEmiValues({ amount: "", due: "" });
-      fetchAllClients();
-    } catch (err) {
-      console.error("Error updating EMI", err);
-      alert("Failed to update EMI");
+      console.error("Error updating monthly payment", error);
+      alert("Error updating monthly payment");
     }
   };
 
@@ -233,208 +207,193 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
         <strong>TME Name:</strong> {viewClient.tmeLeads?.telecallername}
       </p>
       <p>
-        <strong>Deal Amount:</strong> {viewClient.dealAmount}
+        <strong>Remarks:</strong> {viewClient.remarks || ""}
       </p>
-      <p className="flex flex-row gap-2">
-        <strong className=" text-nowrap">Cleared Amount:</strong>
-        <div className=" flex flex-wrap gap-2">
-          {viewClient.cleardAmount && viewClient.cleardAmount.length > 0 ? (
-            viewClient.cleardAmount.map((item, index) => (
-              <span key={index} className="flex  items-center gap-2">
-                {item.month} {item.year} - ₹{item.amount}{" "}
-                <button
-                  onClick={() => handleEditAmount(item)}
-                  className="text-blue-600 text-lg"
-                >
-                  <TbEdit />
-                </button>{" "}
-                <button
-                  onClick={handleAddAmount}
-                  className="text-green-600 text-lg"
-                >
-                  <AiOutlinePlusCircle />
-                </button>
-                ||
-              </span>
-            ))
-          ) : (
+      <p>
+        <strong>Deal Amount:</strong> ₹ {viewClient.dealAmount}
+      </p>
+
+      <div className="flex flex-col gap-4">
+        <div className=" flex flex-row gap-4 items-center">
+          <strong className=" text-nowrap">Cleared:</strong>
+          <div className="flex flex-row gap-4 items-center w-full">
+            <div className=" w-[40%]">
+              <input
+                type="number"
+                value={newAmount}
+                onChange={(e) => setNewAmount(e.target.value)}
+                placeholder="Enter Cleared amount"
+                className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full"
+              />
+            </div>
             <button
               onClick={handleAddAmount}
-              className="text-green-600 text-lg"
+              className=" h-[3rem] w-[3rem] text-2xl  flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
             >
               <AiOutlinePlusCircle />
             </button>
-          )}
+          </div>
         </div>
+        <div className="grid grid-cols-4 gap-4">
+          {viewClient.cleardAmount && viewClient.cleardAmount.length > 0
+            ? viewClient.cleardAmount.map((item, index) => (
+                <div
+                  key={index}
+                  className="p-4 flex flex-col gap-2 border border-[#cccccc]"
+                >
+                  <div className="flex justify-between items-center">
+                    {amountToEdit && amountToEdit._id === item._id ? (
+                      <>
+                        <input
+                          type="number"
+                          value={newAmount}
+                          onChange={(e) => setNewAmount(e.target.value)}
+                          className="text-lg ml-2 font-semibold text-[#00D23B] h-[2.5rem] border border-[#cccccc] outline-none w-[80%]"
+                        />
+                        <button
+                          onClick={handleSaveEditAmount}
+                          className="h-[3rem] w-[3rem] text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+                        >
+                          <BiCheckCircle />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-3xl font-semibold text-[#00D23B]">
+                          ₹{item.amount}
+                        </span>
+                        <button
+                          onClick={() => handleEditAmount(item)}
+                          className="h-[3rem] w-[3rem] text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+                        >
+                          <TbEdit />
+                        </button>{" "}
+                      </>
+                    )}
+                  </div>
+                  <div className="text-base font-medium text-[#666666]">
+                    {new Date(item.updatedAt).toLocaleString("en-GB", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </div>
+                </div>
+              ))
+            : ""}
+        </div>
+      </div>
+
+      <p>
+        <strong>Due:</strong> ₹ {calculateDueAmount()}
       </p>
-      {amountToEdit && (
-        <div className="flex flex-row gap-4 items-center">
-          <input
-            type="number"
-            value={newAmount}
-            onChange={(e) => setNewAmount(e.target.value)}
-            placeholder="Enter Cleared amount"
-            className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-[60%]"
-          />
+
+      <p>
+        <strong>Total Value:</strong> ₹ {viewClient.totalAmount}
+      </p>
+
+      <div className="flex flex-col  gap-4">
+        <strong className="text-nowrap">Other Monthly Payments:</strong>
+        <div className=" flex flex-row gap-4">
+          <div className=" w-[40%] ">
+            <input
+              type="text"
+              placeholder="Product/Service"
+              value={monthlyService}
+              onChange={(e) => setMonthlyService(e.target.value)}
+              className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full "
+            />
+          </div>
+          <div className="w-[40%] ">
+            <input
+              type="text"
+              placeholder="Amount"
+              value={monthlyAmount}
+              onChange={(e) => setMonthlyAmount(e.target.value)}
+              className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full "
+            />
+          </div>
           <button
-            onClick={handleSaveEditAmount}
-            className=" h-[2rem] px-4 flex justify-center items-center bg-[#0A5BFF] text-white rounded-sm"
+            onClick={handleAddMonthlyPayment}
+            className=" h-[3rem] w-[3rem] text-2xl  flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
           >
-            Save
+            <AiOutlinePlusCircle />
           </button>
         </div>
-      )}
-
-      <p className="flex flex-row items-center gap-4">
-        <strong className="text-nowrap">New Monthly Payment:</strong>
-        <div className="flex flex-row gap-2 items-center w-full">
-          <input
-            type="number"
-            placeholder="Enter Monthly Payment"
-            value={monthlyInput}
-            onChange={(e) => setMonthlyInput(e.target.value)}
-            className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-[80%]"
-          />
-          <button
-            onClick={handleMonthlyPaymentCreate}
-            className="h-[2rem] px-4 flex justify-center items-center bg-[#0A5BFF] text-white rounded-sm"
-          >
-            Add
-          </button>
-        </div>
-      </p>
-
-      {viewClient.monthlyPaymentAmount?.length > 0 && (
-        <div className="flex flex-col gap-6">
-          {viewClient.monthlyPaymentAmount.map((mp, index) => (
-            <div
-              key={index}
-              className="p-2 border border-gray-300 rounded-md flex flex-col gap-4 "
-            >
-              <div className=" flex gap-4 items-center">
-                <div>
-                  <strong>Monthly Payment {index + 1}:</strong>{" "}
-                  {editingPaymentIndex === index ? (
+      </div>
+      <div className="pt-2 border-t border-[#cccccc]">
+        {viewClient.monthlyPaymentAmount &&
+        viewClient.monthlyPaymentAmount.length > 0 ? (
+          <ul className=" grid grid-cols-3  gap-4 ">
+            {viewClient.monthlyPaymentAmount.map((item, index) => (
+              <div
+                key={index}
+                className=" p-4 flex flex-col gap-2 border border-[#cccccc]"
+              >
+                <div className=" flex justify-between items-center">
+                  <div className=" text-3xl font-semibold text-[#00D23B]">
+                    {isEditing && editedItem._id === item._id ? (
+                      <input
+                        type="number"
+                        value={newAmount}
+                        onChange={(e) => setNewAmount(e.target.value)}
+                        className="text-lg ml-2 font-semibold text-[#00D23B] h-[2.5rem] border border-[#cccccc] outline-none w-[80%]"
+                      />
+                    ) : (
+                      <span>₹ {item.totalAmount}</span>
+                    )}
+                  </div>
+                  {isEditing && editedItem._id === item._id ? (
+                    <button
+                      onClick={handleSaveEditMonthlyPayment}
+                      className="h-[3rem] w-[3rem] text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+                    >
+                      <BiCheckCircle />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleEditMonthlyPayment(item)}
+                      className="h-[3rem] w-[3rem] text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+                    >
+                      <BiSolidEditAlt />
+                    </button>
+                  )}
+                </div>
+                <div className=" text-xl font-medium text-[#333333]">
+                  {isEditing && editedItem._id === item._id ? (
                     <input
-                      type="number"
-                      value={editedAmount}
-                      onChange={(e) => setEditedAmount(e.target.value)}
-                      className="px-2 py-1 border border-[#cccccc] rounded w-[120px]"
+                      type="text"
+                      value={newServiceName}
+                      onChange={(e) => setNewServiceName(e.target.value)}
+                      className="text-xl font-medium  h-[2.5rem] border border-[#cccccc] text-[#333333] outline-none w-full"
                     />
                   ) : (
-                    <>₹{mp.totalAmount}</>
+                    item.serviceName
                   )}
                 </div>
-                <div className="flex gap-2 text-lg relative">
-                  {editingPaymentIndex === index ? (
-                    <button
-                      className="text-green-600 text-sm px-2 py-1 border border-green-600 rounded"
-                      onClick={() => handleSaveMonthlyAmount(index)}
-                    >
-                      Save
-                    </button>
-                  ) : (
-                    <button
-                      className="text-blue-600"
-                      onClick={() => {
-                        setEditingPaymentIndex(index);
-                        setEditedAmount(mp.totalAmount);
-                      }}
-                    >
-                      <TbEdit />
-                    </button>
-                  )}
-                  <button
-                    onClick={() =>
-                      setActivePaymentIndex(
-                        activePaymentIndex === index ? null : index
-                      )
-                    }
-                    className="text-green-600"
-                  >
-                    <AiOutlinePlusCircle />
-                  </button>
-                  {activePaymentIndex === index && (
-                    <div className="absolute top-[calc(100%_+_0.75rem)] left-1/2 -translate-x-1/2 z-[100]">
-                      <EditMonthlyPayment
-                        defaultAmount={mp.totalAmount}
-                        onSubmit={(emiEntry) => handleAddEmi(emiEntry, index)}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              <div className=" flex flex-col gap-4">
-                {mp.emis.length > 0 && (
-                  <div className=" flex flex-col gap-4 text-sm text-gray-700">
-                    <strong>EMIs Paid:</strong>
-                    <div className=" flex flex-col gap-3">
-                      {mp.emis.map((emi, emiIndex) => (
-                        <div key={emi._id || emiIndex} className="flex gap-4">
-                          <span>
-                            • <strong>Month:</strong> {emi.month} {emi.year}
-                          </span>
-                          {editingEmiIndex === emiIndex ? (
-                            <>
-                              <input
-                                type="text"
-                                value={editingEmiValues.amount}
-                                readOnly
-                                className="border px-2 py-1 rounded w-20 bg-gray-100"
-                              />
-                              <input
-                                type="text"
-                                value={editingEmiValues.due}
-                                onChange={(e) =>
-                                  handleEmiDueChange(
-                                    e.target.value,
-                                    mp.totalAmount,
-                                    emi.amount
-                                  )
-                                }
-                                placeholder="Due"
-                                className="border px-2 py-1 rounded w-20"
-                              />
-                              <button
-                                onClick={() => handleSaveEditedEmi(index)}
-                                className="px-2 py-1 text-sm bg-blue-500 text-white rounded"
-                              >
-                                Save
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <span>
-                                <strong>Amount:</strong> ₹{emi.amount}
-                              </span>
-                              <span>
-                                <strong>Due:</strong> {emi.due || "—"}
-                              </span>
-                              <button
-                                className="text-blue-600"
-                                onClick={() =>
-                                  handleEditEmiClick(
-                                    emi,
-                                    emiIndex,
-                                    mp.totalAmount
-                                  )
-                                }
-                              >
-                                <TbEdit />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div className="text-base font-medium text-[#666666]">
+                  {new Date(item.updatedAt).toLocaleString("en-GB", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-500">
+            No monthly payments added yet.
+          </p>
+        )}
+      </div>
     </div>
   );
 };
