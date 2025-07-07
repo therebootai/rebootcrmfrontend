@@ -224,3 +224,11 @@
 .slide-right {
   animation: slideRight 0.5s ease-in-out;
 }
+
+.a4-container {
+  width: 210mm;
+  height: 297mm;
+
+  background-color: white;
+  box-sizing: border-box;
+}
