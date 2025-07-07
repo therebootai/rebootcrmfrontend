@@ -2,7 +2,13 @@ import React, { useState } from "react";
 import { AiOutlinePlusCircle } from "react-icons/ai";
 import { TbEdit } from "react-icons/tb";
 import axios from "axios";
-import { BiCheckCircle, BiSolidEditAlt } from "react-icons/bi";
+import { BiCheckCircle, BiEditAlt, BiSolidEditAlt } from "react-icons/bi";
+import SidePopUpSlider from "./SidePopupSlider";
+import InvoiceCreate from "./InvoiceCreate";
+import { MdDelete } from "react-icons/md";
+import InvoiceEdit from "./InvoiceEdit";
+import Modal from "react-modal";
+import SaveShowInvoicePdf from "./SaveShowInvoicePdf";
 
 const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
   const [amountToEdit, setAmountToEdit] = useState(null);
@@ -12,6 +18,32 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedItem, setEditedItem] = useState(null);
   const [newServiceName, setNewServiceName] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpenEdit, setIsModalOpenEdit] = useState(false);
+
+  const [popupKey, setPopupKey] = useState(0);
+  const closeModal = () => setIsModalOpen(false);
+  const closeModalEdit = () => setIsModalOpenEdit(false);
+
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+
+  function openModal() {
+    setPopupKey((k) => k + 1);
+    setIsModalOpen(true);
+  }
+
+  function openModalEdit(invoice = null) {
+    setSelectedInvoice(invoice);
+    setPopupKey((k) => k + 1);
+    setIsModalOpenEdit(true);
+  }
+
+  function openModalView(invoice = null) {
+    setSelectedInvoice(invoice); // Set the selected invoice for viewing
+
+    setShowInvoiceModal(true);
+  }
 
   const calculateTotalClearedAmount = () => {
     return viewClient.cleardAmount.reduce(
@@ -173,227 +205,349 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
     }
   };
 
+  const deleteInvoice = async (invoiceId) => {
+    const confirmDelete = window.confirm(`Are you sure you want to delete"?`);
+
+    if (!confirmDelete) return;
+    try {
+      const response = await axios.delete(
+        `${import.meta.env.VITE_BASE_URL}/api/client/delete/${
+          viewClient.clientId
+        }/invoice/${invoiceId}`
+      );
+
+      if (response.data.success) {
+        alert("Invoice deleted successfully");
+        fetchAllClients();
+        setViewClient(response.data.client);
+      } else {
+        alert("Failed to delete invoice");
+      }
+    } catch (error) {
+      console.error("Error deleting invoice", error);
+      alert("Error deleting invoice");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-2xl font-medium text-[#777777] border-b-2 border-[#cccccc]">
         Client Details
       </h2>
-      <p>
-        <strong>Business Name:</strong>{" "}
-        {viewClient.businessNameDoc?.buisnessname ||
-          viewClient.businessName?.buisnessname}
-      </p>
-      <p>
-        <strong>Mobile Number:</strong>{" "}
-        {viewClient.businessNameDoc?.mobileNumber ||
-          viewClient.businessName?.mobileNumber}
-      </p>
-      <p>
-        <strong>Service Taken:</strong> {viewClient.serviceTaken}
-      </p>
-      <p>
-        <strong>Website:</strong> {viewClient.website}
-      </p>
-      <p>
-        <strong>Expire Date:</strong>{" "}
-        {viewClient.expiryDate
-          ? new Date(viewClient.expiryDate).toLocaleDateString("en-GB")
-          : ""}
-      </p>
-      <p>
-        <strong>BDE Name:</strong> {viewClient.bdeName?.bdename}
-      </p>
-      <p>
-        <strong>TME Name:</strong> {viewClient.tmeLeads?.telecallername}
-      </p>
-      <p>
-        <strong>Remarks:</strong> {viewClient.remarks || ""}
-      </p>
-      <p>
-        <strong>Deal Amount:</strong> ₹ {viewClient.dealAmount}
-      </p>
+      <div className=" flex flex-row gap-4">
+        <div className=" w-[60%] flex flex-col gap-6">
+          <p>
+            <strong>Client Id:</strong> {viewClient.clientId}
+          </p>
+          <p>
+            <strong>Business Name:</strong>{" "}
+            {viewClient.businessNameDoc?.buisnessname ||
+              viewClient.businessName?.buisnessname}
+          </p>
+          <p>
+            <strong>Mobile Number:</strong>{" "}
+            {viewClient.businessNameDoc?.mobileNumber ||
+              viewClient.businessName?.mobileNumber}
+          </p>
+          <p>
+            <strong>Service Taken:</strong> {viewClient.serviceTaken}
+          </p>
+          <p>
+            <strong>Website:</strong> {viewClient.website}
+          </p>
+          <p>
+            <strong>Expire Date:</strong>{" "}
+            {viewClient.expiryDate
+              ? new Date(viewClient.expiryDate).toLocaleDateString("en-GB")
+              : ""}
+          </p>
+          <p>
+            <strong>BDE Name:</strong> {viewClient.bdeName?.bdename}
+          </p>
+          <p>
+            <strong>TME Name:</strong> {viewClient.tmeLeads?.telecallername}
+          </p>
+          <p>
+            <strong>Remarks:</strong> {viewClient.remarks || ""}
+          </p>
+          <p>
+            <strong>Deal Amount:</strong> ₹ {viewClient.dealAmount}
+          </p>
 
-      <div className="flex flex-col gap-4">
-        <div className=" flex flex-row gap-4 items-center">
-          <strong className=" text-nowrap">Cleared:</strong>
-          <div className="flex flex-row gap-4 items-center w-full">
-            <div className=" w-[40%]">
-              <input
-                type="number"
-                value={newAmount}
-                onChange={(e) => setNewAmount(e.target.value)}
-                placeholder="Enter Cleared amount"
-                className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full"
-              />
-            </div>
-            <button
-              onClick={handleAddAmount}
-              className=" h-[3rem] w-[3rem] text-2xl  flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
-            >
-              <AiOutlinePlusCircle />
-            </button>
-          </div>
-        </div>
-        <div className="grid grid-cols-4 gap-4">
-          {viewClient.cleardAmount && viewClient.cleardAmount.length > 0
-            ? viewClient.cleardAmount.map((item, index) => (
-                <div
-                  key={index}
-                  className="p-4 flex flex-col gap-2 border border-[#cccccc]"
+          <div className="flex flex-col gap-4">
+            <div className=" flex flex-row gap-4 items-center">
+              <strong className=" text-nowrap">Cleared:</strong>
+              <div className="flex flex-row gap-4 items-center w-full">
+                <div className=" w-[40%]">
+                  <input
+                    type="number"
+                    value={newAmount}
+                    onChange={(e) => setNewAmount(e.target.value)}
+                    placeholder="Enter Cleared amount"
+                    className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full"
+                  />
+                </div>
+                <button
+                  onClick={handleAddAmount}
+                  className=" h-[3rem] w-[3rem] text-2xl  flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
                 >
-                  <div className="flex justify-between items-center">
-                    {amountToEdit && amountToEdit._id === item._id ? (
-                      <>
-                        <input
-                          type="number"
-                          value={newAmount}
-                          onChange={(e) => setNewAmount(e.target.value)}
-                          className="text-lg ml-2 font-semibold text-[#00D23B] h-[2.5rem] border border-[#cccccc] outline-none w-[80%]"
-                        />
+                  <AiOutlinePlusCircle />
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+              {viewClient.cleardAmount && viewClient.cleardAmount.length > 0
+                ? viewClient.cleardAmount.map((item, index) => (
+                    <div
+                      key={index}
+                      className="p-4 flex flex-col gap-2 border border-[#cccccc]"
+                    >
+                      <div className="flex justify-between items-center">
+                        {amountToEdit && amountToEdit._id === item._id ? (
+                          <>
+                            <input
+                              type="number"
+                              value={newAmount}
+                              onChange={(e) => setNewAmount(e.target.value)}
+                              className="text-lg ml-2 font-semibold text-[#00D23B] h-[2.5rem] border border-[#cccccc] outline-none w-[80%]"
+                            />
+                            <button
+                              onClick={handleSaveEditAmount}
+                              className="h-[3rem] w-[3rem] text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+                            >
+                              <BiCheckCircle />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-2xl font-semibold text-[#00D23B]">
+                              ₹{item.amount}
+                            </span>
+                            <button
+                              onClick={() => handleEditAmount(item)}
+                              className="h-[3rem] w-[3rem] text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+                            >
+                              <TbEdit />
+                            </button>{" "}
+                          </>
+                        )}
+                      </div>
+                      <div className="text-sm font-medium text-[#666666]">
+                        {new Date(item.updatedAt).toLocaleString("en-GB", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}
+                      </div>
+                    </div>
+                  ))
+                : ""}
+            </div>
+          </div>
+
+          <p>
+            <strong>Due:</strong> ₹ {calculateDueAmount()}
+          </p>
+
+          <p>
+            <strong>Total Value:</strong> ₹ {viewClient.totalAmount}
+          </p>
+
+          <div className="flex flex-col  gap-4">
+            <strong className="text-nowrap">Other Monthly Payments:</strong>
+            <div className=" flex flex-row gap-4">
+              <div className=" w-[40%] ">
+                <input
+                  type="text"
+                  placeholder="Product/Service"
+                  value={monthlyService}
+                  onChange={(e) => setMonthlyService(e.target.value)}
+                  className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full "
+                />
+              </div>
+              <div className="w-[40%] ">
+                <input
+                  type="text"
+                  placeholder="Amount"
+                  value={monthlyAmount}
+                  onChange={(e) => setMonthlyAmount(e.target.value)}
+                  className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full "
+                />
+              </div>
+              <button
+                onClick={handleAddMonthlyPayment}
+                className=" h-[3rem] w-[3rem] text-2xl  flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+              >
+                <AiOutlinePlusCircle />
+              </button>
+            </div>
+          </div>
+          <div className="pt-2 border-t border-[#cccccc]">
+            {viewClient.monthlyPaymentAmount &&
+            viewClient.monthlyPaymentAmount.length > 0 ? (
+              <ul className=" grid grid-cols-2  gap-4 ">
+                {viewClient.monthlyPaymentAmount.map((item, index) => (
+                  <div
+                    key={index}
+                    className=" p-4 flex flex-col gap-2 border border-[#cccccc]"
+                  >
+                    <div className=" flex justify-between items-center">
+                      <div className=" text-3xl font-semibold text-[#00D23B]">
+                        {isEditing && editedItem._id === item._id ? (
+                          <input
+                            type="number"
+                            value={newAmount}
+                            onChange={(e) => setNewAmount(e.target.value)}
+                            className="text-lg ml-2 font-semibold text-[#00D23B] h-[2.5rem] border border-[#cccccc] outline-none w-[80%]"
+                          />
+                        ) : (
+                          <span>₹ {item.totalAmount}</span>
+                        )}
+                      </div>
+                      {isEditing && editedItem._id === item._id ? (
                         <button
-                          onClick={handleSaveEditAmount}
+                          onClick={handleSaveEditMonthlyPayment}
                           className="h-[3rem] w-[3rem] text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
                         >
                           <BiCheckCircle />
                         </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-3xl font-semibold text-[#00D23B]">
-                          ₹{item.amount}
-                        </span>
+                      ) : (
                         <button
-                          onClick={() => handleEditAmount(item)}
+                          onClick={() => handleEditMonthlyPayment(item)}
                           className="h-[3rem] w-[3rem] text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
                         >
-                          <TbEdit />
-                        </button>{" "}
-                      </>
-                    )}
+                          <BiSolidEditAlt />
+                        </button>
+                      )}
+                    </div>
+                    <div className=" text-xl font-medium text-[#333333]">
+                      {isEditing && editedItem._id === item._id ? (
+                        <input
+                          type="text"
+                          value={newServiceName}
+                          onChange={(e) => setNewServiceName(e.target.value)}
+                          className="text-xl font-medium  h-[2.5rem] border border-[#cccccc] text-[#333333] outline-none w-full"
+                        />
+                      ) : (
+                        item.serviceName
+                      )}
+                    </div>
+
+                    <div className="text-base font-medium text-[#666666]">
+                      {new Date(item.updatedAt).toLocaleString("en-GB", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </div>
                   </div>
-                  <div className="text-base font-medium text-[#666666]">
-                    {new Date(item.updatedAt).toLocaleString("en-GB", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-500">
+                No monthly payments added yet.
+              </p>
+            )}
+          </div>
+        </div>
+        <div className=" w-[40%] flex flex-col gap-4">
+          <div className=" flex justify-end items-end">
+            <button
+              onClick={openModal}
+              className=" h-[2.5rem] w-fit px-4 flex justify-center items-center bg-[#0A5BFF] text-white rounded-md"
+            >
+              + Add
+            </button>
+          </div>
+          <div className=" grid grid-cols-1 gap-4">
+            {viewClient.invoice?.map((inv, index) =>
+              inv.savePdf?.secure_url ? (
+                <div className=" flex flex-col gap-1 border border-[#cccccc] rounded-md p-3">
+                  <iframe
+                    key={inv._id || index}
+                    src={inv.savePdf.secure_url}
+                    title={`Invoice PDF ${index + 1}`}
+                    width="100%"
+                    className="] rounded h-[15rem]"
+                  ></iframe>
+                  <div className=" flex justify-between items-center">
+                    <div className=" text-base font-medium text-[#666666]">
+                      {inv.invoiceNumber}
+                    </div>
+                    <div className=" flex flex-row gap-2 items-center">
+                      <button
+                        onClick={() => openModalEdit(inv)}
+                        className=" w-fit px-4 h-[2.5rem] text-xl flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+                      >
+                        <BiEditAlt />
+                      </button>
+                      <button
+                        onClick={() => deleteInvoice(inv._id)}
+                        className=" w-fit px-4 h-[2.5rem] text-xl flex justify-center items-center bg-red-100 text-red-500"
+                      >
+                        <MdDelete />
+                      </button>
+                    </div>
+                  </div>
+                  <div className=" grid grid-cols-2 gap-4">
+                    <button className=" px-4 h-[2rem]  rounded-md text-sm flex justify-center items-center bg-[#0A5BFF] text-white">
+                      Share Invoice
+                    </button>
+                    <button
+                      onClick={() => openModalView(inv)}
+                      className=" px-4 h-[2rem]  rounded-md text-sm flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+                    >
+                      View Invoice
+                    </button>
                   </div>
                 </div>
-              ))
-            : ""}
+              ) : null
+            )}
+          </div>
         </div>
       </div>
+      <SidePopUpSlider showPopUp={isModalOpen} handleClose={closeModal}>
+        <InvoiceCreate
+          clientId={viewClient.clientId}
+          fetchAllClients={fetchAllClients}
+          setViewClient={setViewClient}
+          key={popupKey}
+        />
+      </SidePopUpSlider>
 
-      <p>
-        <strong>Due:</strong> ₹ {calculateDueAmount()}
-      </p>
-
-      <p>
-        <strong>Total Value:</strong> ₹ {viewClient.totalAmount}
-      </p>
-
-      <div className="flex flex-col  gap-4">
-        <strong className="text-nowrap">Other Monthly Payments:</strong>
-        <div className=" flex flex-row gap-4">
-          <div className=" w-[40%] ">
-            <input
-              type="text"
-              placeholder="Product/Service"
-              value={monthlyService}
-              onChange={(e) => setMonthlyService(e.target.value)}
-              className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full "
+      <SidePopUpSlider showPopUp={isModalOpenEdit} handleClose={closeModalEdit}>
+        <InvoiceEdit
+          clientId={viewClient.clientId}
+          existingInvoice={selectedInvoice}
+          fetchAllClients={fetchAllClients}
+          setViewClient={setViewClient}
+          key={popupKey}
+        />
+      </SidePopUpSlider>
+      <Modal
+        isOpen={showInvoiceModal}
+        onRequestClose={() => setShowInvoiceModal(false)}
+        contentLabel="View Client Modal"
+        className="modal-content no-scrollbar w-fit"
+        overlayClassName="modal-overlay"
+      >
+        <div className="flex justify-center items-center">
+          {selectedInvoice && (
+            <SaveShowInvoicePdf
+              item={viewClient}
+              invoices={selectedInvoice}
+              fetchAllClients={fetchAllClients}
+              savePdf={false}
             />
-          </div>
-          <div className="w-[40%] ">
-            <input
-              type="text"
-              placeholder="Amount"
-              value={monthlyAmount}
-              onChange={(e) => setMonthlyAmount(e.target.value)}
-              className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full "
-            />
-          </div>
-          <button
-            onClick={handleAddMonthlyPayment}
-            className=" h-[3rem] w-[3rem] text-2xl  flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
-          >
-            <AiOutlinePlusCircle />
-          </button>
+          )}
         </div>
-      </div>
-      <div className="pt-2 border-t border-[#cccccc]">
-        {viewClient.monthlyPaymentAmount &&
-        viewClient.monthlyPaymentAmount.length > 0 ? (
-          <ul className=" grid grid-cols-3  gap-4 ">
-            {viewClient.monthlyPaymentAmount.map((item, index) => (
-              <div
-                key={index}
-                className=" p-4 flex flex-col gap-2 border border-[#cccccc]"
-              >
-                <div className=" flex justify-between items-center">
-                  <div className=" text-3xl font-semibold text-[#00D23B]">
-                    {isEditing && editedItem._id === item._id ? (
-                      <input
-                        type="number"
-                        value={newAmount}
-                        onChange={(e) => setNewAmount(e.target.value)}
-                        className="text-lg ml-2 font-semibold text-[#00D23B] h-[2.5rem] border border-[#cccccc] outline-none w-[80%]"
-                      />
-                    ) : (
-                      <span>₹ {item.totalAmount}</span>
-                    )}
-                  </div>
-                  {isEditing && editedItem._id === item._id ? (
-                    <button
-                      onClick={handleSaveEditMonthlyPayment}
-                      className="h-[3rem] w-[3rem] text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
-                    >
-                      <BiCheckCircle />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleEditMonthlyPayment(item)}
-                      className="h-[3rem] w-[3rem] text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
-                    >
-                      <BiSolidEditAlt />
-                    </button>
-                  )}
-                </div>
-                <div className=" text-xl font-medium text-[#333333]">
-                  {isEditing && editedItem._id === item._id ? (
-                    <input
-                      type="text"
-                      value={newServiceName}
-                      onChange={(e) => setNewServiceName(e.target.value)}
-                      className="text-xl font-medium  h-[2.5rem] border border-[#cccccc] text-[#333333] outline-none w-full"
-                    />
-                  ) : (
-                    item.serviceName
-                  )}
-                </div>
-
-                <div className="text-base font-medium text-[#666666]">
-                  {new Date(item.updatedAt).toLocaleString("en-GB", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
-                </div>
-              </div>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-gray-500">
-            No monthly payments added yet.
-          </p>
-        )}
-      </div>
+      </Modal>
     </div>
   );
 };
