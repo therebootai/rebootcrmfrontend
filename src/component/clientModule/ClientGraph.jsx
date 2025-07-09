@@ -78,7 +78,7 @@ const ClientGraph = () => {
   };
   return (
     <div className=" flex flex-row gap-4 items-center ">
-      <div className=" flex flex-row gap-4 text-lg items-center w-[5%] rotate-90 ">
+      <div className=" flex flex-row gap-4 text-lg w-[2%] items-center  rotate-90 ">
         <button onClick={() => setSelectedYear((prev) => prev - 1)}>
           <LuChevronLeft className="text-[#0A5BFF]" />
         </button>
@@ -90,7 +90,7 @@ const ClientGraph = () => {
           <LuChevronRight />
         </button>
       </div>
-      <div className=" w-[95%] grid grid-cols-12 gap-4">
+      <div className=" w-full xlg:w-[90%] grid grid-cols-12 gap-4">
         {data.map((item, index) => {
           const percentage = calculatePercentage(
             item.target,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AiOutlinePlusCircle } from "react-icons/ai";
 import { TbEdit } from "react-icons/tb";
 import axios from "axios";
@@ -9,6 +9,7 @@ import { MdDelete } from "react-icons/md";
 import InvoiceEdit from "./InvoiceEdit";
 import Modal from "react-modal";
 import SaveShowInvoicePdf from "./SaveShowInvoicePdf";
+import { toast } from "react-toastify";
 
 const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
   const [amountToEdit, setAmountToEdit] = useState(null);
@@ -228,6 +229,77 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
     }
   };
 
+  const handleShare = async (invoice) => {
+    const confirmShare = window.confirm(
+      `Are you sure you want to share this invoice?`
+    );
+
+    if (!confirmShare) return;
+    if (!invoice) {
+      console.error("No template selected");
+      toast.error("Please select a template before submitting.", {
+        position: "bottom-center",
+        icon: "❌",
+      });
+      return;
+    }
+
+    const subtotal =
+      invoice.invoiceData?.reduce(
+        (sum, item) => sum + Number(item.amount),
+        0
+      ) || 0;
+
+    const previousPayment = invoice.previousPayment
+      ? Number(invoice.previousPayment)
+      : 0;
+
+    const total = subtotal - previousPayment;
+
+    const formattedPhoneNumber =
+      viewClient.businessNameDoc?.mobileNumber.startsWith("91")
+        ? viewClient.businessNameDoc?.mobileNumber
+        : "91" + viewClient.businessNameDoc?.mobileNumber;
+
+    const payload = {
+      "auth-key": "aa61059c453fd7b25e02a9dec860e9c4e23834a61d1d26de4b",
+      "app-key": "0f71de7c-53dc-4793-9469-96356a6a2e4a",
+      destination_number: formattedPhoneNumber,
+      template_id: "1802416130617430",
+      device_id: "67599f6c1c50a6c971f41728",
+      language: "en",
+      variables: [
+        viewClient.businessNameDoc?.buisnessname.toString(),
+        total.toString(),
+      ],
+      media: invoice.savePdf.secure_url,
+    };
+
+    try {
+      const response = await axios.post(
+        "https://web.wabridge.com/api/createmessage",
+        payload
+      );
+      if (response.data.status === true) {
+        toast.success("Message sent successfully!", {
+          position: "bottom-center",
+          icon: "✅",
+        });
+      } else {
+        toast.error("Failed to send message.", {
+          position: "bottom-center",
+          icon: "❌",
+        });
+      }
+    } catch (error) {
+      console.error("There was an error sending the message!", error);
+      toast.error("An error occurred while sending the message.", {
+        position: "bottom-center",
+        icon: "❌",
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-2xl font-medium text-[#777777] border-b-2 border-[#cccccc]">
@@ -277,13 +349,13 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
             <div className=" flex flex-row gap-4 items-center">
               <strong className=" text-nowrap">Cleared:</strong>
               <div className="flex flex-row gap-4 items-center w-full">
-                <div className=" w-[40%]">
+                <div className=" w-[80%]">
                   <input
                     type="number"
                     value={newAmount}
                     onChange={(e) => setNewAmount(e.target.value)}
                     placeholder="Enter Cleared amount"
-                    className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full"
+                    className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full text-sm"
                   />
                 </div>
                 <button
@@ -358,13 +430,13 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
           <div className="flex flex-col  gap-4">
             <strong className="text-nowrap">Other Monthly Payments:</strong>
             <div className=" flex flex-row gap-4">
-              <div className=" w-[40%] ">
+              <div className=" w-[50%] ">
                 <input
                   type="text"
                   placeholder="Product/Service"
                   value={monthlyService}
                   onChange={(e) => setMonthlyService(e.target.value)}
-                  className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full "
+                  className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full text-sm "
                 />
               </div>
               <div className="w-[40%] ">
@@ -373,7 +445,7 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
                   placeholder="Amount"
                   value={monthlyAmount}
                   onChange={(e) => setMonthlyAmount(e.target.value)}
-                  className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full "
+                  className="h-[3rem] px-2 border border-[#CCCCCC] outline-none w-full text-sm "
                 />
               </div>
               <button
@@ -495,7 +567,10 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
                     </div>
                   </div>
                   <div className=" grid grid-cols-2 gap-2">
-                    <button className="  h-[2rem]  rounded-md text-[10px] xl:text-xs flex justify-center items-center bg-[#0A5BFF] text-white">
+                    <button
+                      onClick={() => handleShare(inv)}
+                      className="  h-[2rem]  rounded-md text-[10px] xl:text-xs flex justify-center items-center bg-[#0A5BFF] text-white"
+                    >
                       Share Invoice
                     </button>
                     <button
