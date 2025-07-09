@@ -15,8 +15,6 @@ const SaveShowInvoicePdf = ({
   const [isSaving, setIsSaving] = useState(false);
   const invoice = item.invoice?.[item.invoice.length - 1] || invoices;
 
-  console.log(item);
-
   const numberToWords = (num) => {
     const a = [
       "",
@@ -89,7 +87,12 @@ const SaveShowInvoicePdf = ({
   const subtotal =
     invoice?.invoiceData?.reduce((sum, item) => sum + Number(item.amount), 0) ||
     0;
-  const totalInWords = numberToWords(subtotal);
+
+  const previousPayment = invoice?.previousPayment
+    ? Number(invoice.previousPayment)
+    : 0;
+  const total = subtotal - previousPayment;
+  const totalInWords = numberToWords(total);
 
   const handleSavePdf = async () => {
     const element = containerRef.current;
@@ -171,21 +174,24 @@ const SaveShowInvoicePdf = ({
           </div>
         </div>
       )}
-      <div ref={containerRef} className="a4-container flex flex-col gap-2 p-2 ">
+      <div
+        ref={containerRef}
+        className="a4-container flex flex-col gap-2 p-2 px-4 border border-[#cccccc] "
+      >
         <div className="flex flex-row justify-between px-4">
           <div className="w-[60%]">
             <img
-              src="/images/logo.svg"
+              src="/images/rebootailogo.png"
               alt="logo"
-              className="sm:h-[1.5rem] md:h-[2rem] w-fit mt-4"
+              className=" h-[5rem] w-fit"
             />
           </div>
           <div className="w-[40%] flex flex-col text-end text-[#777777]">
-            <h1 className="text-lg font-medium">REBOOT AI PRIVATE LIMITED</h1>
-            <p>
+            <h1 className="text-base font-medium">REBOOT AI PRIVATE LIMITED</h1>
+            <p className=" text-sm">
               4th Floor Shib Sankar Market <br /> Bidhan Road Siliguri WB.734001
             </p>
-            <div>rebootai.in | info@rebootai.in</div>
+            <div className=" text-sm">rebootai.in | info@rebootai.in</div>
           </div>
         </div>
 
@@ -197,7 +203,7 @@ const SaveShowInvoicePdf = ({
           <div className="w-[20%] h-[0.10rem] bg-[#777777]"></div>
         </div>
 
-        <div className="flex justify-between text-sm">
+        <div className="flex justify-between text-xs">
           <div className="flex flex-col gap-1 flex-1">
             <h3>Bill To</h3>
             <h1 className=" font-medium">
@@ -235,12 +241,12 @@ const SaveShowInvoicePdf = ({
           </div>
         </div>
 
-        <div className="text-base text-[#777777]">
+        <div className="text-sm text-[#777777]">
           Place Of Supply: West Bengal (19)
         </div>
 
         <div className="flex flex-col">
-          <div className="flex flex-row border border-[#222222] font-medium text-xs py-">
+          <div className="flex flex-row border border-[#222222] font-medium text-[11px] py-">
             <div className="w-[5%] p-1 py-3 border-r border-[#222222]">
               Sl.No
             </div>
@@ -262,28 +268,28 @@ const SaveShowInvoicePdf = ({
           {invoice?.invoiceData?.map((inv, index) => (
             <div
               key={inv._id}
-              className="flex flex-row border-x border-b border-[#222222] text-xs"
+              className="flex flex-row border-x border-b border-[#222222] text-[11px]"
             >
-              <div className="w-[5%] p-1 py-3 border-r border-[#222222]">
+              <div className="w-[5%] p-1 py-2 border-r border-[#222222]">
                 {index + 1}
               </div>
-              <div className="w-[25%] p-1 py-3 border-r border-[#222222]">
+              <div className="w-[25%] p-1 py-2 border-r border-[#222222]">
                 {inv.serviceName}
               </div>
-              <div className="w-[40%] p-1 py-3 border-r border-[#222222]">
+              <div className="w-[40%] p-1 py-2 border-r border-[#222222]">
                 {inv.description}
               </div>
-              <div className="w-[10%] p-1 py-3 border-r border-[#222222]">
+              <div className="w-[10%] p-1 py-2 border-r border-[#222222]">
                 {inv.quantity}
               </div>
-              <div className="w-[10%] p-1 py-3 border-r border-[#222222]">
+              <div className="w-[10%] p-1 py-2 border-r border-[#222222]">
                 {inv.rate}
               </div>
-              <div className="w-[10%] p-1 py-3">{inv.amount}</div>
+              <div className="w-[10%] p-1 py-2">{inv.amount}</div>
             </div>
           ))}
         </div>
-        <div className=" flex flex-row gap-4 text-sm">
+        <div className=" flex flex-row gap-4 text-xs">
           <div className="w-[60%] flex flex-col gap-4">
             <p className=" ">
               For assistance kindly mail us at help info@rebootai.in or chat
@@ -291,49 +297,59 @@ const SaveShowInvoicePdf = ({
               visit “rebootai.in” to see all your invoices, payments made, and
               for the complete statement.
             </p>
-            <div className=" flex flex-col gap-2">
-              <h1 className=" text-base font-medium">Payment Options</h1>
-              <div className=" px-2 py-1 flex gap-1 border border-[#222222] rounded-md w-fit">
-                <FaRegCreditCard />{" "}
-                <img src="/images/upi.webp" className=" h-[1rem] w-fit" />
-              </div>
-              <div className=" flex flex-col">
-                <span className=" font-medium">
-                  Our Bank Details for NEFFT/ RTGS, Online Fund Transfer
-                </span>
-                <span>Name of bank: HDFC BANK LTD</span>
-                <span>Account Name: REBOOT AI PRIVATE LIMITED</span>
-                <span>Current Account Number: 50200106804851</span>
-                <span>IFSC Code : HDFC0000151 / SWIFT Code: </span>
-                <span>
-                  Link to pay online: https://www.rebootai.in/payment.html
-                </span>
-              </div>
-            </div>
           </div>
-          <div className=" w-[40%] flex flex-col gap-2  items-center ">
-            <div className="flex flex-row pb-2 text-[#666666] border-b border-[#cccccc] w-full justify-center items-center">
-              <h1 className="w-[50%] font-semibold">Sub Total:</h1>
-              <span>{subtotal}</span>
+          <div className=" w-[40%] flex flex-col gap-2  items-center  text-xs">
+            <div className=" flex  flex-col gap-2 border-b border-[#cccccc] w-full justify-center items-center pb-2">
+              <div className="flex flex-row  text-[#666666] w-full justify-center items-center ">
+                <h1 className="w-[50%] font-semibold">Sub Total:</h1>
+                <span>{subtotal}</span>
+              </div>
+              {invoice.previousPayment ? (
+                <div className="flex flex-row  text-[#0d1d39] w-full justify-center items-center">
+                  <h1 className="w-[50%] font-semibold">Previous Payment:</h1>
+                  <span>{invoice.previousPayment}</span>
+                </div>
+              ) : (
+                ""
+              )}
             </div>
             <div className="flex flex-row pb-2 text-[#222222] border-b border-[#cccccc] w-full justify-center items-center">
               <h1 className="w-[50%] font-semibold">Total:</h1>
-              <span>{subtotal}</span>
+              <span>{total}</span>
             </div>
             <div className="flex flex-row pb-2 text-red-900 border-b border-[#cccccc] w-full  justify-center items-center">
               <h1 className="w-[50%] font-semibold">Balance Due:</h1>
-              <span>{subtotal}</span>
+              <span>{total}</span>
             </div>
             <div className="flex flex-row pb-2 text-[#222222] justify-center items-center">
               <span className="">Total In Words: {totalInWords}</span>
             </div>
           </div>
         </div>
-        <div className=" flex flex-col gap-2">
-          <h1 className=" font-medium text-sm text-[#222222]">
+        <div className=" flex flex-col gap-1">
+          <h1 className=" text-sm font-medium">Payment Options</h1>
+          <div className=" px-2 py-1 flex gap-1 border border-[#222222] rounded-md w-fit">
+            <FaRegCreditCard className=" text-sm" />{" "}
+            <img src="/images/upi.webp" className=" h-[0.8rem] w-fit" />
+          </div>
+          <div className=" flex flex-col text-[11px]">
+            <span className=" font-medium">
+              Our Bank Details for NEFFT/ RTGS, Online Fund Transfer
+            </span>
+            <span>Name of bank: HDFC BANK LTD</span>
+            <span>Account Name: REBOOT AI PRIVATE LIMITED</span>
+            <span>Current Account Number: 50200106804851</span>
+            <span>IFSC Code : HDFC0000151 / SWIFT Code: </span>
+            <span>
+              Link to pay online: https://www.rebootai.in/payment.html
+            </span>
+          </div>
+        </div>
+        <div className=" flex flex-col gap-1">
+          <h1 className=" font-medium text-xs text-[#222222]">
             Terms & Conditions
           </h1>
-          <p className=" text-xs text-[#222222]">
+          <p className=" text-[11px] text-[#222222]">
             The invoiced amount must be realised to us within its due date,
             failing which an interest of 24% per annum shall be charged until
             the amount in full is realised. For all-purposes only the courts at
@@ -341,7 +357,25 @@ const SaveShowInvoicePdf = ({
           </p>
         </div>
         <div>
-          <img src="/images/upireboot.png" className=" size-[12rem]" />
+          <img src="/images/upireboot.png" className=" size-[14rem]" />
+        </div>
+        <div className=" flex justify-end items-end h-full w-full">
+          <footer className="flex justify-center items-center border-t border-[#cccccc] w-full">
+            <div className=" flex flex-col gap-1 justify-center items-center text-xs text-center text-[#666666]">
+              <p>
+                Regd. Office: Siliguri | CIN No: U62012WB2024PTC274361 | PAN No:
+                U62012WB2074361 |
+              </p>
+              <p>
+                Complete Address: 4th Floor, Shib Sankar Market, Bidhan Road,
+                Ward No. 26, Siliguri, West Bengal, Pincode - 734001 India
+              </p>
+              <p>
+                Email:sales@rebootai.in | Phone No: 0353-2468930 | Mobile No:
+                +91-7044076603
+              </p>
+            </div>
+          </footer>
         </div>
       </div>
 
