@@ -19,6 +19,7 @@ const InvoiceEdit = ({
 
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [latestClientData, setLatestClientData] = useState(null);
+  const [previousPayment, setPreviousPayment] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,6 +54,7 @@ const InvoiceEdit = ({
       setDueDate(new Date(existingInvoice.dueDate));
       setItems(existingInvoice.invoiceData);
       setBdeName(existingInvoice.bdeName?._id || "");
+      setPreviousPayment(existingInvoice.previousPayment || "");
     }
   }, [existingInvoice]);
 
@@ -62,6 +64,11 @@ const InvoiceEdit = ({
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
+    if (field === "quantity" || field === "rate") {
+      const quantity = parseFloat(newItems[index].quantity) || 0;
+      const rate = parseFloat(newItems[index].rate) || 0;
+      newItems[index].amount = quantity * rate;
+    }
     setItems(newItems);
   };
 
@@ -99,6 +106,7 @@ const InvoiceEdit = ({
         {
           dueDate: dueDate.toISOString(),
           invoiceData: items,
+          previousPayment: previousPayment,
           savePdf: null,
         }
       );
@@ -236,6 +244,17 @@ const InvoiceEdit = ({
             </div>
           </div>
         ))}
+
+        <div className=" w-[50%] flex flex-col gap-1">
+          <label>Previous Payment</label>
+          <input
+            type="text"
+            placeholder="Previous Payment"
+            value={previousPayment}
+            onChange={(e) => setPreviousPayment(e.target.value)}
+            className="h-[3.5rem] w-full px-2 border border-[#CCCCCC] outline-none"
+          />
+        </div>
 
         <div className="flex flex-row gap-4">
           <button

@@ -217,7 +217,6 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
       );
 
       if (response.data.success) {
-        alert("Invoice deleted successfully");
         fetchAllClients();
         setViewClient(response.data.client);
       } else {
@@ -235,7 +234,7 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
         Client Details
       </h2>
       <div className=" flex flex-row gap-4">
-        <div className=" w-[60%] flex flex-col gap-6">
+        <div className=" w-[50%] flex flex-col gap-6">
           <p>
             <strong>Client Id:</strong> {viewClient.clientId}
           </p>
@@ -295,7 +294,7 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 xlg:grid-cols-2 gap-4">
               {viewClient.cleardAmount && viewClient.cleardAmount.length > 0
                 ? viewClient.cleardAmount.map((item, index) => (
                     <div
@@ -320,7 +319,7 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
                           </>
                         ) : (
                           <>
-                            <span className="text-2xl font-semibold text-[#00D23B]">
+                            <span className="text-xl font-semibold text-[#00D23B]">
                               ₹{item.amount}
                             </span>
                             <button
@@ -332,7 +331,7 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
                           </>
                         )}
                       </div>
-                      <div className="text-sm font-medium text-[#666666]">
+                      <div className="text-xs font-medium text-[#666666]">
                         {new Date(item.updatedAt).toLocaleString("en-GB", {
                           day: "numeric",
                           month: "long",
@@ -395,7 +394,7 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
                     className=" p-4 flex flex-col gap-2 border border-[#cccccc]"
                   >
                     <div className=" flex justify-between items-center">
-                      <div className=" text-3xl font-semibold text-[#00D23B]">
+                      <div className=" text-xl xlg:text-2xl font-semibold text-[#00D23B]">
                         {isEditing && editedItem._id === item._id ? (
                           <input
                             type="number"
@@ -410,33 +409,33 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
                       {isEditing && editedItem._id === item._id ? (
                         <button
                           onClick={handleSaveEditMonthlyPayment}
-                          className="h-[3rem] w-[3rem] text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+                          className="xlg:size-[3rem] size-[2.5rem] text-xl xlg:text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
                         >
                           <BiCheckCircle />
                         </button>
                       ) : (
                         <button
                           onClick={() => handleEditMonthlyPayment(item)}
-                          className="h-[3rem] w-[3rem] text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+                          className="xlg:size-[3rem] size-[2.5rem] text-xl xlg:text-2xl rounded-md flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
                         >
                           <BiSolidEditAlt />
                         </button>
                       )}
                     </div>
-                    <div className=" text-xl font-medium text-[#333333]">
+                    <div className=" text-lg font-medium text-[#333333]">
                       {isEditing && editedItem._id === item._id ? (
                         <input
                           type="text"
                           value={newServiceName}
                           onChange={(e) => setNewServiceName(e.target.value)}
-                          className="text-xl font-medium  h-[2.5rem] border border-[#cccccc] text-[#333333] outline-none w-full"
+                          className="text-lg font-medium  h-[2.5rem] border border-[#cccccc] text-[#333333] outline-none w-full"
                         />
                       ) : (
                         item.serviceName
                       )}
                     </div>
 
-                    <div className="text-base font-medium text-[#666666]">
+                    <div className="xlg:text-sm text-xs font-medium text-[#666666]">
                       {new Date(item.updatedAt).toLocaleString("en-GB", {
                         day: "numeric",
                         month: "long",
@@ -456,7 +455,7 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
             )}
           </div>
         </div>
-        <div className=" w-[40%] flex flex-col gap-4">
+        <div className=" w-[50%] flex flex-col gap-4">
           <div className=" flex justify-end items-end">
             <button
               onClick={openModal}
@@ -465,7 +464,7 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
               + Add
             </button>
           </div>
-          <div className=" grid grid-cols-1 gap-4">
+          <div className=" grid grid-cols-1 xlg:grid-cols-2 gap-4">
             {viewClient.invoice?.map((inv, index) =>
               inv.savePdf?.secure_url ? (
                 <div className=" flex flex-col gap-1 border border-[#cccccc] rounded-md p-3">
@@ -474,34 +473,34 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
                     src={inv.savePdf.secure_url}
                     title={`Invoice PDF ${index + 1}`}
                     width="100%"
-                    className="] rounded h-[15rem]"
+                    className="] rounded h-[12rem]"
                   ></iframe>
                   <div className=" flex justify-between items-center">
-                    <div className=" text-base font-medium text-[#666666]">
+                    <div className=" text-[10px] xl:text-xs font-medium text-[#666666]">
                       {inv.invoiceNumber}
                     </div>
                     <div className=" flex flex-row gap-2 items-center">
                       <button
                         onClick={() => openModalEdit(inv)}
-                        className=" w-fit px-4 h-[2.5rem] text-xl flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+                        className=" w-fit px-2 h-[2rem] text-lg flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
                       >
                         <BiEditAlt />
                       </button>
                       <button
                         onClick={() => deleteInvoice(inv._id)}
-                        className=" w-fit px-4 h-[2.5rem] text-xl flex justify-center items-center bg-red-100 text-red-500"
+                        className=" w-fit px-2 h-[2rem] text-lg flex justify-center items-center bg-red-100 text-red-500"
                       >
                         <MdDelete />
                       </button>
                     </div>
                   </div>
-                  <div className=" grid grid-cols-2 gap-4">
-                    <button className=" px-4 h-[2rem]  rounded-md text-sm flex justify-center items-center bg-[#0A5BFF] text-white">
+                  <div className=" grid grid-cols-2 gap-2">
+                    <button className="  h-[2rem]  rounded-md text-[10px] xl:text-xs flex justify-center items-center bg-[#0A5BFF] text-white">
                       Share Invoice
                     </button>
                     <button
                       onClick={() => openModalView(inv)}
-                      className=" px-4 h-[2rem]  rounded-md text-sm flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
+                      className="  h-[2rem]  rounded-md text-[10px] xl:text-xs flex justify-center items-center bg-[#EFF5FF] text-[#0A5BFF]"
                     >
                       View Invoice
                     </button>

@@ -9,6 +9,7 @@ const InvoiceCreate = ({ clientId, fetchAllClients, setViewClient }) => {
   const [bdes, setBdes] = useState([]);
   const [dueDate, setDueDate] = useState(null);
   const [bdeName, setBdeName] = useState("");
+  const [previousPayment, setPreviousPayment] = useState("");
   const [items, setItems] = useState([
     {
       serviceName: "",
@@ -54,6 +55,11 @@ const InvoiceCreate = ({ clientId, fetchAllClients, setViewClient }) => {
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
+    if (field === "quantity" || field === "rate") {
+      const quantity = parseFloat(newItems[index].quantity) || 0;
+      const rate = parseFloat(newItems[index].rate) || 0;
+      newItems[index].amount = quantity * rate;
+    }
     setItems(newItems);
   };
 
@@ -90,6 +96,7 @@ const InvoiceCreate = ({ clientId, fetchAllClients, setViewClient }) => {
         }/api/client/update/${clientId}/invoice`,
         {
           dueDate: dueDate.toISOString(),
+          previousPayment: previousPayment,
           invoiceData: items,
           savePdf: null,
         }
@@ -105,6 +112,7 @@ const InvoiceCreate = ({ clientId, fetchAllClients, setViewClient }) => {
 
         setDueDate(null);
         setItems([]);
+        setPreviousPayment("");
         fetchAllClients();
         setViewClient(response.data.client);
       } else {
@@ -231,6 +239,17 @@ const InvoiceCreate = ({ clientId, fetchAllClients, setViewClient }) => {
             </div>
           </div>
         ))}
+
+        <div className=" w-[50%] flex flex-col gap-1">
+          <label>Previous Payment</label>
+          <input
+            type="text"
+            placeholder="Previous Payment"
+            value={previousPayment}
+            onChange={(e) => setPreviousPayment(e.target.value)}
+            className="h-[3.5rem] w-full px-2 border border-[#CCCCCC] outline-none"
+          />
+        </div>
 
         <div className="flex flex-row gap-4">
           <button
