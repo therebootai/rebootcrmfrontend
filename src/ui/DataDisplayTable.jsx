@@ -53,8 +53,6 @@ const DataDisplayTable = ({
             : null,
         };
 
-        console.log("params", params);
-
         let url = "";
 
         if (employee.role === "Telecaller") {
