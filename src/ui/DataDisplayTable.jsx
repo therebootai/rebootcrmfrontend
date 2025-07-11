@@ -54,6 +54,7 @@ const DataDisplayTable = ({
             statuscount: response.data.statuscount,
             totalCount: response.data.totalCount || 0,
           }))
+
           .catch((err) => {
             console.error(
               `Error fetching business data for ${employee.role}:`,
@@ -69,6 +70,7 @@ const DataDisplayTable = ({
       });
 
       const updatedData = await Promise.all(businessPromises);
+
       setVisualData(updatedData);
     } catch (error) {
       console.error("Error fetching business data:", error);
@@ -79,7 +81,6 @@ const DataDisplayTable = ({
     if (filteredData && filteredData.length > 0) {
       fetchBusinessData(filteredData);
     } else {
-      // If filteredData is empty, clear visualData
       setVisualData([]);
     }
   }, [filteredData, dateRange]);
@@ -114,19 +115,16 @@ const DataDisplayTable = ({
     }
 
     attendanceList.forEach((record) => {
-      // Ensure the record has a 'date' field and it's a valid date string from MongoDB
       if (record.date && record.date) {
         const recordDate = new Date(record.date);
 
-        // Validate that the parsed recordDate is actually a valid Date
         if (isNaN(recordDate.getTime())) {
           console.warn(
             `Warning: Invalid date string '${record.date}' in attendance record. Skipping.`
           );
-          return; // Skip this record
+          return;
         }
 
-        // Apply filter if a valid targetDateObj was provided
         if (useMonthYearFilter) {
           if (
             recordDate.getMonth() === targetMonth &&
@@ -146,7 +144,6 @@ const DataDisplayTable = ({
             }
           }
         } else {
-          // No valid targetDateObj, sum all day_count values
           const dayCountValue = parseFloat(record.day_count);
           if (!isNaN(dayCountValue)) {
             totalDayCount += dayCountValue;
@@ -200,6 +197,13 @@ const DataDisplayTable = ({
               >
                 <div className="flex-1">{employee.name}</div>
                 <div className="flex-1">
+                  {employee.attendence_list.entry_time}
+                </div>
+                <div className="flex-1">
+                  {" "}
+                  {employee.attendence_list.exit_time}
+                </div>
+                <div className="flex-1">
                   {calculateTotalDayCountByDate(
                     employee.attendence_list,
                     dateRange.startDate
@@ -208,9 +212,9 @@ const DataDisplayTable = ({
                 <div className="flex-1">{employee.totalCount || "0"}</div>
                 <div
                   className="flex-1 cursor-pointer"
-                  onClick={() => openModal(employee, "Appointment Pending")}
+                  onClick={() => openModal(employee, "Appointment Generated")}
                 >
-                  {employee.statuscount?.visitCount || "0"}
+                  {employee.statuscount?.appointmentCount || "0"}
                 </div>
                 <div
                   className="flex-1 cursor-pointer"
@@ -219,11 +223,18 @@ const DataDisplayTable = ({
                   {employee.statuscount?.FollowupCount || "0"}
                 </div>
                 <div
+                  onClick={() => openModal(employee, "Visited")}
+                  className="flex-1 cursor-pointer"
+                >
+                  {employee.statuscount?.visitCount || "0"}
+                </div>
+                <div
                   className="flex-1 cursor-pointer"
                   onClick={() => openModal(employee, "Deal Closed")}
                 >
                   {employee.statuscount?.dealCloseCount || "0"}
                 </div>
+
                 <div
                   className="flex-1 cursor-pointer"
                   onClick={() => openModal(employee, "New Data")}
