@@ -18,6 +18,7 @@ const BdeMarkVisit = ({ show, onClose, business, onUpdate }) => {
       // Update business details
       const updatedBusiness = {
         status: "Visited",
+        followUpDate: followUpDate ? followUpDate.toISOString() : null,
         visit_result: {
           reason: status,
           follow_up_date: followUpDate ? followUpDate.toISOString() : null,
