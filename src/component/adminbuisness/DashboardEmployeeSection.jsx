@@ -297,6 +297,8 @@ const DashboardEmployeeSection = () => {
         <DataDisplayTable
           headers={[
             "Telecaller Name",
+            "Login",
+            "Logout",
             "Day Count",
             "Total Data",
             "Appointments",

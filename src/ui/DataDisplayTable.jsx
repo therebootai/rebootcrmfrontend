@@ -72,6 +72,7 @@ const DataDisplayTable = ({
       const updatedData = await Promise.all(businessPromises);
 
       setVisualData(updatedData);
+      console.log(visualData);
     } catch (error) {
       console.error("Error fetching business data:", error);
     }
@@ -165,11 +166,43 @@ const DataDisplayTable = ({
     return totalDayCount;
   }
 
+  const formatTo12HourFormat = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const getAttendanceForDate = (attendanceList, targetDate) => {
+    if (!targetDate) {
+      return { entryTime: "nd", exitTime: "nd" };
+    }
+    const filteredAttendance = attendanceList.filter((record) => {
+      const recordDate = new Date(record.date);
+      return (
+        recordDate.getFullYear() === targetDate.getFullYear() &&
+        recordDate.getMonth() === targetDate.getMonth() &&
+        recordDate.getDate() === targetDate.getDate()
+      );
+    });
+
+    if (filteredAttendance.length > 0) {
+      return {
+        entryTime: formatTo12HourFormat(filteredAttendance[0].entry_time),
+        exitTime: formatTo12HourFormat(filteredAttendance[0].exit_time),
+      };
+    }
+
+    return { entryTime: "nd", exitTime: "nd" };
+  };
+  const isBDE = (employee) => employee.role === "BDE";
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
         {headers.map((header, index) => (
-          <div key={index} className="flex-1 text-center text-base font-medium">
+          <div key={index} className="flex-1 text-center text-sm font-medium">
             {header}
           </div>
         ))}
@@ -197,11 +230,20 @@ const DataDisplayTable = ({
               >
                 <div className="flex-1">{employee.name}</div>
                 <div className="flex-1">
-                  {employee.attendence_list.entry_time}
+                  {
+                    getAttendanceForDate(
+                      employee.attendence_list,
+                      dateRange.startDate
+                    ).entryTime
+                  }
                 </div>
                 <div className="flex-1">
-                  {" "}
-                  {employee.attendence_list.exit_time}
+                  {
+                    getAttendanceForDate(
+                      employee.attendence_list,
+                      dateRange.startDate
+                    ).exitTime
+                  }
                 </div>
                 <div className="flex-1">
                   {calculateTotalDayCountByDate(
@@ -222,12 +264,15 @@ const DataDisplayTable = ({
                 >
                   {employee.statuscount?.FollowupCount || "0"}
                 </div>
-                <div
-                  onClick={() => openModal(employee, "Visited")}
-                  className="flex-1 cursor-pointer"
-                >
-                  {employee.statuscount?.visitCount || "0"}
-                </div>
+
+                {isBDE(employee) && (
+                  <div
+                    onClick={() => openModal(employee, "Visited")}
+                    className="flex-1 cursor-pointer"
+                  >
+                    {employee.statuscount?.visitCount || "0"}
+                  </div>
+                )}
                 <div
                   className="flex-1 cursor-pointer"
                   onClick={() => openModal(employee, "Deal Closed")}

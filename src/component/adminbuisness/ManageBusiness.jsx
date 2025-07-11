@@ -315,7 +315,7 @@ const ManageBusiness = ({
               <div className=" flex flex-row gap-2 items-center">
                 Status: {selectedBusiness.status}{" "}
                 <span>
-                  {selectedBusiness.visit_result.update_location ? (
+                  {selectedBusiness.visit_result?.update_location ? (
                     <Link
                       to={`https://maps.google.com/?q=${selectedBusiness.visit_result.update_location.latitude},${selectedBusiness.visit_result.update_location.longitude}`}
                       target="_blank"
