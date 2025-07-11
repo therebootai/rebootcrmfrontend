@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { DateRangePicker } from "react-date-range";
 import { format } from "date-fns";
 import Modal from "react-modal";
 import { GoDotFill } from "react-icons/go";
 import InfiniteScroll from "../InfiniteScroll";
 import DataDisplayTable from "../../ui/DataDisplayTable";
+import { FaMapLocationDot } from "react-icons/fa6";
 
 const formatDate = (dateString) => {
   if (!dateString) return "";
@@ -116,6 +117,20 @@ const DashboardEmployeeSection = () => {
                 ).toISOString()
               : ""
           }&appointmentenddate=${
+            dateRange.endDate
+              ? new Date(
+                  dateRange.endDate.getTime() -
+                    dateRange.endDate.getTimezoneOffset() * 60000
+                ).toISOString()
+              : ""
+          }&followupstartdate=${
+            dateRange.startDate
+              ? new Date(
+                  dateRange.startDate.getTime() -
+                    dateRange.startDate.getTimezoneOffset() * 60000
+                ).toISOString()
+              : ""
+          }&followupenddate=${
             dateRange.endDate
               ? new Date(
                   dateRange.endDate.getTime() -
@@ -274,10 +289,13 @@ const DashboardEmployeeSection = () => {
         <DataDisplayTable
           headers={[
             "BDE Name",
+            "Login",
+            "Logout",
             "Day Count",
             "Total Data",
             "Appointments",
             "Followup",
+            "Visit",
             "Deal Close",
             "New Data",
             "Target",
@@ -293,6 +311,8 @@ const DashboardEmployeeSection = () => {
         <DataDisplayTable
           headers={[
             "Telecaller Name",
+            "Login",
+            "Logout",
             "Day Count",
             "Total Data",
             "Appointments",
@@ -345,8 +365,24 @@ const DashboardEmployeeSection = () => {
                     <span>
                       <GoDotFill />
                     </span>
-                    <span>
-                      {data.status} - ({formatDate(data.followUpDate ?? "")})
+                    <span className=" flex flex-row items-center gap-2">
+                      {data.status} - (
+                      {formatDate(
+                        data.followUpDate || data.visit_result?.visit_time || ""
+                      )}
+                      )
+                      <span>
+                        {data.visit_result?.update_location ? (
+                          <Link
+                            to={`https://maps.google.com/?q=${data.visit_result.update_location.latitude},${data.visit_result.update_location.longitude}`}
+                            target="_blank"
+                          >
+                            <FaMapLocationDot className=" text-green-800 text-lg" />
+                          </Link>
+                        ) : (
+                          ""
+                        )}
+                      </span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

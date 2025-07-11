@@ -57,6 +57,10 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
           name: "Add/Manage Employee",
           link: "/admin/hr/add-manage-employees",
         },
+        {
+          name: "Manage Leave",
+          link: "/admin/hr/manage-leave",
+        },
       ],
     },
     {

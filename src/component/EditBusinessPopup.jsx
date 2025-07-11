@@ -64,6 +64,30 @@ const EditBusinessPopup = ({ show, onClose, business, onUpdate }) => {
             appointmentDate: appointmentDate.toISOString(),
           }
         );
+
+        await axios.post(
+          `${import.meta.env.VITE_BASE_URL}/api/send-notification`,
+          {
+            targetUserId: selectedBdeId,
+            title: "New Business Appointment has been Assigned",
+            body: `New Business named ${
+              business.buisnessname
+            } has been assigned to you on ${appointmentDate.toLocaleDateString(
+              "en-IN",
+              {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              }
+            )} at ${Intl.DateTimeFormat({
+              hour: "numeric",
+              minute: "numeric",
+              hour12: true,
+            }).format(
+              appointmentDate
+            )}. Please check the details and get in touch with the customer.`,
+          }
+        );
       }
 
       onUpdate({

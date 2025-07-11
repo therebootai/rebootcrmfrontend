@@ -27,6 +27,30 @@ const DataDisplayTable = ({
                   dateRange.endDate.getTimezoneOffset() * 60000
               ).toISOString()
             : null,
+          appointmentstartdate: dateRange.startDate
+            ? new Date(
+                dateRange.startDate.getTime() -
+                  dateRange.startDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : null,
+          appointmentenddate: dateRange.endDate
+            ? new Date(
+                dateRange.endDate.getTime() -
+                  dateRange.endDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : null,
+          followupstartdate: dateRange.startDate
+            ? new Date(
+                dateRange.startDate.getTime() -
+                  dateRange.startDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : null,
+          followupenddate: dateRange.endDate
+            ? new Date(
+                dateRange.endDate.getTime() -
+                  dateRange.endDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : null,
         };
 
         let url = "";
@@ -54,6 +78,7 @@ const DataDisplayTable = ({
             statuscount: response.data.statuscount,
             totalCount: response.data.totalCount || 0,
           }))
+
           .catch((err) => {
             console.error(
               `Error fetching business data for ${employee.role}:`,
@@ -69,6 +94,7 @@ const DataDisplayTable = ({
       });
 
       const updatedData = await Promise.all(businessPromises);
+
       setVisualData(updatedData);
     } catch (error) {
       console.error("Error fetching business data:", error);
@@ -79,7 +105,6 @@ const DataDisplayTable = ({
     if (filteredData && filteredData.length > 0) {
       fetchBusinessData(filteredData);
     } else {
-      // If filteredData is empty, clear visualData
       setVisualData([]);
     }
   }, [filteredData, dateRange]);
@@ -114,19 +139,16 @@ const DataDisplayTable = ({
     }
 
     attendanceList.forEach((record) => {
-      // Ensure the record has a 'date' field and it's a valid date string from MongoDB
       if (record.date && record.date) {
         const recordDate = new Date(record.date);
 
-        // Validate that the parsed recordDate is actually a valid Date
         if (isNaN(recordDate.getTime())) {
           console.warn(
             `Warning: Invalid date string '${record.date}' in attendance record. Skipping.`
           );
-          return; // Skip this record
+          return;
         }
 
-        // Apply filter if a valid targetDateObj was provided
         if (useMonthYearFilter) {
           if (
             recordDate.getMonth() === targetMonth &&
@@ -146,7 +168,6 @@ const DataDisplayTable = ({
             }
           }
         } else {
-          // No valid targetDateObj, sum all day_count values
           const dayCountValue = parseFloat(record.day_count);
           if (!isNaN(dayCountValue)) {
             totalDayCount += dayCountValue;
@@ -168,11 +189,43 @@ const DataDisplayTable = ({
     return totalDayCount;
   }
 
+  const formatTo12HourFormat = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const getAttendanceForDate = (attendanceList, targetDate) => {
+    if (!targetDate) {
+      return { entryTime: "nd", exitTime: "nd" };
+    }
+    const filteredAttendance = attendanceList.filter((record) => {
+      const recordDate = new Date(record.date);
+      return (
+        recordDate.getFullYear() === targetDate.getFullYear() &&
+        recordDate.getMonth() === targetDate.getMonth() &&
+        recordDate.getDate() === targetDate.getDate()
+      );
+    });
+
+    if (filteredAttendance.length > 0) {
+      return {
+        entryTime: formatTo12HourFormat(filteredAttendance[0].entry_time),
+        exitTime: formatTo12HourFormat(filteredAttendance[0].exit_time),
+      };
+    }
+
+    return { entryTime: "nd", exitTime: "nd" };
+  };
+  const isBDE = (employee) => employee.role === "BDE";
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
         {headers.map((header, index) => (
-          <div key={index} className="flex-1 text-center text-base font-medium">
+          <div key={index} className="flex-1 text-center text-sm font-medium">
             {header}
           </div>
         ))}
@@ -200,6 +253,22 @@ const DataDisplayTable = ({
               >
                 <div className="flex-1">{employee.name}</div>
                 <div className="flex-1">
+                  {
+                    getAttendanceForDate(
+                      employee.attendence_list,
+                      dateRange.startDate
+                    ).entryTime
+                  }
+                </div>
+                <div className="flex-1">
+                  {
+                    getAttendanceForDate(
+                      employee.attendence_list,
+                      dateRange.startDate
+                    ).exitTime
+                  }
+                </div>
+                <div className="flex-1">
                   {calculateTotalDayCountByDate(
                     employee.attendence_list,
                     dateRange.startDate
@@ -208,9 +277,9 @@ const DataDisplayTable = ({
                 <div className="flex-1">{employee.totalCount || "0"}</div>
                 <div
                   className="flex-1 cursor-pointer"
-                  onClick={() => openModal(employee, "Appointment Pending")}
+                  onClick={() => openModal(employee, "Appointment Generated")}
                 >
-                  {employee.statuscount?.visitCount || "0"}
+                  {employee.statuscount?.appointmentCount || "0"}
                 </div>
                 <div
                   className="flex-1 cursor-pointer"
@@ -218,12 +287,22 @@ const DataDisplayTable = ({
                 >
                   {employee.statuscount?.FollowupCount || "0"}
                 </div>
+
+                {isBDE(employee) && (
+                  <div
+                    onClick={() => openModal(employee, "Visited")}
+                    className="flex-1 cursor-pointer"
+                  >
+                    {employee.statuscount?.visitCount || "0"}
+                  </div>
+                )}
                 <div
                   className="flex-1 cursor-pointer"
                   onClick={() => openModal(employee, "Deal Closed")}
                 >
                   {employee.statuscount?.dealCloseCount || "0"}
                 </div>
+
                 <div
                   className="flex-1 cursor-pointer"
                   onClick={() => openModal(employee, "New Data")}

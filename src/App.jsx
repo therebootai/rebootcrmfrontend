@@ -35,6 +35,7 @@ import Career from "./pages/careerjobpost/Career";
 import AllApplication from "./pages/careerjobpost/AllApplication";
 import AddAndManageAchievement from "./pages/AddAndManageAchievement";
 import AddAndManageClient from "./pages/AddAndManageClient";
+import ManageLeave from "./pages/ManageLeave";
 
 function App() {
   return (
@@ -70,6 +71,7 @@ function App() {
         path="/admin/hr/add-manage-employees"
         element={<AddAndManageEmployee />}
       />
+      <Route path="/admin/hr/manage-leave" element={<ManageLeave />} />
       <Route
         path="/admin/user/add-manage-user"
         element={<AddAndManageUser />}

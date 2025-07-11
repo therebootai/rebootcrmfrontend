@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import EditBusiness from "./EditBusiness";
 import axios from "axios";
 import LoadingAnimation from "../LoadingAnimation";
+import { Link } from "react-router-dom";
+import { FaMapLocationDot } from "react-icons/fa6";
 
 Modal.setAppElement("#root");
 
@@ -310,7 +312,22 @@ const ManageBusiness = ({
               <div>City: {selectedBusiness.city}</div>
               <div>Category: {selectedBusiness.category}</div>
               <div>Source: {selectedBusiness.source}</div>
-              <div>Status: {selectedBusiness.status}</div>
+              <div className=" flex flex-row gap-2 items-center">
+                Status: {selectedBusiness.status}{" "}
+                <span>
+                  {selectedBusiness.visit_result?.update_location ? (
+                    <Link
+                      to={`https://maps.google.com/?q=${selectedBusiness.visit_result.update_location.latitude},${selectedBusiness.visit_result.update_location.longitude}`}
+                      target="_blank"
+                    >
+                      <FaMapLocationDot className=" text-green-800 text-lg" />
+                    </Link>
+                  ) : (
+                    ""
+                  )}
+                </span>{" "}
+                {selectedBusiness.visit_result?.visit_time}
+              </div>
               <div>
                 Follow-Up Date:{" "}
                 {formatFollowUpDate(selectedBusiness.followUpDate)}
