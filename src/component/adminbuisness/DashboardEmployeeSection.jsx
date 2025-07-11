@@ -123,6 +123,20 @@ const DashboardEmployeeSection = () => {
                     dateRange.endDate.getTimezoneOffset() * 60000
                 ).toISOString()
               : ""
+          }&followupstartdate=${
+            dateRange.startDate
+              ? new Date(
+                  dateRange.startDate.getTime() -
+                    dateRange.startDate.getTimezoneOffset() * 60000
+                ).toISOString()
+              : ""
+          }&followupenddate=${
+            dateRange.endDate
+              ? new Date(
+                  dateRange.endDate.getTime() -
+                    dateRange.endDate.getTimezoneOffset() * 60000
+                ).toISOString()
+              : ""
           }&page=${page}`;
         }
       }

@@ -27,7 +27,33 @@ const DataDisplayTable = ({
                   dateRange.endDate.getTimezoneOffset() * 60000
               ).toISOString()
             : null,
+          appointmentstartdate: dateRange.startDate
+            ? new Date(
+                dateRange.startDate.getTime() -
+                  dateRange.startDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : null,
+          appointmentenddate: dateRange.endDate
+            ? new Date(
+                dateRange.endDate.getTime() -
+                  dateRange.endDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : null,
+          followupstartdate: dateRange.startDate
+            ? new Date(
+                dateRange.startDate.getTime() -
+                  dateRange.startDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : null,
+          followupenddate: dateRange.endDate
+            ? new Date(
+                dateRange.endDate.getTime() -
+                  dateRange.endDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : null,
         };
+
+        console.log("params", params);
 
         let url = "";
 
@@ -72,7 +98,6 @@ const DataDisplayTable = ({
       const updatedData = await Promise.all(businessPromises);
 
       setVisualData(updatedData);
-      console.log(visualData);
     } catch (error) {
       console.error("Error fetching business data:", error);
     }
