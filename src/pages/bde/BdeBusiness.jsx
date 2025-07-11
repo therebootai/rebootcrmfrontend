@@ -94,6 +94,14 @@ const BdeBusiness = () => {
           customDateRange.endDate.getTime() -
             customDateRange.endDate.getTimezoneOffset() * 60000
         ).toISOString();
+        params.followupstartdate = new Date(
+          customDateRange.startDate.getTime() -
+            customDateRange.startDate.getTimezoneOffset() * 60000
+        ).toISOString();
+        params.followupenddate = new Date(
+          customDateRange.endDate.getTime() -
+            customDateRange.endDate.getTimezoneOffset() * 60000
+        ).toISOString();
       }
 
       const response = await axios.get(
