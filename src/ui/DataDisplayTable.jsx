@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { MdOutlineVisibility } from "react-icons/md";
-
+import { Link } from "react-router-dom";
 const DataDisplayTable = ({
   headers,
   filteredData,
@@ -223,7 +223,16 @@ const DataDisplayTable = ({
         ? formatTo12HourFormat(record.exit_time)
         : "nd";
 
-      return { entryTime, exitTime };
+      const entryLocation = {
+        latitude: record.entry_time_location?.latitude ?? null,
+        longitude: record.entry_time_location?.longitude ?? null,
+      };
+      const exitLocation = {
+        latitude: record.exit_time_location?.latitude ?? null,
+        longitude: record.exit_time_location?.longitude ?? null,
+      };
+
+      return { entryTime, exitTime, entryLocation, exitLocation };
     }
 
     return { entryTime: "nd", exitTime: "nd" };
@@ -262,20 +271,76 @@ const DataDisplayTable = ({
               >
                 <div className="flex-1">{employee.name}</div>
                 <div className="flex-1">
-                  {
-                    getAttendanceForDate(
-                      employee.attendence_list,
-                      dateRange.startDate
-                    ).entryTime
-                  }
+                  {getAttendanceForDate(
+                    employee.attendence_list,
+                    dateRange.startDate
+                  ).entryLocation ? (
+                    <Link
+                      to={`https://maps.google.com/?q=${
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.entryLocation.latitude
+                      },${
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.entryLocation.longitude
+                      }`}
+                    >
+                      {
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.entryTime
+                      }
+                    </Link>
+                  ) : (
+                    <span>
+                      {
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.entryTime
+                      }
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1">
-                  {
-                    getAttendanceForDate(
-                      employee.attendence_list,
-                      dateRange.startDate
-                    ).exitTime
-                  }
+                  {getAttendanceForDate(
+                    employee.attendence_list,
+                    dateRange.startDate
+                  ).exitLocation ? (
+                    <Link
+                      to={`https://maps.google.com/?q=${
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.exitLocation.latitude
+                      },${
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        ).exitLocation.longitude
+                      }`}
+                    >
+                      {
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.exitTime
+                      }
+                    </Link>
+                  ) : (
+                    <span>
+                      {
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.exitTime
+                      }
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1">
                   {calculateTotalDayCountByDate(

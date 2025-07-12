@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { FiDelete, FiEdit } from "react-icons/fi";
+import { useState } from "react";
+import { FiEdit } from "react-icons/fi";
 import {
   MdDeleteForever,
   MdKeyboardDoubleArrowLeft,
