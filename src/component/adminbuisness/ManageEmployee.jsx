@@ -202,7 +202,7 @@ const ManageEmployee = ({ employees = [] }) => {
               <strong>Joining Date:</strong> {selectedEmployee.joiningDate}
             </p>
             <p>
-              <strong>Govt Id:</strong>
+              <strong>Govt Id: </strong>
               <a
                 href={selectedEmployee.govtId.secure_url}
                 target="_blank"
@@ -212,7 +212,7 @@ const ManageEmployee = ({ employees = [] }) => {
               </a>
             </p>
             <p>
-              <strong>Experience Letter:</strong>
+              <strong>Experience Letter: </strong>
               {selectedEmployee.experienceLetter ? (
                 <a
                   href={selectedEmployee.experienceLetter.secure_url}
@@ -226,7 +226,7 @@ const ManageEmployee = ({ employees = [] }) => {
               )}
             </p>
             <p>
-              <strong>Bank Details:</strong>
+              <strong>Bank Details: </strong>
               <a
                 href={selectedEmployee.bankDetails.secure_url}
                 target="_blank"
@@ -236,10 +236,24 @@ const ManageEmployee = ({ employees = [] }) => {
               </a>
             </p>
             <p>
-              <strong>Agreement:</strong>
+              <strong>Agreement: </strong>
               {selectedEmployee.agreement ? (
                 <a
                   href={selectedEmployee.agreement.secure_url}
+                  target="_blank"
+                  className="text-blue-500 ml-2"
+                >
+                  View
+                </a>
+              ) : (
+                "Not uploaded"
+              )}
+            </p>
+            <p>
+              <strong>Profile Picture: </strong>
+              {selectedEmployee.profile_img ? (
+                <a
+                  href={selectedEmployee.profile_img.secure_url}
                   target="_blank"
                   className="text-blue-500 ml-2"
                 >
