@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { MdOutlineVisibility } from "react-icons/md";
-
+import { Link } from "react-router-dom";
 const DataDisplayTable = ({
   headers,
   filteredData,
@@ -199,9 +199,11 @@ const DataDisplayTable = ({
   };
 
   const getAttendanceForDate = (attendanceList, targetDate) => {
+    // If no target date is provided (i.e., dateRange is cleared), set the target to today's date
     if (!targetDate) {
-      return { entryTime: "nd", exitTime: "nd" };
+      targetDate = new Date(); // Set to today's date
     }
+
     const filteredAttendance = attendanceList.filter((record) => {
       const recordDate = new Date(record.date);
       return (
@@ -212,14 +214,30 @@ const DataDisplayTable = ({
     });
 
     if (filteredAttendance.length > 0) {
-      return {
-        entryTime: formatTo12HourFormat(filteredAttendance[0].entry_time),
-        exitTime: formatTo12HourFormat(filteredAttendance[0].exit_time),
+      const record = filteredAttendance[0];
+
+      const entryTime = record.entry_time
+        ? formatTo12HourFormat(record.entry_time)
+        : "nd";
+      const exitTime = record.exit_time
+        ? formatTo12HourFormat(record.exit_time)
+        : "nd";
+
+      const entryLocation = {
+        latitude: record.entry_time_location?.latitude ?? null,
+        longitude: record.entry_time_location?.longitude ?? null,
       };
+      const exitLocation = {
+        latitude: record.exit_time_location?.latitude ?? null,
+        longitude: record.exit_time_location?.longitude ?? null,
+      };
+
+      return { entryTime, exitTime, entryLocation, exitLocation };
     }
 
     return { entryTime: "nd", exitTime: "nd" };
   };
+
   const isBDE = (employee) => employee.role === "BDE";
   return (
     <div className="flex flex-col gap-2">
@@ -253,20 +271,76 @@ const DataDisplayTable = ({
               >
                 <div className="flex-1">{employee.name}</div>
                 <div className="flex-1">
-                  {
-                    getAttendanceForDate(
-                      employee.attendence_list,
-                      dateRange.startDate
-                    ).entryTime
-                  }
+                  {getAttendanceForDate(
+                    employee.attendence_list,
+                    dateRange.startDate
+                  ).entryLocation ? (
+                    <Link
+                      to={`https://maps.google.com/?q=${
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.entryLocation.latitude
+                      },${
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.entryLocation.longitude
+                      }`}
+                    >
+                      {
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.entryTime
+                      }
+                    </Link>
+                  ) : (
+                    <span>
+                      {
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.entryTime
+                      }
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1">
-                  {
-                    getAttendanceForDate(
-                      employee.attendence_list,
-                      dateRange.startDate
-                    ).exitTime
-                  }
+                  {getAttendanceForDate(
+                    employee.attendence_list,
+                    dateRange.startDate
+                  ).exitLocation ? (
+                    <Link
+                      to={`https://maps.google.com/?q=${
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.exitLocation.latitude
+                      },${
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        ).exitLocation.longitude
+                      }`}
+                    >
+                      {
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.exitTime
+                      }
+                    </Link>
+                  ) : (
+                    <span>
+                      {
+                        getAttendanceForDate(
+                          employee.attendence_list,
+                          dateRange.startDate
+                        )?.exitTime
+                      }
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1">
                   {calculateTotalDayCountByDate(

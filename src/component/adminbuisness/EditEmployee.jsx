@@ -17,8 +17,10 @@ const EditEmployee = ({ employeeId, onClose, onAddEmployees }) => {
     bankDetails: null,
     agreement: null,
     status: "",
+    profile_img: null,
   });
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -106,6 +108,7 @@ const EditEmployee = ({ employeeId, onClose, onAddEmployees }) => {
     setErrors(newErrors);
 
     if (formValid) {
+      setSubmitting(true);
       try {
         const data = new FormData();
         for (const key in formData) {
@@ -124,7 +127,7 @@ const EditEmployee = ({ employeeId, onClose, onAddEmployees }) => {
         onClose();
 
         onAddEmployees(response.data);
-        window.location.reload();
+        // window.location.reload();
         setFormData({
           employeename: "",
           mobileNumber: "",
@@ -138,6 +141,7 @@ const EditEmployee = ({ employeeId, onClose, onAddEmployees }) => {
           bankDetails: null,
           agreement: null,
           status: "",
+          profile_img: null,
         });
       } catch (error) {
         console.error("Error creating Employee:", error);
@@ -157,6 +161,8 @@ const EditEmployee = ({ employeeId, onClose, onAddEmployees }) => {
         } else {
           alert("Failed to create Employee. Please try again.");
         }
+      } finally {
+        setSubmitting(false);
       }
     }
   };
@@ -321,11 +327,25 @@ const EditEmployee = ({ employeeId, onClose, onAddEmployees }) => {
             className="bg-white rounded-sm p-4 border border-[#cccccc]"
           />
         </div>
+        <div className="flex flex-col col-span-2 gap-2">
+          <label>Profile Image</label>
+          <input
+            type="file"
+            name="profile_img"
+            accept="image/*"
+            onChange={handleInputChange}
+            className="bg-white rounded-sm p-4 border border-[#cccccc]"
+          />
+          {errors.profile_img && (
+            <span className="text-red-500">{errors.profile_img}</span>
+          )}
+        </div>
 
         <div className="flex flex-col ">
           <div className="text-transparent">submit</div>
           <button
             type="submit"
+            disabled={submitting}
             className="w-[50%] bg-[#FF27221A] p-4 flex justify-center items-center text-[#FF2722] text-base rounded-sm"
           >
             Submit
