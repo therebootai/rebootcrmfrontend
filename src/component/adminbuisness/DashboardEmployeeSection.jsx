@@ -54,21 +54,7 @@ const DashboardEmployeeSection = () => {
       if (status === "New Data") {
         url = `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?page=${page}&createdBy=${created_business}&createdstartdate=${
-          dateRange.startDate
-            ? new Date(
-                dateRange.startDate.getTime() -
-                  dateRange.startDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }&createdenddate=${
-          dateRange.endDate
-            ? new Date(
-                dateRange.endDate.getTime() -
-                  dateRange.endDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }`;
+        }/api/business/get?page=${page}&createdBy=${created_business}`;
       } else {
         if (role === "telecaller") {
           url = `${
