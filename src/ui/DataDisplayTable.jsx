@@ -199,9 +199,11 @@ const DataDisplayTable = ({
   };
 
   const getAttendanceForDate = (attendanceList, targetDate) => {
+    // If no target date is provided (i.e., dateRange is cleared), set the target to today's date
     if (!targetDate) {
-      return { entryTime: "nd", exitTime: "nd" };
+      targetDate = new Date(); // Set to today's date
     }
+
     const filteredAttendance = attendanceList.filter((record) => {
       const recordDate = new Date(record.date);
       return (
@@ -212,14 +214,21 @@ const DataDisplayTable = ({
     });
 
     if (filteredAttendance.length > 0) {
-      return {
-        entryTime: formatTo12HourFormat(filteredAttendance[0].entry_time),
-        exitTime: formatTo12HourFormat(filteredAttendance[0].exit_time),
-      };
+      const record = filteredAttendance[0];
+
+      const entryTime = record.entry_time
+        ? formatTo12HourFormat(record.entry_time)
+        : "nd";
+      const exitTime = record.exit_time
+        ? formatTo12HourFormat(record.exit_time)
+        : "nd";
+
+      return { entryTime, exitTime };
     }
 
     return { entryTime: "nd", exitTime: "nd" };
   };
+
   const isBDE = (employee) => employee.role === "BDE";
   return (
     <div className="flex flex-col gap-2">
