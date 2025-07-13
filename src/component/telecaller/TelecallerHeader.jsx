@@ -45,7 +45,6 @@ const TelecallerHeader = ({
       }
     );
 
-    console.log(resp.data);
 
     localStorage.removeItem("token");
     localStorage.removeItem("name");

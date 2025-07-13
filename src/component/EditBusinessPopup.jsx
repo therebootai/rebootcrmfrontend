@@ -79,13 +79,11 @@ const EditBusinessPopup = ({ show, onClose, business, onUpdate }) => {
                 month: "2-digit",
                 year: "numeric",
               }
-            )} at ${Intl.DateTimeFormat({
-              hour: "numeric",
-              minute: "numeric",
-              hour12: true,
-            }).format(
-              appointmentDate
-            )}. Please check the details and get in touch with the customer.`,
+            )} at ${appointmentDate.toLocaleTimeString("en-IN", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })}. Please check the details and get in touch with the customer.`,
           }
         );
       }
