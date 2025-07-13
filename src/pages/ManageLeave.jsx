@@ -97,12 +97,12 @@ const ManageLeave = () => {
     fetchLeaveRequests();
   }, [dateRange, selectedEmployee]);
 
-  const handleApprovalChange = async (userId, recordId, newStatus) => {
+  const handleApprovalChange = async (user, newStatus) => {
     try {
       const response = await axios.put(
-        `${
-          import.meta.env.VITE_BASE_URL
-        }/api/leave/requests/${userId}/${recordId}`,
+        `${import.meta.env.VITE_BASE_URL}/api/leave/requests/${user.userId}/${
+          user.attendanceRecordId
+        }`,
         {
           leave_approval: newStatus,
         }
@@ -110,11 +110,25 @@ const ManageLeave = () => {
 
       if (response.data.success) {
         const updatedRequests = leaveRequests.map((request) =>
-          request.userId === userId
+          request.userId === user.userId
             ? { ...request, leave_approval: newStatus }
             : request
         );
         setLeaveRequests(updatedRequests);
+        await axios.post(
+          `${import.meta.env.VITE_BASE_URL}/api/send-notification`,
+          {
+            targetUserId: user.userId,
+            title: `Your leave request has been ${newStatus}`,
+            body: `Your leave request of ${new Date(
+              user.date
+            ).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })} has been ${newStatus}.`,
+          }
+        );
       }
     } catch (error) {
       console.error("Error updating leave request:", error);
@@ -249,26 +263,14 @@ const ManageLeave = () => {
                 <div>
                   <button
                     className="text-blue-900 cursor-pointer"
-                    onClick={() =>
-                      handleApprovalChange(
-                        request.userId,
-                        request.attendanceRecordId,
-                        "approved"
-                      )
-                    }
+                    onClick={() => handleApprovalChange(request, "approved")}
                   >
                     Approve
                   </button>{" "}
                   /
                   <button
                     className="text-red-600 ml-1 cursor-pointer"
-                    onClick={() =>
-                      handleApprovalChange(
-                        request.userId,
-                        request.attendanceRecordId,
-                        "rejected"
-                      )
-                    }
+                    onClick={() => handleApprovalChange(request, "rejected")}
                   >
                     Reject
                   </button>
