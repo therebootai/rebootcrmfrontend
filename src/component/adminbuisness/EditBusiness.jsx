@@ -186,6 +186,34 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
           formData
         );
 
+        if (response.status === 200) {
+          if (formData.status === "Appointment Generated") {
+            await axios.post(
+              `${import.meta.env.VITE_BASE_URL}/api/send-notification`,
+              {
+                targetUserId: formData.bdeId,
+                title: "New Business Appointment has been Assigned",
+                body: `New Business named ${
+                  formData.buisnessname
+                } has been assigned to you on ${new Date(
+                  formData.appointmentDate
+                ).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                })} at ${new Date(formData.appointmentDate).toLocaleTimeString(
+                  "en-IN",
+                  {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  }
+                )}. Please check the details and get in touch with the customer.`,
+              }
+            );
+          }
+        }
+
         onSuccess(response.data.businessUpdate);
         onClose();
       } catch (error) {

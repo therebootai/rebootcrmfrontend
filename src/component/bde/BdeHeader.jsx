@@ -45,8 +45,6 @@ const BdeHeader = ({
       }
     );
 
-    console.log(resp.data);
-
     localStorage.removeItem("token");
     localStorage.removeItem("name");
     localStorage.removeItem("bdeId");
