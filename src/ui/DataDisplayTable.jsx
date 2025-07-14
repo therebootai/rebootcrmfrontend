@@ -287,6 +287,7 @@ const DataDisplayTable = ({
                           dateRange.startDate
                         )?.entryLocation.longitude
                       }`}
+                      target="_blank"
                     >
                       {
                         getAttendanceForDate(
@@ -323,6 +324,7 @@ const DataDisplayTable = ({
                           dateRange.startDate
                         ).exitLocation.longitude
                       }`}
+                      target="_blank"
                     >
                       {
                         getAttendanceForDate(
