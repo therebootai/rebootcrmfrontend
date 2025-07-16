@@ -11,7 +11,7 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
     {
       icon: "/images/home.svg",
       name: "Dashboard",
-      links: [{ name: "Dashboard", link: "/admin/dashboard" }],
+      href: "/admin/dashboard",
     },
     {
       icon: "/images/lead.svg",
@@ -38,12 +38,7 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
     {
       icon: "/images/client.svg",
       name: "Client",
-      links: [
-        {
-          name: "Add & Manage Client",
-          link: "/admin/business/add-manage-client",
-        },
-      ],
+      href: "/admin/business/add-manage-client",
     },
     {
       icon: "/images/hricon.svg",
@@ -61,25 +56,11 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
           name: "Manage Leave",
           link: "/admin/hr/manage-leave",
         },
-      ],
-    },
-    {
-      icon: "/images/user.svg",
-      name: "User",
-      links: [
         { name: "Add & Manage User", link: "/admin/user/add-manage-user" },
         {
           name: "Add & Manage Assign Business",
           link: "/admin/user/add-manage-assign-business",
         },
-      ],
-    },
-    {
-      icon: "/images/sales.svg",
-      name: "Sales",
-      links: [
-        { name: "Sales Dashboard", link: "/admin/dashboard" },
-        { name: "Proposal", link: "/admin/sales/proposal" },
         {
           name: "Add/Manage Target",
           link: "/admin/sales/add-manage-target",
@@ -91,11 +72,15 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
       ],
     },
     {
+      icon: "/images/sales.svg",
+      name: "Sales",
+
+      links: [{ name: "Sales Dashboard", link: "/admin/dashboard" }],
+    },
+    {
       icon: "/images/weblead.svg",
       name: "Get Quotation",
-      links: [
-        { name: "Website Lead", link: "/admin/getquotation/websiteleads" },
-      ],
+      href: "/admin/getquotation/websiteleads",
     },
     {
       icon: "/images/career.svg",
@@ -176,73 +161,115 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
       onMouseEnter={() => setIsSidebarHovered(true)}
       onMouseLeave={() => setIsSidebarHovered(false)}
     >
-      {sideheader.map((item, index) => (
-        <div
-          key={index}
-          className="relative flex flex-col items-start"
-          onMouseEnter={() => setHoveredIndex(index)}
-          onMouseLeave={() => setHoveredIndex(null)}
-          onClick={() => handleIconClick(index)}
-        >
-          <div
-            className={`flex items-center p-2 rounded-lg w-full ${
-              hoveredIndex === index || activeIndex === index
-                ? "bg-gray-300"
-                : "bg-transparent"
-            }`}
-            style={{
-              transition: "background-color 0.5s ease, width 0.5s ease",
-            }}
-          >
-            <img
-              src={item.icon}
-              alt={item.name}
-              className="h-[1.3rem] w-[1.3rem] mx-2"
-            />
-            {(isSidebarHovered || activeIndex !== null) && (
-              <span className="text-[#777777] cursor-pointer ml-2">
-                {item.name}
-              </span>
-            )}
-          </div>
-
-          {/* Links Dropdown */}
-          <div
-            className={`flex flex-col w-full ml-4 overflow-hidden ease-in-out ${
-              activeIndex === index ? "max-h-screen" : "max-h-0"
-            }`}
-            style={{
-              transform: activeIndex === index ? "scaleY(1)" : "scaleY(0)",
-              transformOrigin: "top",
-              transition: "transform 0.5s ease, max-height 0.9s ease",
-            }}
-          >
-            {item.links.map((link, linkIndex) => (
+      {sideheader.map((item, index) => {
+        if (item.href) {
+          return (
+            <div
+              key={index}
+              className="relative flex flex-col items-start"
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              onClick={() => handleIconClick(index)}
+            >
               <Link
-                key={linkIndex}
-                to={link.link}
-                className={`pl-10 py-2 transition-all duration-1000 ease-in-out ${
-                  location.pathname === link.link
-                    ? "text-[#FF2722]"
-                    : "text-[#777777]"
+                className={`flex items-center p-2 rounded-lg w-full ${
+                  hoveredIndex === index || activeIndex === index
+                    ? "bg-gray-300"
+                    : "bg-transparent"
                 }`}
                 style={{
-                  transform:
-                    activeIndex === index
-                      ? "translateY(0)"
-                      : "translateY(-10px)",
-                  opacity: activeIndex === index ? 1 : 0,
-                  transition:
-                    "transform 0.5s ease, opacity 0.5s ease, color 0.3s ease",
+                  transition: "background-color 0.5s ease, width 0.5s ease",
                 }}
-                onClick={closeMobileSidebar} // Close sidebar on link click
+                to={item.href}
               >
-                {link.name}
+                <img
+                  src={item.icon}
+                  alt={item.name}
+                  className="h-[1.3rem] w-[1.3rem] mx-2"
+                />
+                {(isSidebarHovered || activeIndex !== null) && (
+                  <span
+                    className={`${
+                      location.pathname === item.href
+                        ? "text-[#FF2722]"
+                        : "text-[#777777]"
+                    } cursor-pointer ml-2`}
+                  >
+                    {item.name}
+                  </span>
+                )}
               </Link>
-            ))}
+            </div>
+          );
+        }
+        return (
+          <div
+            key={index}
+            className="relative flex flex-col items-start"
+            onMouseEnter={() => setHoveredIndex(index)}
+            onMouseLeave={() => setHoveredIndex(null)}
+            onClick={() => handleIconClick(index)}
+          >
+            <div
+              className={`flex items-center p-2 rounded-lg w-full ${
+                hoveredIndex === index || activeIndex === index
+                  ? "bg-gray-300"
+                  : "bg-transparent"
+              }`}
+              style={{
+                transition: "background-color 0.5s ease, width 0.5s ease",
+              }}
+            >
+              <img
+                src={item.icon}
+                alt={item.name}
+                className="h-[1.3rem] w-[1.3rem] mx-2"
+              />
+              {(isSidebarHovered || activeIndex !== null) && (
+                <span className="text-[#777777] cursor-pointer ml-2">
+                  {item.name}
+                </span>
+              )}
+            </div>
+
+            {/* Links Dropdown */}
+            <div
+              className={`flex flex-col w-full ml-4 overflow-hidden ease-in-out ${
+                activeIndex === index ? "max-h-screen" : "max-h-0"
+              }`}
+              style={{
+                transform: activeIndex === index ? "scaleY(1)" : "scaleY(0)",
+                transformOrigin: "top",
+                transition: "transform 0.5s ease, max-height 0.9s ease",
+              }}
+            >
+              {item.links.map((link, linkIndex) => (
+                <Link
+                  key={linkIndex}
+                  to={link.link}
+                  className={`pl-10 py-2 transition-all duration-1000 ease-in-out ${
+                    location.pathname === link.link
+                      ? "text-[#FF2722]"
+                      : "text-[#777777]"
+                  }`}
+                  style={{
+                    transform:
+                      activeIndex === index
+                        ? "translateY(0)"
+                        : "translateY(-10px)",
+                    opacity: activeIndex === index ? 1 : 0,
+                    transition:
+                      "transform 0.5s ease, opacity 0.5s ease, color 0.3s ease",
+                  }}
+                  onClick={closeMobileSidebar} // Close sidebar on link click
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

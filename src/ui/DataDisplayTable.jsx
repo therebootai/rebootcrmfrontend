@@ -123,15 +123,24 @@ const DataDisplayTable = ({
   function calculateTotalDayCountByDate(attendanceList, targetDateObj = null) {
     let totalDayCount = 0;
 
-    let useMonthYearFilter = false;
-    let targetMonth = -1; // 0-indexed
-    let targetYear = -1;
+    let useDateRangeFilter = false;
+    let startDate = null;
+    let endDate = null;
 
-    // Determine if a valid targetDateObj was provided for filtering
-    if (targetDateObj instanceof Date && !isNaN(targetDateObj.getTime())) {
-      useMonthYearFilter = true;
-      targetMonth = targetDateObj.getMonth();
-      targetYear = targetDateObj.getFullYear();
+    // Determine if valid startDate and endDate were provided for filtering
+    if (
+      targetDateObj &&
+      targetDateObj.startDate instanceof Date &&
+      !isNaN(targetDateObj.startDate.getTime()) &&
+      targetDateObj.endDate instanceof Date &&
+      !isNaN(targetDateObj.endDate.getTime())
+    ) {
+      useDateRangeFilter = true;
+      startDate = targetDateObj.startDate;
+      endDate = targetDateObj.endDate;
+
+      // Ensure endDate is at the end of the day for inclusive range
+      endDate.setHours(23, 59, 59, 999);
     }
 
     if (!attendanceList || attendanceList.length === 0) {
@@ -139,7 +148,9 @@ const DataDisplayTable = ({
     }
 
     attendanceList.forEach((record) => {
-      if (record.date && record.date) {
+      // Check for both 'date' and 'date.$date' to handle different date formats if needed
+      // Assuming 'record.date' is the primary field for date information
+      if (record.date) {
         const recordDate = new Date(record.date);
 
         if (isNaN(recordDate.getTime())) {
@@ -149,11 +160,8 @@ const DataDisplayTable = ({
           return;
         }
 
-        if (useMonthYearFilter) {
-          if (
-            recordDate.getMonth() === targetMonth &&
-            recordDate.getFullYear() === targetYear
-          ) {
+        if (useDateRangeFilter) {
+          if (recordDate >= startDate && recordDate <= endDate) {
             const dayCountValue = parseFloat(record.day_count);
             if (!isNaN(dayCountValue)) {
               totalDayCount += dayCountValue;
@@ -168,6 +176,7 @@ const DataDisplayTable = ({
             }
           }
         } else {
+          // No date range filter, sum all day_count values
           const dayCountValue = parseFloat(record.day_count);
           if (!isNaN(dayCountValue)) {
             totalDayCount += dayCountValue;
@@ -181,7 +190,7 @@ const DataDisplayTable = ({
         }
       } else {
         console.warn(
-          "Warning: Attendance record missing valid 'date.$date' field. Skipping."
+          "Warning: Attendance record missing valid 'date' field. Skipping."
         );
       }
     });
@@ -274,7 +283,15 @@ const DataDisplayTable = ({
                   {getAttendanceForDate(
                     employee.attendence_list,
                     dateRange.startDate
-                  ).entryLocation ? (
+                  ).entryLocation &&
+                  getAttendanceForDate(
+                    employee.attendence_list,
+                    dateRange.startDate
+                  )?.entryLocation.latitude &&
+                  getAttendanceForDate(
+                    employee.attendence_list,
+                    dateRange.startDate
+                  )?.entryLocation.longitude ? (
                     <Link
                       to={`https://maps.google.com/?q=${
                         getAttendanceForDate(
@@ -311,7 +328,15 @@ const DataDisplayTable = ({
                   {getAttendanceForDate(
                     employee.attendence_list,
                     dateRange.startDate
-                  ).exitLocation ? (
+                  ).exitLocation &&
+                  getAttendanceForDate(
+                    employee.attendence_list,
+                    dateRange.startDate
+                  )?.exitLocation.latitude &&
+                  getAttendanceForDate(
+                    employee.attendence_list,
+                    dateRange.startDate
+                  )?.exitLocation.longitude ? (
                     <Link
                       to={`https://maps.google.com/?q=${
                         getAttendanceForDate(
@@ -347,7 +372,7 @@ const DataDisplayTable = ({
                 <div className="flex-1">
                   {calculateTotalDayCountByDate(
                     employee.attendence_list,
-                    dateRange.startDate
+                    dateRange
                   )}
                 </div>
                 <div className="flex-1">{employee.totalCount || "0"}</div>
