@@ -103,7 +103,14 @@ const ClientGraph = () => {
               key={index}
               className=" flex flex-col gap-2 justify-center items-center text-[#888888]"
             >
-              <h1 className=" text-xs font-medium">{item.target}</h1>
+              <h1 className=" text-xs font-medium">
+                {Intl.NumberFormat("en-IN", {
+                  style: "currency",
+                  currency: "INR",
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }).format(item.target)}
+              </h1>
               <div className=" w-full h-[20rem] flex flex-col justify-end  bg-[#F8F8F8]">
                 {item.clearedAmount > 0 ? (
                   <div
@@ -112,7 +119,12 @@ const ClientGraph = () => {
                       height: barHeight,
                     }}
                   >
-                    {item.clearedAmount}
+                    {Intl.NumberFormat("en-IN", {
+                      style: "currency",
+                      currency: "INR",
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    }).format(item.clearedAmount)}
                   </div>
                 ) : (
                   <div className="text-xs xl:text-sm text-gray-400 text-center py-1">
