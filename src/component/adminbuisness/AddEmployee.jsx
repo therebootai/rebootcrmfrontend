@@ -17,6 +17,7 @@ const AddEmployee = ({ onAddEmployees, fetchAllEmployees }) => {
     bankDetails: null,
     agreement: null,
     status: "",
+    profile_img: null,
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -150,6 +151,7 @@ const AddEmployee = ({ onAddEmployees, fetchAllEmployees }) => {
           bankDetails: null,
           agreement: null,
           status: "",
+          profile_img: null,
         });
       } catch (error) {
         console.error("Error creating Employee:", error);
@@ -341,6 +343,18 @@ const AddEmployee = ({ onAddEmployees, fetchAllEmployees }) => {
           />
           {errors.agreement && (
             <span className="text-red-500">{errors.agreement}</span>
+          )}
+        </div>
+        <div className="flex flex-col col-span-2 gap-2">
+          <label>Profile Image</label>
+          <input
+            type="file"
+            name="profile_img"
+            onChange={handleInputChange}
+            className="bg-white rounded-sm p-4 border border-[#cccccc]"
+          />
+          {errors.profile_img && (
+            <span className="text-red-500">{errors.profile_img}</span>
           )}
         </div>
 

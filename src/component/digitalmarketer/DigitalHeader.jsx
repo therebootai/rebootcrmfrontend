@@ -47,7 +47,6 @@ const DigitalHeader = ({
       }
     );
 
-    console.log(resp.data);
     localStorage.removeItem("token");
     localStorage.removeItem("name");
     localStorage.removeItem("digitalMarketerId");

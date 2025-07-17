@@ -34,8 +34,8 @@ const DashboardEmployeeSection = () => {
   const navigate = useNavigate();
 
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(),
-    endDate: new Date(),
+    startDate: new Date(new Date().setHours(0, 0, 0, 0)),
+    endDate: new Date(new Date().setHours(0, 0, 0, 0)),
     key: "selection",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -54,21 +54,7 @@ const DashboardEmployeeSection = () => {
       if (status === "New Data") {
         url = `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?page=${page}&createdBy=${created_business}&createdstartdate=${
-          dateRange.startDate
-            ? new Date(
-                dateRange.startDate.getTime() -
-                  dateRange.startDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }&createdenddate=${
-          dateRange.endDate
-            ? new Date(
-                dateRange.endDate.getTime() -
-                  dateRange.endDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }`;
+        }/api/business/get?page=${page}&createdBy=${created_business}`;
       } else {
         if (role === "telecaller") {
           url = `${

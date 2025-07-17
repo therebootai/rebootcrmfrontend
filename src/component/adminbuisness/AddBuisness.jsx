@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -8,7 +8,9 @@ const AddBuisness = ({ onAddBusiness }) => {
   const [citys, setCity] = useState([]);
   const [categories, setCategory] = useState([]);
   const [sources, setSources] = useState([]);
+  const [allBDE, setAllBDE] = useState([]);
   const [showFollowUpDate, setShowFollowUpDate] = useState(false);
+  const [showAppoinmentDate, setShowAppoinmentDate] = useState(false);
   const { telecallerId } = useParams();
   const { bdeId } = useParams();
   const { digitalMarketerId } = useParams();
@@ -21,11 +23,13 @@ const AddBuisness = ({ onAddBusiness }) => {
     category: "",
     status: "",
     source: "",
+    appointmentDate: null,
     followUpDate: null,
     remarks: "",
     telecallerId: "",
     digitalMarketerId: "",
     bdeId: "",
+    tagAppointment: "",
   });
   const [errors, setErrors] = useState({});
   useEffect(() => {
@@ -67,6 +71,11 @@ const AddBuisness = ({ onAddBusiness }) => {
           `${import.meta.env.VITE_BASE_URL}/api/source/get`
         );
         setSources(sourcesResponse.data);
+
+        const bdeResponse = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/bde/get?status=active`
+        );
+        setAllBDE(bdeResponse.data);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -99,16 +108,30 @@ const AddBuisness = ({ onAddBusiness }) => {
     }
 
     if (name === "status") {
-      setShowFollowUpDate(
-        value === "Followup" || value === "Appointment Generated"
-      );
+      setShowFollowUpDate(value === "Followup");
+      setShowAppoinmentDate(value === "Appointment Generated");
+      if (value !== "Followup" || value !== "Appointment Generated") {
+        setFormData({
+          ...formData,
+          tagAppointment: "",
+          bdeId: "",
+        });
+      }
+    }
+
+    if (name === "bdeId") {
+      setFormData({
+        ...formData,
+        tagAppointment: value,
+        bdeId: value,
+      });
     }
   };
 
-  const handleDateChange = (date) => {
+  const handleDateChange = (date, name) => {
     setFormData({
       ...formData,
-      followUpDate: date,
+      [name]: date,
     });
   };
 
@@ -153,6 +176,19 @@ const AddBuisness = ({ onAddBusiness }) => {
       formValid = false;
     }
 
+    if (
+      formData.status === "Appointment Generated" &&
+      !formData.appointmentDate
+    ) {
+      newErrors.appointmentDate = "Appointment date is required";
+      formValid = false;
+    }
+
+    if (formData.status === "Appointment Generated" && !formData.bdeId) {
+      newErrors.bdeId = "BDE is required";
+      formValid = false;
+    }
+
     setErrors(newErrors);
     if (formValid) {
       try {
@@ -166,6 +202,34 @@ const AddBuisness = ({ onAddBusiness }) => {
             },
           }
         );
+
+        if (response.status === 200) {
+          if (formData.status === "Appointment Generated") {
+            await axios.post(
+              `${import.meta.env.VITE_BASE_URL}/api/send-notification`,
+              {
+                targetUserId: formData.bdeId,
+                title: "New Business Appointment has been Assigned",
+                body: `New Business named ${
+                  formData.buisnessname
+                } has been assigned to you on ${new Date(
+                  formData.appointmentDate
+                ).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                })} at ${new Date(formData.appointmentDate).toLocaleTimeString(
+                  "en-IN",
+                  {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  }
+                )}. Please check the details and get in touch with the customer.`,
+              }
+            );
+          }
+        }
 
         const newBusiness = response.data.newBusiness;
 
@@ -214,7 +278,6 @@ const AddBuisness = ({ onAddBusiness }) => {
     "Not Interested",
     "Invalid Data",
     "Not Responding",
-    "Appointment Pending",
     "Deal Closed",
   ];
 
@@ -339,7 +402,7 @@ const AddBuisness = ({ onAddBusiness }) => {
             <label>Follow-up Date</label>
             <DatePicker
               selected={formData.followUpDate}
-              onChange={handleDateChange}
+              onChange={(date) => handleDateChange(date, "followUpDate")}
               minDate={new Date()}
               showTimeSelect
               dateFormat="Pp"
@@ -347,6 +410,45 @@ const AddBuisness = ({ onAddBusiness }) => {
             />
             {errors.followUpDate && (
               <span className="text-red-500">{errors.followUpDate}</span>
+            )}
+          </div>
+        )}
+
+        {showAppoinmentDate && (
+          <div className="flex flex-col ">
+            <label>Appoinment Date</label>
+            <DatePicker
+              selected={formData.appointmentDate}
+              onChange={(date) => handleDateChange(date, "appointmentDate")}
+              minDate={new Date()}
+              showTimeSelect
+              dateFormat="Pp"
+              className="bg-white rounded-sm w-full p-4 border border-[#cccccc]"
+            />
+            {errors.appointmentDate && (
+              <span className="text-red-500">{errors.appointmentDate}</span>
+            )}
+          </div>
+        )}
+
+        {showAppoinmentDate && (
+          <div className="flex flex-col ">
+            <label>Select BDE</label>
+            <select
+              name="bdeId"
+              value={formData.bdeId}
+              onChange={handleInputChange}
+              className="bg-white rounded-sm p-4 border border-[#cccccc]"
+            >
+              <option value="">Choose Bde</option>
+              {allBDE.map((bde, index) => (
+                <option key={index} value={bde.bdeId}>
+                  {bde.bdename}
+                </option>
+              ))}
+            </select>
+            {errors.bdeId && (
+              <span className="text-red-500">{errors.bdeId}</span>
             )}
           </div>
         )}
