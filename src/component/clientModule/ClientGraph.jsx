@@ -76,6 +76,13 @@ const ClientGraph = () => {
     const percentage = (clearedAmount / target) * 100;
     return percentage > 100 ? 100 : percentage;
   };
+  const formatToShortCurrency = (num) => {
+    const n = Number(num);
+    if (n >= 10000000) return `${(n / 10000000).toFixed(1)}Cr`;
+    if (n >= 100000) return `${(n / 100000).toFixed(1)}L`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return n.toString();
+  };
   return (
     <div className=" flex flex-row gap-4 items-center ">
       <div className=" flex flex-row gap-4 text-lg w-[2%] items-center  rotate-90 ">
@@ -104,12 +111,7 @@ const ClientGraph = () => {
               className=" flex flex-col gap-2 justify-center items-center text-[#888888]"
             >
               <h1 className=" text-xs font-medium">
-                {Intl.NumberFormat("en-IN", {
-                  style: "currency",
-                  currency: "INR",
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                }).format(item.target)}
+                {formatToShortCurrency(item.target)}
               </h1>
               <div className=" w-full h-[20rem] flex flex-col justify-end  bg-[#F8F8F8]">
                 {item.clearedAmount > 0 ? (
@@ -119,12 +121,7 @@ const ClientGraph = () => {
                       height: barHeight,
                     }}
                   >
-                    {Intl.NumberFormat("en-IN", {
-                      style: "currency",
-                      currency: "INR",
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    }).format(item.clearedAmount)}
+                    {formatToShortCurrency(item.clearedAmount)}
                   </div>
                 ) : (
                   <div className="text-xs xl:text-sm text-gray-400 text-center py-1">
