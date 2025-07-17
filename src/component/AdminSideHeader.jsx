@@ -61,6 +61,16 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
           name: "Add & Manage Assign Business",
           link: "/admin/user/add-manage-assign-business",
         },
+
+      ],
+    },
+    {
+      icon: "/images/sales.svg",
+      name: "Sales",
+      links: [
+        { name: "Sales Dashboard", link: "/admin/sales/sales-dashboard" },
+        { name: "Proposal", link: "/admin/sales/proposal" },
+
         {
           name: "Add/Manage Target",
           link: "/admin/sales/add-manage-target",

@@ -36,6 +36,7 @@ import AllApplication from "./pages/careerjobpost/AllApplication";
 import AddAndManageAchievement from "./pages/AddAndManageAchievement";
 import AddAndManageClient from "./pages/AddAndManageClient";
 import ManageLeave from "./pages/ManageLeave";
+import SalesDashboard from "./pages/SalesDashboard";
 
 function App() {
   return (
@@ -80,6 +81,7 @@ function App() {
         path="/admin/sales/add-manage-target"
         element={<AddAndManageTarget />}
       />
+      <Route path="/admin/sales/sales-dashboard" element={<SalesDashboard />} />
       <Route
         path="/admin/sales/add-manage-achievement"
         element={<AddAndManageAchievement />}
