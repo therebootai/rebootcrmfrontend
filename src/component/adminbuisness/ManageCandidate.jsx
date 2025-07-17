@@ -5,6 +5,7 @@ import { MdOutlineVisibility } from "react-icons/md";
 import { RiDeleteBin5Line } from "react-icons/ri";
 import Modal from "react-modal";
 import EditCandidte from "./EditCandidte";
+import { Link } from "react-router-dom";
 
 Modal.setAppElement("#root"); // Set the root element for accessibility
 
@@ -112,7 +113,7 @@ const ManageCandidate = ({ candidates }) => {
     "City/Town",
     "Interested Position",
     "Experience",
-    "Status",
+    "Remarks",
   ];
 
   return (
@@ -136,7 +137,7 @@ const ManageCandidate = ({ candidates }) => {
             <div className="flex-1">{row.city}</div>
             <div className="flex-1">{row.interestPost}</div>
             <div className="flex-1">{row.experience}</div>
-            <div className="flex-1">{row.status}</div>
+            <div className="flex-1">{row.remarks ?? "-"}</div>
             <div className="flex flex-1 flex-row items-center gap-2">
               <button
                 className="text-[#00D23B]"
@@ -181,10 +182,6 @@ const ManageCandidate = ({ candidates }) => {
               <strong>Name:</strong> {selectedCandidate.candidatename}
             </p>
             <p>
-              <strong>Contact Person:</strong>{" "}
-              {selectedCandidate.contactpersonName}
-            </p>
-            <p>
               <strong>Mobile Number:</strong> {selectedCandidate.mobileNumber}
             </p>
             <p>
@@ -206,7 +203,21 @@ const ManageCandidate = ({ candidates }) => {
             </p>
 
             <p>
-              <strong>Rating:</strong> {selectedCandidate.rating}
+              <strong>Remarks:</strong> {selectedCandidate.remarks}
+            </p>
+            <p>
+              <strong>CV:</strong>{" "}
+              {selectedCandidate.cv ? (
+                <Link
+                  to={selectedCandidate.cv.secure_url}
+                  target="_blank"
+                  className="text-blue-600 underline"
+                >
+                  View CV
+                </Link>
+              ) : (
+                "Not Uploaded"
+              )}
             </p>
           </div>
         )}
