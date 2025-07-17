@@ -78,7 +78,7 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
       icon: "/images/sales.svg",
       name: "Sales",
       links: [
-        { name: "Sales Dashboard", link: "/admin/dashboard" },
+        { name: "Sales Dashboard", link: "/admin/sales/sales-dashboard" },
         { name: "Proposal", link: "/admin/sales/proposal" },
         {
           name: "Add/Manage Target",
