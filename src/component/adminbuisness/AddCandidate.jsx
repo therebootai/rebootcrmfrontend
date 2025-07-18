@@ -12,8 +12,8 @@ const AddCandidate = ({ onAddCandidates }) => {
     interestPost: "",
     lastQualification: "",
     experience: "",
-    rating: "",
-    status: "",
+    remarks: "",
+    cv: null,
   });
   const [errors, setErrors] = useState({});
 
@@ -24,6 +24,13 @@ const AddCandidate = ({ onAddCandidates }) => {
     }
     if (name === "altMobileNumber" && value.length > 10) {
       return; // Prevent input more than 10 digits
+    }
+    if (name === "cv") {
+      const file = e.target.files[0];
+      setFormData({
+        ...formData,
+        cv: file,
+      });
     }
     setFormData({
       ...formData,
@@ -58,19 +65,31 @@ const AddCandidate = ({ onAddCandidates }) => {
       formValid = false;
     }
 
-    if (!formData.lastQualification) {
-      newErrors.lastQualification = "Last Qualification is required";
-      formValid = false;
-    }
-
     setErrors(newErrors);
+
+    const submitedFormData = new FormData();
+
+    submitedFormData.append("candidatename", formData.candidatename);
+    submitedFormData.append("mobileNumber", formData.mobileNumber);
+    submitedFormData.append("altMobileNumber", formData.altMobileNumber);
+    submitedFormData.append("city", formData.city);
+    submitedFormData.append("interestPost", formData.interestPost);
+    submitedFormData.append("lastQualification", formData.lastQualification);
+    submitedFormData.append("experience", formData.experience);
+    submitedFormData.append("remarks", formData.remarks);
+    submitedFormData.append("cv", formData.cv);
 
     if (formValid) {
       try {
         // Send data to backend
         const response = await axios.post(
           `${import.meta.env.VITE_BASE_URL}/api/candidate/create`,
-          formData
+          submitedFormData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
         );
 
         onAddCandidates(response.data);
@@ -84,8 +103,8 @@ const AddCandidate = ({ onAddCandidates }) => {
           interestPost: "",
           lastQualification: "",
           experience: "",
-          rating: "",
-          status: "",
+          remarks: "",
+          cv: null,
         });
       } catch (error) {
         console.error("Error creating Candidate Details:", error);
@@ -94,22 +113,12 @@ const AddCandidate = ({ onAddCandidates }) => {
           error.response.data.error === "Mobile number already exists"
         ) {
           setErrors({ mobileNumber: "Mobile number already exists" });
-        } else if (
-          error.response &&
-          error.response.data.error ===
-            "Alternative mobile number already exists"
-        ) {
-          setErrors({
-            altMobileNumber: "Alternative mobile number already exists",
-          });
         } else {
           alert("Failed to create Candidate details. Please try again.");
         }
       }
     }
   };
-
-  const statusOptions = ["Active", "Deactive"];
 
   return (
     <div className="p-4 flex flex-col w-full gap-6">
@@ -172,13 +181,30 @@ const AddCandidate = ({ onAddCandidates }) => {
         </div>
         <div className="flex flex-col ">
           <label>Interest Post</label>
-          <input
-            type="text"
+          <select
             name="interestPost"
             value={formData.interestPost}
             onChange={handleInputChange}
             className="bg-white rounded-sm p-4 border border-[#cccccc]"
-          ></input>
+          >
+            <option value="">Choose</option>
+            {[
+              "Business Development Executive",
+              "Team Leader Sales",
+              "Digital Marketing Executive",
+              "Telecaller",
+              "HR",
+              "Content Writer",
+              "UI / UX Developer",
+              "Creative Graphics Designer",
+              "Full Stack Developer",
+              "App Developer",
+            ].map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
           {errors.interestPost && (
             <span className="text-red-500">{errors.interestPost}</span>
           )}
@@ -207,34 +233,28 @@ const AddCandidate = ({ onAddCandidates }) => {
           ></input>
         </div>
 
-        <div className="flex flex-col ">
-          <label>Rating (Optional)</label>
+        <div className="flex flex-col">
+          <label>CV (Optional)</label>
           <input
-            type="text"
-            name="rating"
-            value={formData.rating}
+            type="file"
+            name="cv"
+            accept=".pdf, .doc, .docx"
+            value={formData.cv}
             onChange={handleInputChange}
             className="bg-white rounded-sm p-4 border border-[#cccccc]"
           />
         </div>
-        <div className="flex flex-col ">
-          <label>Select Status</label>
-          <select
-            name="status"
-            value={formData.status}
+
+        <div className="flex flex-col col-span-2">
+          <label>Remarks (Optional)</label>
+          <textarea
+            type="text"
+            name="remarks"
+            rows={5}
+            value={formData.remarks}
             onChange={handleInputChange}
             className="bg-white rounded-sm p-4 border border-[#cccccc]"
-          >
-            <option value="">Choose</option>
-            {statusOptions.map((status, index) => (
-              <option key={index} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-          {errors.status && (
-            <span className="text-red-500">{errors.status}</span>
-          )}
+          />
         </div>
 
         <div className="flex flex-col ">

@@ -3,7 +3,7 @@ import axios from "axios";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-const AddTarget = ({ closeModal }) => {
+const AddTarget = ({ closeModal, onUpdate }) => {
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [targetDate, setTargetDate] = useState(new Date());
@@ -87,6 +87,7 @@ const AddTarget = ({ closeModal }) => {
       setTargetDate(new Date());
       setTargetAmount("");
       setSelectedEmployee("");
+      onUpdate();
       closeModal(); // Close the modal after successful submission
     } catch (error) {
       console.error("Error adding target:", error);
@@ -140,7 +141,7 @@ const AddTarget = ({ closeModal }) => {
           <div className="text-transparent">submit</div>
           <button
             type="submit"
-            className="w-[50%] bg-[#FF27221A] p-4 flex justify-center items-center text-[#FF2722] text-base rounded-sm"
+            className="w-[50%] bg-[#0a5cff20] p-4 flex justify-center items-center text-[#0A5BFF] text-xl font-medium rounded-sm"
           >
             Submit
           </button>
