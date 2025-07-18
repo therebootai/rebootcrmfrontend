@@ -1,8 +1,6 @@
-import React, { useState } from "react";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 
-const TargetSalesGraph = () => {
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+const TargetSalesGraph = ({ selectedYear, setSelectedYear }) => {
   const data = [
     { target: "2000", clearedAmount: "100", month: "JAN" },
     { target: "5000", clearedAmount: "500", month: "FEB" },

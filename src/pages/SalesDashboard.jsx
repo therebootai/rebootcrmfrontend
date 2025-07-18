@@ -24,15 +24,134 @@ const SalesDashboard = () => {
     endDate: null,
     key: "selection",
   });
+  const [tableDateRange, setTableDateRange] = useState({
+    startDate: null,
+    endDate: null,
+    key: "selection",
+  });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
+  const [allEmployees, setAllEmployees] = useState([]);
 
-  const rupeeFormatter = new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 0, // No decimal places for whole rupees
-    maximumFractionDigits: 0,
-  });
+  const [targetSalesYear, setTargetSalesYear] = useState(
+    new Date().getFullYear()
+  );
+  const [targetSalesGraphData, setTargetSalesGraphData] = useState([]);
+
+  function calculateMonthlyTargetSalesData(bdes, telecallers, year) {
+    // Initialize monthly aggregates for the entire year
+    const monthlyDataMap = {
+      JAN: { target: 0, clearedAmount: 0, month: "JAN" },
+      FEB: { target: 0, clearedAmount: 0, month: "FEB" },
+      MAR: { target: 0, clearedAmount: 0, month: "MAR" },
+      APR: { target: 0, clearedAmount: 0, month: "APR" },
+      MAY: { target: 0, clearedAmount: 0, month: "MAY" },
+      JUN: { target: 0, clearedAmount: 0, month: "JUN" },
+      JUL: { target: 0, clearedAmount: 0, month: "JUL" },
+      AUG: { target: 0, clearedAmount: 0, month: "AUG" },
+      SEP: { target: 0, clearedAmount: 0, month: "SEP" },
+      OCT: { target: 0, clearedAmount: 0, month: "OCT" },
+      NOV: { target: 0, clearedAmount: 0, month: "NOV" },
+      DEC: { target: 0, clearedAmount: 0, month: "DEC" },
+    };
+
+    const monthNamesShort = [
+      "JAN",
+      "FEB",
+      "MAR",
+      "APR",
+      "MAY",
+      "JUN",
+      "JUL",
+      "AUG",
+      "SEP",
+      "OCT",
+      "NOV",
+      "DEC",
+    ];
+
+    // --- Aggregate Targets from BDEs ---
+    bdes.forEach((bde) => {
+      if (bde.targets && Array.isArray(bde.targets)) {
+        bde.targets.forEach((target) => {
+          // Only include targets for the specified year
+          if (target.year === year) {
+            const monthIndex = new Date(
+              `${target.month} 1, ${target.year}`
+            ).getMonth();
+            const shortMonth = monthNamesShort[monthIndex];
+            if (monthlyDataMap[shortMonth]) {
+              monthlyDataMap[shortMonth].target += target.amount || 0;
+              monthlyDataMap[shortMonth].clearedAmount +=
+                target.achievement || 0;
+            }
+          }
+        });
+      }
+    });
+
+    // --- Aggregate Targets from Telecallers ---
+    telecallers.forEach((telecaller) => {
+      if (telecaller.targets && Array.isArray(telecaller.targets)) {
+        telecaller.targets.forEach((target) => {
+          // Only include targets for the specified year
+          if (target.year === year) {
+            const monthIndex = new Date(
+              `${target.month} 1, ${target.year}`
+            ).getMonth();
+            const shortMonth = monthNamesShort[monthIndex];
+            if (monthlyDataMap[shortMonth]) {
+              monthlyDataMap[shortMonth].target += target.amount || 0;
+              monthlyDataMap[shortMonth].clearedAmount +=
+                target.achievement || 0;
+            }
+          }
+        });
+      }
+    });
+
+    // // --- Aggregate Cleared Amounts from Client Data ---
+    // allIndividualResults.forEach((result) => {
+    //   if (
+    //     result.status === "fulfilled" &&
+    //     (result.value.type === "BDE_CLIENT" ||
+    //       result.value.type === "Telecaller_CLIENT") &&
+    //     result.value.data // Ensure data exists for client results
+    //   ) {
+    //     // Assuming client data is an array where each item might have collections
+    //     result.value.data.forEach((clientItem) => {
+    //       if (clientItem.collections && Array.isArray(clientItem.collections)) {
+    //         clientItem.collections.forEach((collection) => {
+    //           if (collection.date && typeof collection.amount === "number") {
+    //             // Ensure amount is a number
+    //             const collectionDate = new Date(collection.date);
+    //             // Only include collections for the specified year
+    //             if (collectionDate.getFullYear() === year) {
+    //               const monthIndex = collectionDate.getMonth();
+    //               const shortMonth = monthNamesShort[monthIndex];
+    //               if (monthlyDataMap[shortMonth]) {
+    //                 monthlyDataMap[shortMonth].clearedAmount +=
+    //                   collection.amount;
+    //               }
+    //             }
+    //           }
+    //         });
+    //       }
+    //     });
+    //   }
+    // });
+
+    // Convert the aggregated map into the final array format
+    const finalMonthlyTargetSalesData = Object.values(monthlyDataMap).map(
+      (item) => ({
+        target: item.target.toString(), // Convert to string as per your desired format
+        clearedAmount: item.clearedAmount.toString(), // Convert to string
+        month: item.month,
+      })
+    );
+
+    return finalMonthlyTargetSalesData;
+  }
 
   const fetchBusinesses = async () => {
     try {
@@ -77,8 +196,194 @@ const SalesDashboard = () => {
     }
   };
 
+  const fetchtableData = async () => {
+    try {
+      const [telecallers, bdes] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+      ]);
+
+      let employeeIds = {
+        BDE: bdes.data.map((item) => item.bdeId),
+        Telecaller: telecallers.data.map((item) => item.telecallerId),
+      };
+
+      let employeeObjectIds = {
+        BDE: bdes.data.map((item) => item._id),
+        Telecaller: telecallers.data.map((item) => item._id),
+      };
+
+      const formatDateToISO = (date) => {
+        if (!date) return "";
+        // Subtract the timezone offset to get the UTC equivalent for an ISO string
+        const utcDate = new Date(
+          date.getTime() - date.getTimezoneOffset() * 60000
+        );
+        return utcDate.toISOString();
+      };
+
+      const formattedStartDate = formatDateToISO(tableDateRange.startDate);
+      const formattedEndDate = formatDateToISO(tableDateRange.endDate);
+
+      const individualApiCalls = [];
+
+      // --- Prepare BDE API Calls ---
+      employeeIds.BDE.forEach((bdeId) => {
+        const businessUrl = `${
+          import.meta.env.VITE_BASE_URL
+        }/api/business/get?bdeId=${bdeId}&byTagAppointment=true&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+        individualApiCalls.push(
+          axios
+            .get(businessUrl)
+            .then((response) => ({
+              type: "BDE",
+              id: bdeId,
+              data: response.data,
+            }))
+            .catch((error) => {
+              console.error(`Error fetching data for BDE ID ${bdeId}:`, error);
+              return { type: "BDE", id: bdeId, error: error.message, data: [] }; // Return empty data on error
+            })
+        );
+      });
+
+      employeeObjectIds.BDE.forEach((bdeId) => {
+        const clientUrl = `${
+          import.meta.env.VITE_BASE_URL
+        }/api/client/get?bdeName=${bdeId}&startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
+        individualApiCalls.push(
+          axios
+            .get(clientUrl)
+            .then((response) => ({
+              type: "BDE",
+              id: bdeId,
+              data: response.data,
+            }))
+            .catch((error) => {
+              console.error(`Error fetching data for BDE ID ${bdeId}:`, error);
+              return { type: "BDE", id: bdeId, error: error.message, data: [] }; // Return empty data on error
+            })
+        );
+      });
+
+      // --- Prepare Telecaller API Calls ---
+      employeeIds.Telecaller.forEach((telecallerId) => {
+        const businessUrl = `${
+          import.meta.env.VITE_BASE_URL
+        }/api/business/get?telecallerId=${telecallerId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+        individualApiCalls.push(
+          axios
+            .get(businessUrl)
+            .then((response) => ({
+              type: "Telecaller",
+              id: telecallerId,
+              data: response.data,
+            }))
+            .catch((error) => {
+              console.error(
+                `Error fetching data for Telecaller ID ${telecallerId}:`,
+                error
+              );
+              return {
+                type: "Telecaller",
+                id: telecallerId,
+                error: error.message,
+                data: [],
+              }; // Return empty data on error
+            })
+        );
+      });
+
+      employeeObjectIds.Telecaller.forEach((telecallerId) => {
+        const clientUrl = `${
+          import.meta.env.VITE_BASE_URL
+        }/api/client/get?tmeLeads=${telecallerId}&startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
+        individualApiCalls.push(
+          axios
+            .get(clientUrl)
+            .then((response) => ({
+              type: "Telecaller",
+              id: telecallerId,
+              data: response.data,
+            }))
+            .catch((error) => {
+              console.error(
+                `Error fetching data for Telecaller ID ${telecallerId}:`,
+                error
+              );
+              return {
+                type: "Telecaller",
+                id: telecallerId,
+                error: error.message,
+                data: [],
+              }; // Return empty data on error
+            })
+        );
+      });
+
+      // Execute all individual API calls concurrently
+      const allIndividualResults = await Promise.allSettled(individualApiCalls);
+
+      setAllEmployees([
+        ...bdes.data.map((item) => ({
+          ...item,
+          role: "BDE",
+          name: item.bdename,
+          id: item.bdeId,
+          targets: item.targets || [],
+          statuscount: allIndividualResults.find(
+            (result) =>
+              result.status === "fulfilled" &&
+              result.value.type === "BDE" &&
+              result.value.id === item.bdeId
+          ).value.data.statuscount,
+          collections: allIndividualResults.find(
+            (result) =>
+              result.status === "fulfilled" &&
+              result.value.type === "BDE" &&
+              result.value.id === item._id
+          ).value.data.data,
+        })),
+        ...telecallers.data.map((item) => ({
+          ...item,
+          role: "Telecaller",
+          name: item.telecallername,
+          id: item.telecallerId,
+          targets: item.targets || [],
+          statuscount: allIndividualResults.find(
+            (result) =>
+              result.status === "fulfilled" &&
+              result.value.type === "Telecaller" &&
+              result.value.id === item.telecallerId
+          ).value.data.statuscount,
+        })),
+      ]);
+    } catch (error) {
+      console.error("Error fetching businesses:", error);
+    }
+  };
+
+  const fetchTargetSalesGraphData = async () => {
+    try {
+      const [telecallers, bdes] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+      ]);
+
+      const finalData = calculateMonthlyTargetSalesData(
+        bdes.data.targets,
+        telecallers.data.targets
+      );
+
+      setTargetSalesGraphData(finalData);
+    } catch (error) {
+      console.error("Error fetching businesses:", error);
+    }
+  };
+
   useEffect(() => {
     fetchBusinesses();
+    fetchtableData();
   }, []);
 
   useMemo(() => {
@@ -95,11 +400,17 @@ const SalesDashboard = () => {
       }
     }
     getFilters();
+    fetchTargetSalesGraphData();
   }, []);
 
   useEffect(() => {
     fetchBusinesses();
   }, [dateRange, selectedCategory, selectedCity]);
+
+  useEffect(() => {
+    fetchtableData();
+    fetchTargetSalesGraphData();
+  }, [tableDateRange]);
 
   const calculateCounts = (data) => {
     const totalBusiness = data.totalCount;
@@ -178,6 +489,7 @@ const SalesDashboard = () => {
     { name: "Visit", number: counts.visits },
     { name: "Deal Close", number: counts.dealCloses },
   ];
+
   return (
     <AdminDashboardTemplate>
       <div className=" p-4 flex flex-col gap-6">
@@ -281,10 +593,19 @@ const SalesDashboard = () => {
           ))}
         </div>
 
-        <EmployeeSection />
+        <EmployeeSection
+          employees={allEmployees}
+          dateRange={tableDateRange}
+          setDateRange={setTableDateRange}
+          fetchtableData={fetchtableData}
+        />
       </div>
       <div className=" flex flex-col gap-12 p-4 border-t border-[#cccccc] mt-8">
-        <TargetSalesGraph />
+        <TargetSalesGraph
+          selectedYear={targetSalesYear}
+          setSelectedYear={setTargetSalesYear}
+          data={targetSalesGraphData}
+        />
       </div>
       <div className=" flex flex-col gap-12 p-4 border-t border-[#cccccc] mt-8 ">
         <SalesCollectionGraph />

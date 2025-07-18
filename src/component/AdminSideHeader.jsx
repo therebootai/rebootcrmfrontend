@@ -74,7 +74,7 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
 
     {
       icon: "/images/weblead.svg",
-      name: "Get Quotation",
+      name: "Website Leads",
       href: "/admin/getquotation/websiteleads",
     },
     {
