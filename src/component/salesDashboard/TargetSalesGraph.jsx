@@ -1,20 +1,20 @@
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 
-const TargetSalesGraph = ({ selectedYear, setSelectedYear }) => {
-  const data = [
-    { target: "2000", clearedAmount: "100", month: "JAN" },
-    { target: "5000", clearedAmount: "500", month: "FEB" },
-    { target: "4000", clearedAmount: "100", month: "MARCH" },
-    { target: "0", clearedAmount: "0", month: "APRIL" },
-    { target: "0", clearedAmount: "0", month: "MAY" },
-    { target: "0", clearedAmount: "0", month: "JUNE" },
-    { target: "4000", clearedAmount: "200", month: "JULY" },
-    { target: "6000", clearedAmount: "1000", month: "AUG" },
-    { target: "9000", clearedAmount: "0", month: "SEP" },
-    { target: "10000", clearedAmount: "0", month: "OCT" },
-    { target: "12000", clearedAmount: "0", month: "NOV" },
-    { target: "20000", clearedAmount: "0", month: "DEC" },
-  ];
+const TargetSalesGraph = ({ selectedYear, setSelectedYear, data }) => {
+  // const data = [
+  //   { target: "2000", clearedAmount: "100", month: "JAN" },
+  //   { target: "5000", clearedAmount: "500", month: "FEB" },
+  //   { target: "4000", clearedAmount: "100", month: "MARCH" },
+  //   { target: "0", clearedAmount: "0", month: "APRIL" },
+  //   { target: "0", clearedAmount: "0", month: "MAY" },
+  //   { target: "0", clearedAmount: "0", month: "JUNE" },
+  //   { target: "4000", clearedAmount: "200", month: "JULY" },
+  //   { target: "6000", clearedAmount: "1000", month: "AUG" },
+  //   { target: "9000", clearedAmount: "0", month: "SEP" },
+  //   { target: "10000", clearedAmount: "0", month: "OCT" },
+  //   { target: "12000", clearedAmount: "0", month: "NOV" },
+  //   { target: "20000", clearedAmount: "0", month: "DEC" },
+  // ];
   const calculatePercentage = (target, clearedAmount) => {
     if (!target) return 0;
     const percentage = (clearedAmount / target) * 100;

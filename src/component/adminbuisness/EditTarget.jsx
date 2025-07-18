@@ -188,7 +188,7 @@ const EditTarget = ({ user, onClose, onUpdate, updateDate }) => {
           <div className="text-transparent">submit</div>
           <button
             type="submit"
-            className="w-[50%] bg-[#FF27221A] p-4 flex justify-center items-center text-[#FF2722] text-base rounded-sm"
+            className="w-[50%] bg-[#0a5cff20] p-4 flex justify-center items-center text-[#0A5BFF] text-xl font-medium rounded-sm"
           >
             Submit
           </button>

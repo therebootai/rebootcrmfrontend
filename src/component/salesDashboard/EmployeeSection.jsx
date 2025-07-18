@@ -293,15 +293,15 @@ const EmployeeSection = ({
                     {employee.statuscount?.dealCloseCount || "0"}
                   </div>
 
-                  <div
-                    className="flex-1"
-                    onClick={() => openModal("Update Target", employee)}
-                  >
+                  <div className="flex-1">
                     {latestTarget.amount
                       ? rupeeFormatter.format(latestTarget.amount)
                       : "0"}
                   </div>
-                  <div className="flex-1">
+                  <div
+                    className="flex-1 cursor-pointer"
+                    onClick={() => openModal("Update Target", employee)}
+                  >
                     {latestTarget.achievement
                       ? rupeeFormatter.format(latestTarget.achievement)
                       : "0"}

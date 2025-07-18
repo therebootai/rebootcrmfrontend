@@ -38,7 +38,107 @@ const SalesDashboard = () => {
   );
   const [targetSalesGraphData, setTargetSalesGraphData] = useState([]);
 
+  const [salesCollectionYear, setSalesCollectionYear] = useState(
+    new Date().getFullYear()
+  );
+  const [salesCollectionGraphData, setSalesCollectionGraphData] = useState([]);
+
+  const [targetCollectionYear, setTargetCollectionYear] = useState(
+    new Date().getFullYear()
+  );
+  const [targetCollectionGraphData, setTargetCollectionGraphData] = useState(
+    []
+  );
+
   function calculateMonthlyTargetSalesData(bdes, telecallers, year) {
+    // Initialize monthly aggregates for the entire year
+    const monthlyDataMap = {
+      JAN: { target: 0, clearedAmount: 0, month: "JAN" },
+      FEB: { target: 0, clearedAmount: 0, month: "FEB" },
+      MAR: { target: 0, clearedAmount: 0, month: "MAR" },
+      APR: { target: 0, clearedAmount: 0, month: "APR" },
+      MAY: { target: 0, clearedAmount: 0, month: "MAY" },
+      JUN: { target: 0, clearedAmount: 0, month: "JUN" },
+      JUL: { target: 0, clearedAmount: 0, month: "JUL" },
+      AUG: { target: 0, clearedAmount: 0, month: "AUG" },
+      SEP: { target: 0, clearedAmount: 0, month: "SEP" },
+      OCT: { target: 0, clearedAmount: 0, month: "OCT" },
+      NOV: { target: 0, clearedAmount: 0, month: "NOV" },
+      DEC: { target: 0, clearedAmount: 0, month: "DEC" },
+    };
+
+    const monthNamesShort = [
+      "JAN",
+      "FEB",
+      "MAR",
+      "APR",
+      "MAY",
+      "JUN",
+      "JUL",
+      "AUG",
+      "SEP",
+      "OCT",
+      "NOV",
+      "DEC",
+    ];
+    // --- Aggregate Targets from BDEs ---
+    bdes.forEach((bde) => {
+      if (bde.targets && Array.isArray(bde.targets)) {
+        bde.targets.forEach((target) => {
+          // Only include targets for the specified year
+          if (target.year === year) {
+            const monthIndex = new Date(
+              `${target.month} 1, ${target.year}`
+            ).getMonth();
+            const shortMonth = monthNamesShort[monthIndex];
+            if (monthlyDataMap[shortMonth]) {
+              monthlyDataMap[shortMonth].target += parseInt(target.amount) || 0;
+              monthlyDataMap[shortMonth].clearedAmount +=
+                parseInt(target.achievement) || 0;
+            }
+          }
+        });
+      }
+    });
+
+    // --- Aggregate Targets from Telecallers ---
+    telecallers.forEach((telecaller) => {
+      if (telecaller.targets && Array.isArray(telecaller.targets)) {
+        telecaller.targets.forEach((target) => {
+          // Only include targets for the specified year
+          if (target.year === year) {
+            const monthIndex = new Date(
+              `${target.month} 1, ${target.year}`
+            ).getMonth();
+            const shortMonth = monthNamesShort[monthIndex];
+            if (monthlyDataMap[shortMonth]) {
+              monthlyDataMap[shortMonth].target += parseInt(target.amount) || 0;
+              monthlyDataMap[shortMonth].clearedAmount +=
+                parseInt(target.achievement) || 0;
+            }
+          }
+        });
+      }
+    });
+
+    // Convert the aggregated map into the final array format
+    const finalMonthlyTargetSalesData = Object.values(monthlyDataMap).map(
+      (item) => ({
+        target: item.target.toString(), // Convert to string as per your desired format
+        clearedAmount: item.clearedAmount.toString(), // Convert to string
+        month: item.month,
+      })
+    );
+
+    return finalMonthlyTargetSalesData;
+  }
+
+  function calculateMonthlySalesCollectionData(
+    bdes,
+    telecallers,
+    allIndividualResults, // This will now typically contain one object with all client data
+    year
+  ) {
     // Initialize monthly aggregates for the entire year
     const monthlyDataMap = {
       JAN: { target: 0, clearedAmount: 0, month: "JAN" },
@@ -71,19 +171,18 @@ const SalesDashboard = () => {
     ];
 
     // --- Aggregate Targets from BDEs ---
+    // This part remains the same as targets are still per BDE
     bdes.forEach((bde) => {
       if (bde.targets && Array.isArray(bde.targets)) {
         bde.targets.forEach((target) => {
-          // Only include targets for the specified year
           if (target.year === year) {
             const monthIndex = new Date(
               `${target.month} 1, ${target.year}`
             ).getMonth();
             const shortMonth = monthNamesShort[monthIndex];
             if (monthlyDataMap[shortMonth]) {
-              monthlyDataMap[shortMonth].target += target.amount || 0;
-              monthlyDataMap[shortMonth].clearedAmount +=
-                target.achievement || 0;
+              monthlyDataMap[shortMonth].target +=
+                parseInt(target.achievement) || 0;
             }
           }
         });
@@ -91,55 +190,194 @@ const SalesDashboard = () => {
     });
 
     // --- Aggregate Targets from Telecallers ---
+    // This part remains the same as targets are still per Telecaller
     telecallers.forEach((telecaller) => {
       if (telecaller.targets && Array.isArray(telecaller.targets)) {
         telecaller.targets.forEach((target) => {
-          // Only include targets for the specified year
           if (target.year === year) {
             const monthIndex = new Date(
               `${target.month} 1, ${target.year}`
             ).getMonth();
             const shortMonth = monthNamesShort[monthIndex];
             if (monthlyDataMap[shortMonth]) {
-              monthlyDataMap[shortMonth].target += target.amount || 0;
-              monthlyDataMap[shortMonth].clearedAmount +=
-                target.achievement || 0;
+              monthlyDataMap[shortMonth].target +=
+                parseInt(target.achievement) || 0;
             }
           }
         });
       }
     });
 
-    // // --- Aggregate Cleared Amounts from Client Data ---
-    // allIndividualResults.forEach((result) => {
-    //   if (
-    //     result.status === "fulfilled" &&
-    //     (result.value.type === "BDE_CLIENT" ||
-    //       result.value.type === "Telecaller_CLIENT") &&
-    //     result.value.data // Ensure data exists for client results
-    //   ) {
-    //     // Assuming client data is an array where each item might have collections
-    //     result.value.data.forEach((clientItem) => {
-    //       if (clientItem.collections && Array.isArray(clientItem.collections)) {
-    //         clientItem.collections.forEach((collection) => {
-    //           if (collection.date && typeof collection.amount === "number") {
-    //             // Ensure amount is a number
-    //             const collectionDate = new Date(collection.date);
-    //             // Only include collections for the specified year
-    //             if (collectionDate.getFullYear() === year) {
-    //               const monthIndex = collectionDate.getMonth();
-    //               const shortMonth = monthNamesShort[monthIndex];
-    //               if (monthlyDataMap[shortMonth]) {
-    //                 monthlyDataMap[shortMonth].clearedAmount +=
-    //                   collection.amount;
-    //               }
-    //             }
-    //           }
-    //         });
-    //       }
-    //     });
-    //   }
-    // });
+    // --- Aggregate Cleared Amounts from Client Data (Modified) ---
+    // Now, allIndividualResults will likely contain a single entry for all clients.
+    // We need to find that entry and iterate its data.
+    const allClientsResult = allIndividualResults.find(
+      (result) =>
+        result.status === "fulfilled" && result.value.type === "AllClients" // Use the 'AllClients' type
+    );
+
+    if (
+      allClientsResult &&
+      allClientsResult.value.data &&
+      Array.isArray(allClientsResult.value.data.data)
+    ) {
+      // Iterate through each client item within the 'data' array
+      allClientsResult.value.data.data.forEach((clientItem) => {
+        // Check if 'cleardAmount' array exists and is not empty
+        if (clientItem.cleardAmount && Array.isArray(clientItem.cleardAmount)) {
+          clientItem.cleardAmount.forEach((clearItem) => {
+            // Parse the amount to a float, defaulting to 0 if invalid
+            const paymentAmount = parseFloat(clearItem.amount || 0);
+
+            // Ensure paymentAmount is a valid number before proceeding
+            if (!isNaN(paymentAmount)) {
+              const paymentDate = new Date(clearItem.createdAt);
+              const paymentYear = paymentDate.getFullYear();
+
+              // Only include amounts for the specified year
+              if (paymentYear === year) {
+                const monthIndex = paymentDate.getMonth();
+                const shortMonth = monthNamesShort[monthIndex];
+
+                // Add to the corresponding month in monthlyDataMap
+                if (monthlyDataMap[shortMonth]) {
+                  monthlyDataMap[shortMonth].clearedAmount += paymentAmount;
+                }
+                // console.log(monthlyDataMap[shortMonth]); // Keep for debugging if needed
+              }
+            }
+          });
+        }
+      });
+    }
+
+    // Convert the aggregated map into the final array format
+    const finalMonthlyTargetSalesData = Object.values(monthlyDataMap).map(
+      (item) => ({
+        target: item.target.toString(), // Convert to string as per your desired format
+        clearedAmount: item.clearedAmount.toString(), // Convert to string
+        month: item.month,
+      })
+    );
+
+    return finalMonthlyTargetSalesData;
+  }
+
+  function calculateMonthlyTargetCollectionData(
+    bdes,
+    telecallers,
+    allIndividualResults, // This will now typically contain one object with all client data
+    year
+  ) {
+    // Initialize monthly aggregates for the entire year
+    const monthlyDataMap = {
+      JAN: { target: 0, clearedAmount: 0, month: "JAN" },
+      FEB: { target: 0, clearedAmount: 0, month: "FEB" },
+      MAR: { target: 0, clearedAmount: 0, month: "MAR" },
+      APR: { target: 0, clearedAmount: 0, month: "APR" },
+      MAY: { target: 0, clearedAmount: 0, month: "MAY" },
+      JUN: { target: 0, clearedAmount: 0, month: "JUN" },
+      JUL: { target: 0, clearedAmount: 0, month: "JUL" },
+      AUG: { target: 0, clearedAmount: 0, month: "AUG" },
+      SEP: { target: 0, clearedAmount: 0, month: "SEP" },
+      OCT: { target: 0, clearedAmount: 0, month: "OCT" },
+      NOV: { target: 0, clearedAmount: 0, month: "NOV" },
+      DEC: { target: 0, clearedAmount: 0, month: "DEC" },
+    };
+
+    const monthNamesShort = [
+      "JAN",
+      "FEB",
+      "MAR",
+      "APR",
+      "MAY",
+      "JUN",
+      "JUL",
+      "AUG",
+      "SEP",
+      "OCT",
+      "NOV",
+      "DEC",
+    ];
+
+    // --- Aggregate Targets from BDEs ---
+    // This part remains the same as targets are still per BDE
+    bdes.forEach((bde) => {
+      if (bde.targets && Array.isArray(bde.targets)) {
+        bde.targets.forEach((target) => {
+          if (target.year === year) {
+            const monthIndex = new Date(
+              `${target.month} 1, ${target.year}`
+            ).getMonth();
+            const shortMonth = monthNamesShort[monthIndex];
+            if (monthlyDataMap[shortMonth]) {
+              monthlyDataMap[shortMonth].target += parseInt(target.amount) || 0;
+            }
+          }
+        });
+      }
+    });
+
+    // --- Aggregate Targets from Telecallers ---
+    // This part remains the same as targets are still per Telecaller
+    telecallers.forEach((telecaller) => {
+      if (telecaller.targets && Array.isArray(telecaller.targets)) {
+        telecaller.targets.forEach((target) => {
+          if (target.year === year) {
+            const monthIndex = new Date(
+              `${target.month} 1, ${target.year}`
+            ).getMonth();
+            const shortMonth = monthNamesShort[monthIndex];
+            if (monthlyDataMap[shortMonth]) {
+              monthlyDataMap[shortMonth].target += parseInt(target.amount) || 0;
+            }
+          }
+        });
+      }
+    });
+
+    // --- Aggregate Cleared Amounts from Client Data (Modified) ---
+    // Now, allIndividualResults will likely contain a single entry for all clients.
+    // We need to find that entry and iterate its data.
+    const allClientsResult = allIndividualResults.find(
+      (result) =>
+        result.status === "fulfilled" && result.value.type === "AllClients" // Use the 'AllClients' type
+    );
+
+    if (
+      allClientsResult &&
+      allClientsResult.value.data &&
+      Array.isArray(allClientsResult.value.data.data)
+    ) {
+      // Iterate through each client item within the 'data' array
+      allClientsResult.value.data.data.forEach((clientItem) => {
+        // Check if 'cleardAmount' array exists and is not empty
+        if (clientItem.cleardAmount && Array.isArray(clientItem.cleardAmount)) {
+          clientItem.cleardAmount.forEach((clearItem) => {
+            // Parse the amount to a float, defaulting to 0 if invalid
+            const paymentAmount = parseFloat(clearItem.amount || 0);
+
+            // Ensure paymentAmount is a valid number before proceeding
+            if (!isNaN(paymentAmount)) {
+              const paymentDate = new Date(clearItem.createdAt);
+              const paymentYear = paymentDate.getFullYear();
+
+              // Only include amounts for the specified year
+              if (paymentYear === year) {
+                const monthIndex = paymentDate.getMonth();
+                const shortMonth = monthNamesShort[monthIndex];
+
+                // Add to the corresponding month in monthlyDataMap
+                if (monthlyDataMap[shortMonth]) {
+                  monthlyDataMap[shortMonth].clearedAmount += paymentAmount;
+                }
+                // console.log(monthlyDataMap[shortMonth]); // Keep for debugging if needed
+              }
+            }
+          });
+        }
+      });
+    }
 
     // Convert the aggregated map into the final array format
     const finalMonthlyTargetSalesData = Object.values(monthlyDataMap).map(
@@ -371,11 +609,161 @@ const SalesDashboard = () => {
       ]);
 
       const finalData = calculateMonthlyTargetSalesData(
-        bdes.data.targets,
-        telecallers.data.targets
+        bdes.data,
+        telecallers.data,
+        targetSalesYear
       );
 
       setTargetSalesGraphData(finalData);
+    } catch (error) {
+      console.error("Error fetching businesses:", error);
+    }
+  };
+
+  const fetchSalesCollectionGraphData = async () => {
+    try {
+      const [telecallers, bdes] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+      ]);
+
+      let employeeObjectIds = {
+        BDE: bdes.data.map((item) => item._id),
+        Telecaller: telecallers.data.map((item) => item._id),
+      };
+
+      const formatDateToISO = (date) => {
+        if (!date) return "";
+        // Subtract the timezone offset to get the UTC equivalent for an ISO string
+        const utcDate = new Date(
+          new Date(date).getTime() - new Date(date).getTimezoneOffset() * 60000
+        );
+        return utcDate.toISOString();
+      };
+
+      const formattedStartDate = formatDateToISO(
+        `${salesCollectionYear}/01/01`
+      );
+      const formattedEndDate = formatDateToISO(`${salesCollectionYear}/12/31`);
+
+      const individualApiCalls = [];
+
+      // Construct the URL for fetching all clients within the date range
+      const allClientsUrl = `${
+        import.meta.env.VITE_BASE_URL
+      }/api/client/get?startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
+
+      // Push a single Axios GET request to the array
+      individualApiCalls.push(
+        axios
+          .get(allClientsUrl)
+          .then((response) => {
+            // You might need to adjust the 'type' and 'id' if you still need them
+            // for subsequent processing, but for a single call, they might not be as relevant.
+            // If the response inherently provides the BDE/Telecaller type within its data,
+            // you can extract it here. Otherwise, you might consider this a generic 'Client' type.
+            return {
+              type: "AllClients", // Or a more specific type if your API provides it
+              id: "all", // A generic ID since it's not tied to a single employee
+              data: response.data,
+            };
+          })
+          .catch((error) => {
+            console.error("Error fetching all client data:", error);
+            return {
+              type: "AllClients",
+              id: "all",
+              error: error.message,
+              data: { success: false, data: [] }, // Return a consistent error structure
+            };
+          })
+      );
+
+      // Execute all individual API calls concurrently
+      const allIndividualResults = await Promise.allSettled(individualApiCalls);
+
+      const finalData = calculateMonthlySalesCollectionData(
+        bdes.data,
+        telecallers.data,
+        allIndividualResults,
+        targetSalesYear
+      );
+
+      setSalesCollectionGraphData(finalData);
+    } catch (error) {
+      console.error("Error fetching businesses:", error);
+    }
+  };
+  const fetchTargetCollectionGraphData = async () => {
+    try {
+      const [telecallers, bdes] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+      ]);
+
+      let employeeObjectIds = {
+        BDE: bdes.data.map((item) => item._id),
+        Telecaller: telecallers.data.map((item) => item._id),
+      };
+
+      const formatDateToISO = (date) => {
+        if (!date) return "";
+        // Subtract the timezone offset to get the UTC equivalent for an ISO string
+        const utcDate = new Date(
+          new Date(date).getTime() - new Date(date).getTimezoneOffset() * 60000
+        );
+        return utcDate.toISOString();
+      };
+
+      const formattedStartDate = formatDateToISO(
+        `${salesCollectionYear}/01/01`
+      );
+      const formattedEndDate = formatDateToISO(`${salesCollectionYear}/12/31`);
+
+      const individualApiCalls = [];
+
+      // Construct the URL for fetching all clients within the date range
+      const allClientsUrl = `${
+        import.meta.env.VITE_BASE_URL
+      }/api/client/get?startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
+
+      // Push a single Axios GET request to the array
+      individualApiCalls.push(
+        axios
+          .get(allClientsUrl)
+          .then((response) => {
+            // You might need to adjust the 'type' and 'id' if you still need them
+            // for subsequent processing, but for a single call, they might not be as relevant.
+            // If the response inherently provides the BDE/Telecaller type within its data,
+            // you can extract it here. Otherwise, you might consider this a generic 'Client' type.
+            return {
+              type: "AllClients", // Or a more specific type if your API provides it
+              id: "all", // A generic ID since it's not tied to a single employee
+              data: response.data,
+            };
+          })
+          .catch((error) => {
+            console.error("Error fetching all client data:", error);
+            return {
+              type: "AllClients",
+              id: "all",
+              error: error.message,
+              data: { success: false, data: [] }, // Return a consistent error structure
+            };
+          })
+      );
+
+      // Execute all individual API calls concurrently
+      const allIndividualResults = await Promise.allSettled(individualApiCalls);
+
+      const finalData = calculateMonthlyTargetCollectionData(
+        bdes.data,
+        telecallers.data,
+        allIndividualResults,
+        targetSalesYear
+      );
+
+      setTargetCollectionGraphData(finalData);
     } catch (error) {
       console.error("Error fetching businesses:", error);
     }
@@ -401,6 +789,8 @@ const SalesDashboard = () => {
     }
     getFilters();
     fetchTargetSalesGraphData();
+    fetchSalesCollectionGraphData();
+    fetchTargetCollectionGraphData();
   }, []);
 
   useEffect(() => {
@@ -410,6 +800,8 @@ const SalesDashboard = () => {
   useEffect(() => {
     fetchtableData();
     fetchTargetSalesGraphData();
+    fetchSalesCollectionGraphData();
+    fetchTargetCollectionGraphData();
   }, [tableDateRange]);
 
   const calculateCounts = (data) => {
@@ -607,11 +999,19 @@ const SalesDashboard = () => {
           data={targetSalesGraphData}
         />
       </div>
-      <div className=" flex flex-col gap-12 p-4 border-t border-[#cccccc] mt-8 ">
-        <SalesCollectionGraph />
+      <div className="flex flex-col gap-12 p-4 border-t border-[#cccccc] mt-8 ">
+        <SalesCollectionGraph
+          selectedYear={salesCollectionYear}
+          setSelectedYear={setSalesCollectionYear}
+          data={salesCollectionGraphData}
+        />
       </div>
       <div className=" flex flex-col gap-12 p-4 border-t border-[#cccccc] mt-8 ">
-        <TargetCollectionGraph />
+        <TargetCollectionGraph
+          selectedYear={targetCollectionYear}
+          setSelectedYear={setTargetCollectionYear}
+          data={targetCollectionGraphData}
+        />
       </div>
     </AdminDashboardTemplate>
   );
