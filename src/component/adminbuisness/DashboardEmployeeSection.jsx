@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { DateRangePicker } from "react-date-range";
@@ -30,167 +30,215 @@ const DashboardEmployeeSection = () => {
   const [allModalPages, setAllModalPages] = useState(1);
   const [bdeData, setBdeData] = useState([]);
   const [telecallerData, setTelecallerData] = useState([]);
+  const [digitalMarketerData, setDigitalMarketerData] = useState([]);
 
   const navigate = useNavigate();
 
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().setHours(0, 0, 0, 0)),
-    endDate: new Date(new Date().setHours(0, 0, 0, 0)),
+    startDate: new Date(),
+    endDate: new Date(),
     key: "selection",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(true);
 
-  const fetchEmployeeBusinessData = async (
-    role,
-    id,
-    status,
-    dateRange,
-    page = 1,
-    created_business
-  ) => {
-    try {
-      let url = "";
-      if (status === "New Data") {
-        url = `${
+  const fetchEmployeeBusinessData = useCallback(
+    async (
+      role,
+      employeeId,
+      status,
+      currentDateRange,
+      page = 1,
+      leadByUserId
+    ) => {
+      try {
+        setModalData([]);
+        setModalPage(1);
+
+        const formattedStartDate = currentDateRange.startDate
+          ? new Date(
+              currentDateRange.startDate.getTime() -
+                currentDateRange.startDate.getTimezoneOffset() * 60000
+            ).toISOString()
+          : "";
+        const formattedEndDate = currentDateRange.endDate
+          ? new Date(
+              currentDateRange.endDate.getTime() -
+                currentDateRange.endDate.getTimezoneOffset() * 60000
+            ).toISOString()
+          : "";
+
+        let url = `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?page=${page}&createdBy=${created_business}`;
-      } else {
-        if (role === "telecaller") {
-          url = `${
-            import.meta.env.VITE_BASE_URL
-          }/api/business/get?telecallerId=${id}&status=${status}&followupstartdate=${
-            dateRange.startDate
-              ? new Date(
-                  dateRange.startDate.getTime() -
-                    dateRange.startDate.getTimezoneOffset() * 60000
-                ).toISOString()
-              : ""
-          }&followupenddate=${
-            dateRange.endDate
-              ? new Date(
-                  dateRange.endDate.getTime() -
-                    dateRange.endDate.getTimezoneOffset() * 60000
-                ).toISOString()
-              : ""
-          }&page=${page}`;
-        } else if (role === "digitalmarketer") {
-          url = `${
-            import.meta.env.VITE_BASE_URL
-          }/api/business/get?digitalMarketerId=${id}&status=${status}&category=${category}&followupstartdate=${
-            dateRange.startDate
-              ? new Date(
-                  dateRange.startDate.getTime() -
-                    dateRange.startDate.getTimezoneOffset() * 60000
-                ).toISOString()
-              : ""
-          }&followupenddate=${
-            dateRange.endDate
-              ? new Date(
-                  dateRange.endDate.getTime() -
-                    dateRange.endDate.getTimezoneOffset() * 60000
-                ).toISOString()
-              : ""
-          }&page=${page}`;
-        } else if (role === "bde") {
-          url = `${
-            import.meta.env.VITE_BASE_URL
-          }/api/business/get?bdeId=${id}&byTagAppointment=true&status=${status}&appointmentstartdate=${
-            dateRange.startDate
-              ? new Date(
-                  dateRange.startDate.getTime() -
-                    dateRange.startDate.getTimezoneOffset() * 60000
-                ).toISOString()
-              : ""
-          }&appointmentenddate=${
-            dateRange.endDate
-              ? new Date(
-                  dateRange.endDate.getTime() -
-                    dateRange.endDate.getTimezoneOffset() * 60000
-                ).toISOString()
-              : ""
-          }&followupstartdate=${
-            dateRange.startDate
-              ? new Date(
-                  dateRange.startDate.getTime() -
-                    dateRange.startDate.getTimezoneOffset() * 60000
-                ).toISOString()
-              : ""
-          }&followupenddate=${
-            dateRange.endDate
-              ? new Date(
-                  dateRange.endDate.getTime() -
-                    dateRange.endDate.getTimezoneOffset() * 60000
-                ).toISOString()
-              : ""
-          }&page=${page}`;
+        }/api/business/get?page=${page}`;
+
+        if (status === "New Data") {
+          url += `&createdBy=${leadByUserId}`;
+        } else {
+          url += `&status=${status}`;
+
+          if (role === "telecaller") {
+            url += `&assignedTo=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+          } else if (role === "digitalmarketer") {
+            url += `&assignedTo=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+          } else if (role === "bde") {
+            url += `&assignedTo=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+            url += `&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+            // REMOVED: &byTagAppointment=true
+          }
         }
+
+        const response = await axios.get(url);
+
+        if (response.data.success) {
+          setModalData(response.data.businesses);
+          setModalPage(response.data.currentPage);
+          setAllModalPages(response.data.totalPages);
+        } else {
+          console.error(
+            "Failed to fetch business data:",
+            response.data.message
+          );
+          setModalData([]);
+          setModalPage(1);
+          setAllModalPages(1);
+        }
+      } catch (error) {
+        console.error("Error fetching business data:", error);
+        setModalData([]);
+        setModalPage(1);
+        setAllModalPages(1);
       }
+    },
+    []
+  );
 
-      const response = await axios.get(url);
-      setModalData([...modalData, ...response.data.businesses]);
-      setModalPage(response.data.currentPage);
-      setAllModalPages(response.data.totalPages);
-    } catch (error) {
-      console.error("Error fetching business data:", error);
+  const loadMoreModalData = useCallback(async () => {
+    if (modalPage < allModalPages) {
+      const nextPage = modalPage + 1;
+      try {
+        const formattedStartDate = dateRange.startDate
+          ? new Date(
+              dateRange.startDate.getTime() -
+                dateRange.startDate.getTimezoneOffset() * 60000
+            ).toISOString()
+          : "";
+        const formattedEndDate = dateRange.endDate
+          ? new Date(
+              dateRange.endDate.getTime() -
+                dateRange.endDate.getTimezoneOffset() * 60000
+            ).toISOString()
+          : "";
+
+        let url = `${
+          import.meta.env.VITE_BASE_URL
+        }/api/business/get?page=${nextPage}`;
+        if (openFor === "New Data") {
+          url += `&createdBy=${selectedEmployee._id}`;
+        } else {
+          url += `&status=${openFor}`;
+          if (selectedEmployee.role.toLowerCase() === "telecaller") {
+            url += `&assignedTo=${selectedEmployee._id}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+          } else if (
+            selectedEmployee.role.toLowerCase() === "digitalmarketer"
+          ) {
+            url += `&assignedTo=${selectedEmployee._id}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+          } else if (selectedEmployee.role.toLowerCase() === "bde") {
+            url += `&assignedTo=${selectedEmployee._id}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+            url += `&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+            // REMOVED: &byTagAppointment=true
+          }
+        }
+
+        console.log("Loading more modal data URL (corrected):", url);
+        const response = await axios.get(url);
+        if (response.data.success) {
+          setModalData((prevData) => [
+            ...prevData,
+            ...response.data.businesses,
+          ]);
+          setModalPage(response.data.currentPage);
+          setAllModalPages(response.data.totalPages);
+        }
+      } catch (error) {
+        console.error("Error loading more business data:", error);
+      }
     }
-  };
+  }, [modalPage, allModalPages, dateRange, openFor, selectedEmployee]);
 
-  const openModal = (emp, openFor) => {
+  const openModal = (emp, openForStatus) => {
     setSelectedEmployee(emp);
+    setOpenFor(openForStatus);
+    setIsModalOpen(true);
     fetchEmployeeBusinessData(
       emp.role.toLowerCase(),
-      emp.telecallerId ?? emp.bdeId ?? emp.digitalMarketerId,
-      openFor,
+      emp._id,
+      openForStatus,
       dateRange,
       1,
       emp._id
     );
-    setIsModalOpen(true);
-    setOpenFor(openFor);
   };
 
   const closeModal = () => {
     setSelectedEmployee(null);
     setIsModalOpen(false);
     setModalData([]);
+    setModalPage(1);
+    setAllModalPages(1);
     setOpenFor("");
   };
 
-  const fetchEmployeeData = async () => {
+  const fetchEmployeeData = useCallback(async () => {
     try {
-      const [telecallers, bdes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
-      ]);
+      const [telecallersResponse, bdesResponse, digitalMarketersResponse] =
+        await Promise.all([
+          axios.get(
+            `${
+              import.meta.env.VITE_BASE_URL
+            }/api/users/get?designation=Telecaller`
+          ),
+          axios.get(
+            `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+          ),
+          axios.get(
+            `${
+              import.meta.env.VITE_BASE_URL
+            }/api/users/get?designation=digital%20marketer`
+          ),
+        ]);
 
-      setBdeData([
-        ...bdes.data.map((item) => ({
+      setBdeData(
+        bdesResponse.data.users.map((item) => ({
           ...item,
           role: "BDE",
-          name: item.bdename,
-          id: item.bdeId,
-          targets: item.targets || [],
-        })),
-      ]);
+          name: item.name,
+        }))
+      );
 
-      setTelecallerData([
-        ...telecallers.data.map((item) => ({
+      setTelecallerData(
+        telecallersResponse.data.users.map((item) => ({
           ...item,
           role: "Telecaller",
-          name: item.telecallername,
-          id: item.telecallerId,
-          targets: item.targets || [],
-        })),
-      ]);
+          name: item.name,
+        }))
+      );
+
+      setDigitalMarketerData(
+        digitalMarketersResponse.data.users.map((item) => ({
+          ...item,
+          role: "Digital Marketer",
+          name: item.name,
+        }))
+      );
     } catch (error) {
       console.error("Error fetching employee data:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchEmployeeData();
-  }, []);
+  }, [fetchEmployeeData]);
 
   const handleDateRangeChange = (ranges) => {
     setDateRange({
@@ -199,6 +247,12 @@ const DashboardEmployeeSection = () => {
       key: "selection",
     });
     setIsDateFilterApplied(false);
+  };
+
+  const applyDateFilter = () => {
+    setIsDateFilterApplied(true);
+    setShowDatePicker(false);
+    fetchEmployeeData();
   };
 
   const clearDateFilter = () => {
@@ -375,7 +429,7 @@ const DashboardEmployeeSection = () => {
                     <span>
                       <GoDotFill />
                     </span>
-                    <span>{data.category}</span>
+                    <span>{data.category.categoryname}</span>
                   </div>
                   <div className="flex  justify-between w-full items-center ">
                     <div className="flex flex-col gap-4">
@@ -383,7 +437,7 @@ const DashboardEmployeeSection = () => {
                         <span>
                           <GoDotFill />
                         </span>
-                        <span>{data.city}</span>
+                        <span>{data.city.cityname}</span>
                       </div>
                     </div>
                   </div>

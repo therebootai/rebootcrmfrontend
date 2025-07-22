@@ -65,7 +65,7 @@ const ManageLeave = () => {
     const fetchLeaveRequests = async () => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/leave/requests`,
+          `${import.meta.env.VITE_BASE_URL}/api/users/leave/requests`,
           {
             params: {
               userId: selectedEmployee,
@@ -100,9 +100,9 @@ const ManageLeave = () => {
   const handleApprovalChange = async (user, newStatus) => {
     try {
       const response = await axios.put(
-        `${import.meta.env.VITE_BASE_URL}/api/leave/requests/${user.userId}/${
-          user.attendanceRecordId
-        }`,
+        `${import.meta.env.VITE_BASE_URL}/api/users/leave/requests/${
+          user.userId
+        }/${user.attendanceRecordId}`,
         {
           leave_approval: newStatus,
         }

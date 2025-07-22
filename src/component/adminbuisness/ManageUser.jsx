@@ -14,34 +14,11 @@ const ManageUser = ({ shouldRefresh, setShouldRefresh }) => {
 
   const fetchData = async () => {
     try {
-      const [telecallers, digitalMarketers, bdes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/digitalmarketer/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+      const [users] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/users/get`),
       ]);
 
-      const combinedData = [
-        ...telecallers.data.map((item) => ({
-          ...item,
-          role: "Telecaller",
-          name: item.telecallername,
-          id: item.telecallerId,
-        })),
-        ...digitalMarketers.data.map((item) => ({
-          ...item,
-          role: "Digital Marketer",
-          name: item.digitalMarketername,
-          id: item.digitalMarketerId,
-        })),
-        ...bdes.data.map((item) => ({
-          ...item,
-          role: "BDE",
-          name: item.bdename,
-          id: item.bdeId,
-        })),
-      ];
-
-      setData(combinedData);
+      setData(users.data.users);
       if (setShouldRefresh) setShouldRefresh(false); // Reset refresh state
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -90,22 +67,40 @@ const ManageUser = ({ shouldRefresh, setShouldRefresh }) => {
     setIsModalOpen(true);
   };
 
-  const handleToggleStatus = async (id, role, currentStatus) => {
-    const newStatus = currentStatus === "active" ? "inactive" : "active";
-    const urlMap = {
-      Telecaller: `/api/telecaller/update/${id}`,
-      "Digital Marketer": `/api/digitalmarketer/update/${id}`,
-      BDE: `/api/bde/update/${id}`,
-    };
+  const handleToggleStatus = async (id, currentStatus) => {
+    // Determine the new status
+    const newStatus = !currentStatus;
 
     try {
-      await axios.put(`${import.meta.env.VITE_BASE_URL}${urlMap[role]}`, {
-        status: newStatus,
-      });
+      // Use the unified /users/:userId endpoint for status updates
+      // 'id' should be the user's unique identifier (e.g., user._id or user.userId)
+      const response = await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/api/users/users/${id}`,
+        {
+          status: newStatus,
+        }
+      );
 
-      fetchData(); // Refresh the data after status update
+      // Check if the update was successful (backend sends 200 OK)
+      if (response.status === 200) {
+        console.log(`User status updated to ${newStatus} for ID: ${id}`);
+        // Assuming fetchData() is a prop or a function available in the parent component
+        // that re-fetches the list of users to reflect the change.
+        fetchData();
+      } else {
+        // Handle cases where the request was successful but the backend logic indicates an issue
+        console.error("Failed to update user status:", response.data.message);
+        alert(response.data.message || "Failed to update user status.");
+      }
     } catch (error) {
-      console.error("Error updating user status:", error);
+      console.error(
+        "Error updating user status:",
+        error.response?.data || error.message
+      );
+      alert(
+        error.response?.data?.message ||
+          "Error updating user status. Please try again."
+      );
     }
   };
 
@@ -128,20 +123,20 @@ const ManageUser = ({ shouldRefresh, setShouldRefresh }) => {
             className="flex flex-row gap-2 text-[#777777] text-sm font-medium"
           >
             <div className="flex-1">{row.name}</div>
-            <div className="flex-1">{row.mobileNumber}</div>
-            <div className="flex-1">{row.role}</div>
-            <div className="flex-1">{row.status}</div>
+            <div className="flex-1">{row.phone}</div>
+            <div className="flex-1">{row.designation}</div>
+            <div className="flex-1">{row.status ? "active" : "inactive"}</div>
 
             <div className="flex flex-1 flex-row items-center gap-2">
               <button
                 className={`text-sm  px-2 rounded-md  ${
-                  row.status === "active"
+                  row.status
                     ? "text-green-600 bg-[#22ff4a1a] border border-green-600"
                     : "text-[#FF2722] bg-[#FF27221A] border border-[#FF2722]"
                 }`}
-                onClick={() => handleToggleStatus(row.id, row.role, row.status)}
+                onClick={() => handleToggleStatus(row._id, row.status)}
               >
-                {row.status === "active" ? "Deactivate" : "Activate"}
+                {row.status ? "Deactivate" : "Activate"}
               </button>
               <button
                 className="text-[#5BC0DE]"
@@ -172,6 +167,7 @@ const ManageUser = ({ shouldRefresh, setShouldRefresh }) => {
         {editUser && (
           <EditUser
             user={editUser}
+            isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             onUpdate={fetchData}
           />

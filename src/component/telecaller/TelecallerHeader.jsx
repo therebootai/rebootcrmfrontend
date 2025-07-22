@@ -6,6 +6,8 @@ import { IoIosLogOut } from "react-icons/io";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { AiOutlineClose } from "react-icons/ai";
+import { useContext } from "react";
+import { AuthContext } from "../../context/AuthContext";
 
 const TelecallerHeader = ({
   toggleMobileSidebar,
@@ -19,37 +21,15 @@ const TelecallerHeader = ({
   const { telecallerId } = useParams();
   const [userName, setUserName] = useState("");
 
+  const { user } = useContext(AuthContext);
+
   useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/telecaller/get/${telecallerId}`
-        );
-
-        setUserName(response.data);
-      } catch (error) {
-        console.error("Error fetching telecaller data:", error);
-      }
-    };
-
-    fetchLeads();
-  }, [telecallerId]);
+    setUserName(user);
+  }, [user]);
 
   const handleLogout = async () => {
-    const resp = await axios.get(
-      `${import.meta.env.VITE_BASE_URL}/api/logout`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    );
-
-
     localStorage.removeItem("token");
-    localStorage.removeItem("name");
-    localStorage.removeItem("telecallerId");
-    localStorage.removeItem("role");
+    localStorage.removeItem("user");
 
     window.location.href = "/";
   };
@@ -91,11 +71,9 @@ const TelecallerHeader = ({
               >
                 <div className="px-4 py-2 text-gray-700">
                   <span className="block text-sm font-semibold">
-                    {userName.telecallername}
+                    {userName.name}
                   </span>
-                  <span className="block text-sm">
-                    {userName.organizationrole}
-                  </span>
+                  <span className="block text-sm">{userName.designation}</span>
                 </div>
                 <div className="border-t border-gray-200"></div>
                 <button

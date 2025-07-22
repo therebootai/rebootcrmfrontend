@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import AdminDashboardTemplate from "../template/AdminDashboardTemplate";
 import { DateRangePicker } from "react-date-range";
 import axios from "axios";
@@ -8,12 +8,43 @@ import TargetSalesGraph from "../component/salesDashboard/TargetSalesGraph";
 import SalesCollectionGraph from "../component/salesDashboard/SalesCollectionGraph";
 import TargetCollectionGraph from "../component/salesDashboard/TargetCollectionGraph";
 
+const monthNamesShort = [
+  "JAN",
+  "FEB",
+  "MAR",
+  "APR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AUG",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DEC",
+];
+
+// --- Helper for Date Formatting ---
+const formatDateToISO = (date) => {
+  if (!date) return "";
+  const utcDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return utcDate.toISOString();
+};
+
+const rupeeFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  minimumFractionDigits: 0, // No decimal places for whole rupees
+  maximumFractionDigits: 0,
+});
+
 const SalesDashboard = () => {
   const [counts, setCounts] = useState({
     totalBusiness: 0,
     followUps: 0,
     visits: 0,
     dealCloses: 0,
+    targets: 0, // Overall Sales Target Amount
+    achievements: 0, // Overall Sales Achievement Amount
   });
   const [categories, setCategories] = useState([]);
   const [cities, setCities] = useState([]);
@@ -25,13 +56,14 @@ const SalesDashboard = () => {
     key: "selection",
   });
   const [tableDateRange, setTableDateRange] = useState({
+    // Date range specifically for the employee table
     startDate: null,
     endDate: null,
     key: "selection",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
-  const [allEmployees, setAllEmployees] = useState([]);
+  const [allEmployees, setAllEmployees] = useState([]); // Data for the employee table
 
   const [targetSalesYear, setTargetSalesYear] = useState(
     new Date().getFullYear()
@@ -50,226 +82,61 @@ const SalesDashboard = () => {
     []
   );
 
-  function calculateMonthlyTargetSalesData(bdes, telecallers, year) {
-    // Initialize monthly aggregates for the entire year
-    const monthlyDataMap = {
-      JAN: { target: 0, clearedAmount: 0, month: "JAN" },
-      FEB: { target: 0, clearedAmount: 0, month: "FEB" },
-      MAR: { target: 0, clearedAmount: 0, month: "MAR" },
-      APR: { target: 0, clearedAmount: 0, month: "APR" },
-      MAY: { target: 0, clearedAmount: 0, month: "MAY" },
-      JUN: { target: 0, clearedAmount: 0, month: "JUN" },
-      JUL: { target: 0, clearedAmount: 0, month: "JUL" },
-      AUG: { target: 0, clearedAmount: 0, month: "AUG" },
-      SEP: { target: 0, clearedAmount: 0, month: "SEP" },
-      OCT: { target: 0, clearedAmount: 0, month: "OCT" },
-      NOV: { target: 0, clearedAmount: 0, month: "NOV" },
-      DEC: { target: 0, clearedAmount: 0, month: "DEC" },
-    };
+  // --- Helper: Calculates total Sales Achievement for a user within a given date range ---
+  const calculateSalesAchievementForRange = useCallback(
+    (targets, startDate, endDate) => {
+      let totalAchievement = 0;
+      if (!targets || !Array.isArray(targets)) return 0;
 
-    const monthNamesShort = [
-      "JAN",
-      "FEB",
-      "MAR",
-      "APR",
-      "MAY",
-      "JUN",
-      "JUL",
-      "AUG",
-      "SEP",
-      "OCT",
-      "NOV",
-      "DEC",
-    ];
-    // --- Aggregate Targets from BDEs ---
-    bdes.forEach((bde) => {
-      if (bde.targets && Array.isArray(bde.targets)) {
-        bde.targets.forEach((target) => {
-          // Only include targets for the specified year
-          if (target.year === year) {
-            const monthIndex = new Date(
-              `${target.month} 1, ${target.year}`
-            ).getMonth();
-            const shortMonth = monthNamesShort[monthIndex];
-            if (monthlyDataMap[shortMonth]) {
-              monthlyDataMap[shortMonth].target += parseInt(target.amount) || 0;
-              monthlyDataMap[shortMonth].clearedAmount +=
-                parseInt(target.achievement) || 0;
-            }
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+
+      targets.forEach((target) => {
+        if (target.month && target.year) {
+          const targetDate = new Date(`${target.month} 1, ${target.year}`);
+          if (
+            !isNaN(targetDate.getTime()) &&
+            (!start || targetDate >= start) &&
+            (!end || targetDate <= end)
+          ) {
+            totalAchievement += parseFloat(target.achievement || 0); // Use parseFloat and default to 0
           }
-        });
-      }
-    });
-
-    // --- Aggregate Targets from Telecallers ---
-    telecallers.forEach((telecaller) => {
-      if (telecaller.targets && Array.isArray(telecaller.targets)) {
-        telecaller.targets.forEach((target) => {
-          // Only include targets for the specified year
-          if (target.year === year) {
-            const monthIndex = new Date(
-              `${target.month} 1, ${target.year}`
-            ).getMonth();
-            const shortMonth = monthNamesShort[monthIndex];
-            if (monthlyDataMap[shortMonth]) {
-              monthlyDataMap[shortMonth].target += parseInt(target.amount) || 0;
-              monthlyDataMap[shortMonth].clearedAmount +=
-                parseInt(target.achievement) || 0;
-            }
-          }
-        });
-      }
-    });
-
-    // Convert the aggregated map into the final array format
-    const finalMonthlyTargetSalesData = Object.values(monthlyDataMap).map(
-      (item) => ({
-        target: item.target.toString(), // Convert to string as per your desired format
-        clearedAmount: item.clearedAmount.toString(), // Convert to string
-        month: item.month,
-      })
-    );
-
-    return finalMonthlyTargetSalesData;
-  }
-
-  function calculateMonthlySalesCollectionData(
-    bdes,
-    telecallers,
-    allIndividualResults, // This will now typically contain one object with all client data
-    year
-  ) {
-    // Initialize monthly aggregates for the entire year
-    const monthlyDataMap = {
-      JAN: { target: 0, clearedAmount: 0, month: "JAN" },
-      FEB: { target: 0, clearedAmount: 0, month: "FEB" },
-      MAR: { target: 0, clearedAmount: 0, month: "MAR" },
-      APR: { target: 0, clearedAmount: 0, month: "APR" },
-      MAY: { target: 0, clearedAmount: 0, month: "MAY" },
-      JUN: { target: 0, clearedAmount: 0, month: "JUN" },
-      JUL: { target: 0, clearedAmount: 0, month: "JUL" },
-      AUG: { target: 0, clearedAmount: 0, month: "AUG" },
-      SEP: { target: 0, clearedAmount: 0, month: "SEP" },
-      OCT: { target: 0, clearedAmount: 0, month: "OCT" },
-      NOV: { target: 0, clearedAmount: 0, month: "NOV" },
-      DEC: { target: 0, clearedAmount: 0, month: "DEC" },
-    };
-
-    const monthNamesShort = [
-      "JAN",
-      "FEB",
-      "MAR",
-      "APR",
-      "MAY",
-      "JUN",
-      "JUL",
-      "AUG",
-      "SEP",
-      "OCT",
-      "NOV",
-      "DEC",
-    ];
-
-    // --- Aggregate Targets from BDEs ---
-    // This part remains the same as targets are still per BDE
-    bdes.forEach((bde) => {
-      if (bde.targets && Array.isArray(bde.targets)) {
-        bde.targets.forEach((target) => {
-          if (target.year === year) {
-            const monthIndex = new Date(
-              `${target.month} 1, ${target.year}`
-            ).getMonth();
-            const shortMonth = monthNamesShort[monthIndex];
-            if (monthlyDataMap[shortMonth]) {
-              monthlyDataMap[shortMonth].target +=
-                parseInt(target.achievement) || 0;
-            }
-          }
-        });
-      }
-    });
-
-    // --- Aggregate Targets from Telecallers ---
-    // This part remains the same as targets are still per Telecaller
-    telecallers.forEach((telecaller) => {
-      if (telecaller.targets && Array.isArray(telecaller.targets)) {
-        telecaller.targets.forEach((target) => {
-          if (target.year === year) {
-            const monthIndex = new Date(
-              `${target.month} 1, ${target.year}`
-            ).getMonth();
-            const shortMonth = monthNamesShort[monthIndex];
-            if (monthlyDataMap[shortMonth]) {
-              monthlyDataMap[shortMonth].target +=
-                parseInt(target.achievement) || 0;
-            }
-          }
-        });
-      }
-    });
-
-    // --- Aggregate Cleared Amounts from Client Data (Modified) ---
-    // Now, allIndividualResults will likely contain a single entry for all clients.
-    // We need to find that entry and iterate its data.
-    const allClientsResult = allIndividualResults.find(
-      (result) =>
-        result.status === "fulfilled" && result.value.type === "AllClients" // Use the 'AllClients' type
-    );
-
-    if (
-      allClientsResult &&
-      allClientsResult.value.data &&
-      Array.isArray(allClientsResult.value.data.data)
-    ) {
-      // Iterate through each client item within the 'data' array
-      allClientsResult.value.data.data.forEach((clientItem) => {
-        // Check if 'cleardAmount' array exists and is not empty
-        if (clientItem.cleardAmount && Array.isArray(clientItem.cleardAmount)) {
-          clientItem.cleardAmount.forEach((clearItem) => {
-            // Parse the amount to a float, defaulting to 0 if invalid
-            const paymentAmount = parseFloat(clearItem.amount || 0);
-
-            // Ensure paymentAmount is a valid number before proceeding
-            if (!isNaN(paymentAmount)) {
-              const paymentDate = new Date(clearItem.createdAt);
-              const paymentYear = paymentDate.getFullYear();
-
-              // Only include amounts for the specified year
-              if (paymentYear === year) {
-                const monthIndex = paymentDate.getMonth();
-                const shortMonth = monthNamesShort[monthIndex];
-
-                // Add to the corresponding month in monthlyDataMap
-                if (monthlyDataMap[shortMonth]) {
-                  monthlyDataMap[shortMonth].clearedAmount += paymentAmount;
-                }
-                // console.log(monthlyDataMap[shortMonth]); // Keep for debugging if needed
-              }
-            }
-          });
         }
       });
-    }
+      return totalAchievement;
+    },
+    []
+  );
 
-    // Convert the aggregated map into the final array format
-    const finalMonthlyTargetSalesData = Object.values(monthlyDataMap).map(
-      (item) => ({
-        target: item.target.toString(), // Convert to string as per your desired format
-        clearedAmount: item.clearedAmount.toString(), // Convert to string
-        month: item.month,
-      })
-    );
+  // --- Helper: Calculates total Collection for a user within a given date range ---
+  const calculateCollectionForRange = useCallback(
+    (targets, startDate, endDate) => {
+      let totalCollection = 0;
+      if (!targets || !Array.isArray(targets)) return 0;
 
-    return finalMonthlyTargetSalesData;
-  }
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
 
-  function calculateMonthlyTargetCollectionData(
-    bdes,
-    telecallers,
-    allIndividualResults, // This will now typically contain one object with all client data
-    year
-  ) {
-    // Initialize monthly aggregates for the entire year
+      targets.forEach((target) => {
+        if (target.month && target.year) {
+          const targetDate = new Date(`${target.month} 1, ${target.year}`);
+          if (
+            !isNaN(targetDate.getTime()) &&
+            (!start || targetDate >= start) &&
+            (!end || targetDate <= end)
+          ) {
+            totalCollection += parseFloat(target.collection || 0); // Sum 'collection' field
+          }
+        }
+      });
+      return totalCollection;
+    },
+    []
+  );
+
+  // --- calculateMonthlyTargetSalesData (Uses amount for target, achievement for clearedAmount) ---
+  // This function aggregates sales targets and sales achievements for the graph.
+  function calculateMonthlyTargetSalesData(users, year) {
     const monthlyDataMap = {
       JAN: { target: 0, clearedAmount: 0, month: "JAN" },
       FEB: { target: 0, clearedAmount: 0, month: "FEB" },
@@ -285,105 +152,31 @@ const SalesDashboard = () => {
       DEC: { target: 0, clearedAmount: 0, month: "DEC" },
     };
 
-    const monthNamesShort = [
-      "JAN",
-      "FEB",
-      "MAR",
-      "APR",
-      "MAY",
-      "JUN",
-      "JUL",
-      "AUG",
-      "SEP",
-      "OCT",
-      "NOV",
-      "DEC",
-    ];
-
-    // --- Aggregate Targets from BDEs ---
-    // This part remains the same as targets are still per BDE
-    bdes.forEach((bde) => {
-      if (bde.targets && Array.isArray(bde.targets)) {
-        bde.targets.forEach((target) => {
-          if (target.year === year) {
+    users.forEach((user) => {
+      if (user.targets && Array.isArray(user.targets)) {
+        user.targets.forEach((target) => {
+          if (target.year === year && target.month) {
             const monthIndex = new Date(
               `${target.month} 1, ${target.year}`
             ).getMonth();
             const shortMonth = monthNamesShort[monthIndex];
             if (monthlyDataMap[shortMonth]) {
-              monthlyDataMap[shortMonth].target += parseInt(target.amount) || 0;
+              monthlyDataMap[shortMonth].target += parseFloat(
+                target.amount || 0
+              ); // Sales Target
+              monthlyDataMap[shortMonth].clearedAmount += parseFloat(
+                target.achievement || 0
+              ); // Sales Achievement
             }
           }
         });
       }
     });
 
-    // --- Aggregate Targets from Telecallers ---
-    // This part remains the same as targets are still per Telecaller
-    telecallers.forEach((telecaller) => {
-      if (telecaller.targets && Array.isArray(telecaller.targets)) {
-        telecaller.targets.forEach((target) => {
-          if (target.year === year) {
-            const monthIndex = new Date(
-              `${target.month} 1, ${target.year}`
-            ).getMonth();
-            const shortMonth = monthNamesShort[monthIndex];
-            if (monthlyDataMap[shortMonth]) {
-              monthlyDataMap[shortMonth].target += parseInt(target.amount) || 0;
-            }
-          }
-        });
-      }
-    });
-
-    // --- Aggregate Cleared Amounts from Client Data (Modified) ---
-    // Now, allIndividualResults will likely contain a single entry for all clients.
-    // We need to find that entry and iterate its data.
-    const allClientsResult = allIndividualResults.find(
-      (result) =>
-        result.status === "fulfilled" && result.value.type === "AllClients" // Use the 'AllClients' type
-    );
-
-    if (
-      allClientsResult &&
-      allClientsResult.value.data &&
-      Array.isArray(allClientsResult.value.data.data)
-    ) {
-      // Iterate through each client item within the 'data' array
-      allClientsResult.value.data.data.forEach((clientItem) => {
-        // Check if 'cleardAmount' array exists and is not empty
-        if (clientItem.cleardAmount && Array.isArray(clientItem.cleardAmount)) {
-          clientItem.cleardAmount.forEach((clearItem) => {
-            // Parse the amount to a float, defaulting to 0 if invalid
-            const paymentAmount = parseFloat(clearItem.amount || 0);
-
-            // Ensure paymentAmount is a valid number before proceeding
-            if (!isNaN(paymentAmount)) {
-              const paymentDate = new Date(clearItem.createdAt);
-              const paymentYear = paymentDate.getFullYear();
-
-              // Only include amounts for the specified year
-              if (paymentYear === year) {
-                const monthIndex = paymentDate.getMonth();
-                const shortMonth = monthNamesShort[monthIndex];
-
-                // Add to the corresponding month in monthlyDataMap
-                if (monthlyDataMap[shortMonth]) {
-                  monthlyDataMap[shortMonth].clearedAmount += paymentAmount;
-                }
-                // console.log(monthlyDataMap[shortMonth]); // Keep for debugging if needed
-              }
-            }
-          });
-        }
-      });
-    }
-
-    // Convert the aggregated map into the final array format
     const finalMonthlyTargetSalesData = Object.values(monthlyDataMap).map(
       (item) => ({
-        target: item.target.toString(), // Convert to string as per your desired format
-        clearedAmount: item.clearedAmount.toString(), // Convert to string
+        target: item.target.toString(),
+        clearedAmount: item.clearedAmount.toString(),
         month: item.month,
       })
     );
@@ -391,480 +184,557 @@ const SalesDashboard = () => {
     return finalMonthlyTargetSalesData;
   }
 
-  const fetchBusinesses = async () => {
+  // --- calculateMonthlySalesCollectionData (MODIFIED: Uses target.collection for clearedAmount) ---
+  // This function aggregates sales targets and actual money collected for the graph.
+  function calculateMonthlySalesCollectionData(users, year) {
+    const monthlyDataMap = {
+      JAN: { target: 0, clearedAmount: 0, month: "JAN" },
+      FEB: { target: 0, clearedAmount: 0, month: "FEB" },
+      MAR: { target: 0, clearedAmount: 0, month: "MAR" },
+      APR: { target: 0, clearedAmount: 0, month: "APR" },
+      MAY: { target: 0, clearedAmount: 0, month: "MAY" },
+      JUN: { target: 0, clearedAmount: 0, month: "JUN" },
+      JUL: { target: 0, clearedAmount: 0, month: "JUL" },
+      AUG: { target: 0, clearedAmount: 0, month: "AUG" },
+      SEP: { target: 0, clearedAmount: 0, month: "SEP" },
+      OCT: { target: 0, clearedAmount: 0, month: "OCT" },
+      NOV: { target: 0, clearedAmount: 0, month: "NOV" },
+      DEC: { target: 0, clearedAmount: 0, month: "DEC" },
+    };
+
+    users.forEach((user) => {
+      if (user.targets && Array.isArray(user.targets)) {
+        user.targets.forEach((target) => {
+          if (target.year === year && target.month) {
+            const monthIndex = new Date(
+              `${target.month} 1, ${target.year}`
+            ).getMonth();
+            const shortMonth = monthNamesShort[monthIndex];
+            if (monthlyDataMap[shortMonth]) {
+              monthlyDataMap[shortMonth].target += parseFloat(
+                target.amount || 0
+              ); // Sales Target
+              monthlyDataMap[shortMonth].clearedAmount += parseFloat(
+                target.collection || 0
+              ); // Actual Collection
+            }
+          }
+        });
+      }
+    });
+
+    const finalMonthlyData = Object.values(monthlyDataMap).map((item) => ({
+      target: item.target.toString(),
+      clearedAmount: item.clearedAmount.toString(),
+      month: item.month,
+    }));
+
+    return finalMonthlyData;
+  }
+
+  // --- calculateMonthlyTargetCollectionData (MODIFIED: Uses target.collection for clearedAmount) ---
+  // This is specifically for Target Collection vs Actual Collection.
+  function calculateMonthlyTargetCollectionData(users, year) {
+    const monthlyDataMap = {
+      JAN: { target: 0, clearedAmount: 0, month: "JAN" },
+      FEB: { target: 0, clearedAmount: 0, month: "FEB" },
+      MAR: { target: 0, clearedAmount: 0, month: "MAR" },
+      APR: { target: 0, clearedAmount: 0, month: "APR" },
+      MAY: { target: 0, clearedAmount: 0, month: "MAY" },
+      JUN: { target: 0, clearedAmount: 0, month: "JUN" },
+      JUL: { target: 0, clearedAmount: 0, month: "JUL" },
+      AUG: { target: 0, clearedAmount: 0, month: "AUG" },
+      SEP: { target: 0, clearedAmount: 0, month: "SEP" },
+      OCT: { target: 0, clearedAmount: 0, month: "OCT" },
+      NOV: { target: 0, clearedAmount: 0, month: "NOV" },
+      DEC: { target: 0, clearedAmount: 0, month: "DEC" },
+    };
+
+    users.forEach((user) => {
+      if (user.targets && Array.isArray(user.targets)) {
+        user.targets.forEach((target) => {
+          if (target.year === year && target.month) {
+            const monthIndex = new Date(
+              `${target.month} 1, ${target.year}`
+            ).getMonth();
+            const shortMonth = monthNamesShort[monthIndex];
+            if (monthlyDataMap[shortMonth]) {
+              monthlyDataMap[shortMonth].target += parseFloat(
+                target.amount || 0
+              ); // Sales Target (can be used as collection target if applicable)
+              monthlyDataMap[shortMonth].clearedAmount += parseFloat(
+                target.collection || 0
+              ); // Actual Collection
+            }
+          }
+        });
+      }
+    });
+
+    const finalMonthlyData = Object.values(monthlyDataMap).map((item) => ({
+      target: item.target.toString(),
+      clearedAmount: item.clearedAmount.toString(),
+      month: item.month,
+    }));
+
+    return finalMonthlyData;
+  }
+
+  // --- fetchBusinesses: Fetches overall business counts and combined targets for main dashboard ---
+  const fetchBusinesses = useCallback(async () => {
     try {
-      const response = await axios.get(
+      const formattedStartDate = dateRange.startDate
+        ? new Date(
+            dateRange.startDate.getTime() -
+              dateRange.startDate.getTimezoneOffset() * 60000
+          ).toISOString()
+        : "";
+      const formattedEndDate = dateRange.endDate
+        ? new Date(
+            dateRange.endDate.getTime() -
+              dateRange.endDate.getTimezoneOffset() * 60000
+          ).toISOString()
+        : "";
+
+      const businessResponse = await axios.get(
         `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?category=${selectedCategory}&city=${selectedCity}&createdstartdate=${
-          dateRange.startDate
-            ? new Date(
-                dateRange.startDate.getTime() -
-                  dateRange.startDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }&createdenddate=${
-          dateRange.endDate
-            ? new Date(
-                dateRange.endDate.getTime() -
-                  dateRange.endDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }`
+        }/api/business/get?category=${selectedCategory}&city=${selectedCity}&createdstartdate=${formattedStartDate}&createdenddate=${formattedEndDate}`
       );
-      const [telecallers, digitalMarketers, bdes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/digitalmarketer/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
-      ]);
 
-      const businessData = response.data;
+      const [telecallersResponse, digitalMarketersResponse, bdesResponse] =
+        await Promise.all([
+          axios.get(
+            `${
+              import.meta.env.VITE_BASE_URL
+            }/api/users/get?designation=Telecaller`
+          ),
+          axios.get(
+            `${
+              import.meta.env.VITE_BASE_URL
+            }/api/users/get?designation=Digital%20Marketer` // Ensure space is encoded
+          ),
+          axios.get(
+            `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+          ),
+        ]);
 
-      const combinedData = {
-        target: [
-          ...telecallers.data.map((item) => item.targets),
-          ...digitalMarketers.data.map((item) => item.targets),
-          ...bdes.data.map((item) => item.targets),
-        ].flat(),
-      };
+      const businessData = businessResponse.data;
 
-      calculateCounts({ ...businessData, ...combinedData });
+      // Combine targets from all employee types for overall dashboard counts
+      // Use flatMap to ensure the result is a single flat array of target objects
+      const combinedTargets = [
+        ...telecallersResponse.data.users.flatMap((item) => item.targets || []),
+        ...digitalMarketersResponse.data.users.flatMap(
+          (item) => item.targets || []
+        ),
+        ...bdesResponse.data.users.flatMap((item) => item.targets || []),
+      ];
+
+      calculateCounts({ ...businessData, target: combinedTargets });
     } catch (error) {
-      console.error("Error fetching businesses:", error);
+      console.error("Error fetching dashboard data:", error);
     }
-  };
+  }, [dateRange, selectedCategory, selectedCity]); // Dependencies for useCallback
 
-  const fetchtableData = async () => {
+  // --- fetchtableData: Fetches data for the employee table (if it's part of SalesDashboard) ---
+  // This function is kept here as it uses SalesDashboard's states (tableDateRange)
+  const fetchtableData = useCallback(async () => {
     try {
-      const [telecallers, bdes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+      const [telecallersRes, bdesRes] = await Promise.all([
+        axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/users/get?designation=Telecaller`
+        ),
+        axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+        ),
       ]);
 
-      let employeeIds = {
-        BDE: bdes.data.map((item) => item.bdeId),
-        Telecaller: telecallers.data.map((item) => item.telecallerId),
-      };
-
-      let employeeObjectIds = {
-        BDE: bdes.data.map((item) => item._id),
-        Telecaller: telecallers.data.map((item) => item._id),
-      };
-
-      const formatDateToISO = (date) => {
-        if (!date) return "";
-        // Subtract the timezone offset to get the UTC equivalent for an ISO string
-        const utcDate = new Date(
-          date.getTime() - date.getTimezoneOffset() * 60000
-        );
-        return utcDate.toISOString();
-      };
+      const telecallers = telecallersRes.data.users;
+      const bdes = bdesRes.data.users;
 
       const formattedStartDate = formatDateToISO(tableDateRange.startDate);
       const formattedEndDate = formatDateToISO(tableDateRange.endDate);
 
-      const individualApiCalls = [];
+      const individualBusinessApiCalls = [];
 
-      // --- Prepare BDE API Calls ---
-      employeeIds.BDE.forEach((bdeId) => {
+      bdes.forEach((bde) => {
         const businessUrl = `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?bdeId=${bdeId}&byTagAppointment=true&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
-        individualApiCalls.push(
+        }/api/business/get?assignedTo=${
+          bde._id
+        }&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+        individualBusinessApiCalls.push(
           axios
             .get(businessUrl)
             .then((response) => ({
-              type: "BDE",
-              id: bdeId,
-              data: response.data,
-            }))
-            .catch((error) => {
-              console.error(`Error fetching data for BDE ID ${bdeId}:`, error);
-              return { type: "BDE", id: bdeId, error: error.message, data: [] }; // Return empty data on error
-            })
-        );
-      });
-
-      employeeObjectIds.BDE.forEach((bdeId) => {
-        const clientUrl = `${
-          import.meta.env.VITE_BASE_URL
-        }/api/client/get?bdeName=${bdeId}&startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
-        individualApiCalls.push(
-          axios
-            .get(clientUrl)
-            .then((response) => ({
-              type: "BDE",
-              id: bdeId,
-              data: response.data,
-            }))
-            .catch((error) => {
-              console.error(`Error fetching data for BDE ID ${bdeId}:`, error);
-              return { type: "BDE", id: bdeId, error: error.message, data: [] }; // Return empty data on error
-            })
-        );
-      });
-
-      // --- Prepare Telecaller API Calls ---
-      employeeIds.Telecaller.forEach((telecallerId) => {
-        const businessUrl = `${
-          import.meta.env.VITE_BASE_URL
-        }/api/business/get?telecallerId=${telecallerId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
-        individualApiCalls.push(
-          axios
-            .get(businessUrl)
-            .then((response) => ({
-              type: "Telecaller",
-              id: telecallerId,
+              type: "BDE_BUSINESS",
+              id: bde._id,
               data: response.data,
             }))
             .catch((error) => {
               console.error(
-                `Error fetching data for Telecaller ID ${telecallerId}:`,
+                `Error fetching business data for BDE ID ${bde._id}:`,
                 error
               );
               return {
-                type: "Telecaller",
-                id: telecallerId,
+                type: "BDE_BUSINESS",
+                id: bde._id,
                 error: error.message,
-                data: [],
-              }; // Return empty data on error
+                data: { statusCount: {} },
+              };
             })
         );
       });
 
-      employeeObjectIds.Telecaller.forEach((telecallerId) => {
-        const clientUrl = `${
+      telecallers.forEach((telecaller) => {
+        const businessUrl = `${
           import.meta.env.VITE_BASE_URL
-        }/api/client/get?tmeLeads=${telecallerId}&startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
-        individualApiCalls.push(
+        }/api/business/get?createdBy=${
+          telecaller._id
+        }&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+        individualBusinessApiCalls.push(
           axios
-            .get(clientUrl)
+            .get(businessUrl)
             .then((response) => ({
-              type: "Telecaller",
-              id: telecallerId,
+              type: "Telecaller_BUSINESS",
+              id: telecaller._id,
               data: response.data,
             }))
             .catch((error) => {
               console.error(
-                `Error fetching data for Telecaller ID ${telecallerId}:`,
+                `Error fetching business data for Telecaller ID ${telecaller._id}:`,
                 error
               );
               return {
-                type: "Telecaller",
-                id: telecallerId,
+                type: "Telecaller_BUSINESS",
+                id: telecaller._id,
                 error: error.message,
-                data: [],
-              }; // Return empty data on error
+                data: { statusCount: {} },
+              };
             })
         );
       });
 
-      // Execute all individual API calls concurrently
-      const allIndividualResults = await Promise.allSettled(individualApiCalls);
+      const allIndividualBusinessResults = await Promise.allSettled(
+        individualBusinessApiCalls
+      );
 
-      setAllEmployees([
-        ...bdes.data.map((item) => ({
-          ...item,
-          role: "BDE",
-          name: item.bdename,
-          id: item.bdeId,
-          targets: item.targets || [],
-          statuscount: allIndividualResults.find(
-            (result) =>
-              result.status === "fulfilled" &&
-              result.value.type === "BDE" &&
-              result.value.id === item.bdeId
-          ).value.data.statuscount,
-          collections: allIndividualResults.find(
-            (result) =>
-              result.status === "fulfilled" &&
-              result.value.type === "BDE" &&
-              result.value.id === item._id
-          ).value.data.data,
+      const processedEmployees = [
+        ...bdes.map((user) => ({
+          ...user,
+          role: user.designation,
+          name: user.name,
+          id: user._id,
+          targets: user.targets || [],
+          statuscount:
+            allIndividualBusinessResults.find(
+              (result) =>
+                result.status === "fulfilled" &&
+                result.value.type === "BDE_BUSINESS" &&
+                result.value.id === user._id
+            )?.value.data.statusCount || {},
+          latestTarget: getLatestTargetForTable(
+            user.targets,
+            tableDateRange.startDate,
+            tableDateRange.endDate
+          ),
+          collections: calculateCollectionForRange(
+            user.targets,
+            tableDateRange.startDate,
+            tableDateRange.endDate
+          ),
         })),
-        ...telecallers.data.map((item) => ({
-          ...item,
-          role: "Telecaller",
-          name: item.telecallername,
-          id: item.telecallerId,
-          targets: item.targets || [],
-          statuscount: allIndividualResults.find(
-            (result) =>
-              result.status === "fulfilled" &&
-              result.value.type === "Telecaller" &&
-              result.value.id === item.telecallerId
-          ).value.data.statuscount,
+        ...telecallers.map((user) => ({
+          ...user,
+          role: user.designation,
+          name: user.name,
+          id: user._id,
+          targets: user.targets || [],
+          statuscount:
+            allIndividualBusinessResults.find(
+              (result) =>
+                result.status === "fulfilled" &&
+                result.value.type === "Telecaller_BUSINESS" &&
+                result.value.id === user._id
+            )?.value.data.statusCount || {},
+          latestTarget: getLatestTargetForTable(
+            user.targets,
+            tableDateRange.startDate,
+            tableDateRange.endDate
+          ),
+          collections: calculateCollectionForRange(
+            user.targets,
+            tableDateRange.startDate,
+            tableDateRange.endDate
+          ),
         })),
-      ]);
+      ];
+      setAllEmployees(processedEmployees);
     } catch (error) {
-      console.error("Error fetching businesses:", error);
+      console.error("Error fetching table data or employees:", error);
     }
-  };
+  }, [tableDateRange, calculateCollectionForRange]); // Dependencies for useCallback
 
-  const fetchTargetSalesGraphData = async () => {
+  // Helper function for fetchtableData to get the specific target for the table's date range
+  const getLatestTargetForTable = useCallback((targets, startDate, endDate) => {
+    if (!targets || targets.length === 0) return null;
+
+    let filteredTargets = targets;
+
+    const applyDateRangeFilter =
+      startDate instanceof Date &&
+      !isNaN(startDate) &&
+      endDate instanceof Date &&
+      !isNaN(endDate);
+
+    if (applyDateRangeFilter) {
+      const startOfMonthFilter = new Date(
+        startDate.getFullYear(),
+        startDate.getMonth(),
+        1
+      );
+      const endOfMonthFilter = new Date(
+        endDate.getFullYear(),
+        endDate.getMonth() + 1,
+        0
+      );
+
+      filteredTargets = targets.filter((target) => {
+        const targetDate = new Date(
+          target.year,
+          new Date(Date.parse(target.month + " 1, 2000")).getMonth(),
+          1
+        );
+        return (
+          targetDate >= startOfMonthFilter && targetDate <= endOfMonthFilter
+        );
+      });
+    }
+
+    if (filteredTargets.length === 0) {
+      return null;
+    }
+
+    const latestTarget = filteredTargets.reduce((latest, current) => {
+      const currentTargetDate = new Date(current.month + " 1, " + current.year);
+      const latestTargetDate = latest
+        ? new Date(latest.month + " 1, " + latest.year)
+        : null;
+
+      return !latest || currentTargetDate > latestTargetDate ? current : latest;
+    }, null);
+
+    if (latestTarget) {
+      latestTarget.amount = parseFloat(latestTarget.amount || 0);
+      latestTarget.achievement = parseFloat(latestTarget.achievement || 0);
+      latestTarget.collection = parseFloat(latestTarget.collection || 0);
+    }
+    return latestTarget;
+  }, []); // No external dependencies for this useCallback
+
+  // --- fetchTargetSalesGraphData ---
+  const fetchTargetSalesGraphData = useCallback(async () => {
     try {
-      const [telecallers, bdes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+      const [telecallersRes, bdesRes] = await Promise.all([
+        axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/users/get?designation=Telecaller`
+        ),
+        axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+        ),
       ]);
+      const telecallers = telecallersRes.data.users;
+      const bdes = bdesRes.data.users;
+
+      const allUsersWithTargets = [...telecallers, ...bdes];
 
       const finalData = calculateMonthlyTargetSalesData(
-        bdes.data,
-        telecallers.data,
+        allUsersWithTargets,
         targetSalesYear
       );
-
       setTargetSalesGraphData(finalData);
     } catch (error) {
-      console.error("Error fetching businesses:", error);
+      console.error("Error fetching target sales graph data:", error);
     }
-  };
+  }, [targetSalesYear]); // Dependency: targetSalesYear
 
-  const fetchSalesCollectionGraphData = async () => {
+  // --- fetchSalesCollectionGraphData ---
+  const fetchSalesCollectionGraphData = useCallback(async () => {
     try {
-      const [telecallers, bdes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+      const [telecallersRes, bdesRes] = await Promise.all([
+        axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/users/get?designation=Telecaller`
+        ),
+        axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+        ),
       ]);
+      const telecallers = telecallersRes.data.users;
+      const bdes = bdesRes.data.users;
 
-      let employeeObjectIds = {
-        BDE: bdes.data.map((item) => item._id),
-        Telecaller: telecallers.data.map((item) => item._id),
-      };
-
-      const formatDateToISO = (date) => {
-        if (!date) return "";
-        // Subtract the timezone offset to get the UTC equivalent for an ISO string
-        const utcDate = new Date(
-          new Date(date).getTime() - new Date(date).getTimezoneOffset() * 60000
-        );
-        return utcDate.toISOString();
-      };
-
-      const formattedStartDate = formatDateToISO(
-        `${salesCollectionYear}/01/01`
-      );
-      const formattedEndDate = formatDateToISO(`${salesCollectionYear}/12/31`);
-
-      const individualApiCalls = [];
-
-      // Construct the URL for fetching all clients within the date range
-      const allClientsUrl = `${
-        import.meta.env.VITE_BASE_URL
-      }/api/client/get?startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
-
-      // Push a single Axios GET request to the array
-      individualApiCalls.push(
-        axios
-          .get(allClientsUrl)
-          .then((response) => {
-            // You might need to adjust the 'type' and 'id' if you still need them
-            // for subsequent processing, but for a single call, they might not be as relevant.
-            // If the response inherently provides the BDE/Telecaller type within its data,
-            // you can extract it here. Otherwise, you might consider this a generic 'Client' type.
-            return {
-              type: "AllClients", // Or a more specific type if your API provides it
-              id: "all", // A generic ID since it's not tied to a single employee
-              data: response.data,
-            };
-          })
-          .catch((error) => {
-            console.error("Error fetching all client data:", error);
-            return {
-              type: "AllClients",
-              id: "all",
-              error: error.message,
-              data: { success: false, data: [] }, // Return a consistent error structure
-            };
-          })
-      );
-
-      // Execute all individual API calls concurrently
-      const allIndividualResults = await Promise.allSettled(individualApiCalls);
+      const allUsersWithTargets = [...telecallers, ...bdes];
 
       const finalData = calculateMonthlySalesCollectionData(
-        bdes.data,
-        telecallers.data,
-        allIndividualResults,
-        targetSalesYear
+        allUsersWithTargets,
+        salesCollectionYear
       );
-
       setSalesCollectionGraphData(finalData);
     } catch (error) {
-      console.error("Error fetching businesses:", error);
+      console.error("Error fetching sales collection graph data:", error);
     }
-  };
-  const fetchTargetCollectionGraphData = async () => {
+  }, [salesCollectionYear]); // Dependency: salesCollectionYear
+
+  // --- fetchTargetCollectionGraphData ---
+  const fetchTargetCollectionGraphData = useCallback(async () => {
     try {
-      const [telecallers, bdes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+      const [telecallersRes, bdesRes] = await Promise.all([
+        axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/users/get?designation=Telecaller`
+        ),
+        axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+        ),
       ]);
+      const telecallers = telecallersRes.data.users;
+      const bdes = bdesRes.data.users;
 
-      let employeeObjectIds = {
-        BDE: bdes.data.map((item) => item._id),
-        Telecaller: telecallers.data.map((item) => item._id),
-      };
-
-      const formatDateToISO = (date) => {
-        if (!date) return "";
-        // Subtract the timezone offset to get the UTC equivalent for an ISO string
-        const utcDate = new Date(
-          new Date(date).getTime() - new Date(date).getTimezoneOffset() * 60000
-        );
-        return utcDate.toISOString();
-      };
-
-      const formattedStartDate = formatDateToISO(
-        `${salesCollectionYear}/01/01`
-      );
-      const formattedEndDate = formatDateToISO(`${salesCollectionYear}/12/31`);
-
-      const individualApiCalls = [];
-
-      // Construct the URL for fetching all clients within the date range
-      const allClientsUrl = `${
-        import.meta.env.VITE_BASE_URL
-      }/api/client/get?startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
-
-      // Push a single Axios GET request to the array
-      individualApiCalls.push(
-        axios
-          .get(allClientsUrl)
-          .then((response) => {
-            // You might need to adjust the 'type' and 'id' if you still need them
-            // for subsequent processing, but for a single call, they might not be as relevant.
-            // If the response inherently provides the BDE/Telecaller type within its data,
-            // you can extract it here. Otherwise, you might consider this a generic 'Client' type.
-            return {
-              type: "AllClients", // Or a more specific type if your API provides it
-              id: "all", // A generic ID since it's not tied to a single employee
-              data: response.data,
-            };
-          })
-          .catch((error) => {
-            console.error("Error fetching all client data:", error);
-            return {
-              type: "AllClients",
-              id: "all",
-              error: error.message,
-              data: { success: false, data: [] }, // Return a consistent error structure
-            };
-          })
-      );
-
-      // Execute all individual API calls concurrently
-      const allIndividualResults = await Promise.allSettled(individualApiCalls);
+      const allUsersWithTargets = [...telecallers, ...bdes];
 
       const finalData = calculateMonthlyTargetCollectionData(
-        bdes.data,
-        telecallers.data,
-        allIndividualResults,
-        targetSalesYear
+        allUsersWithTargets,
+        targetCollectionYear
       );
-
       setTargetCollectionGraphData(finalData);
     } catch (error) {
-      console.error("Error fetching businesses:", error);
+      console.error("Error fetching target collection graph data:", error);
     }
-  };
+  }, [targetCollectionYear]); // Dependency: targetCollectionYear
 
+  // --- Initial Data Fetches on Component Mount ---
   useEffect(() => {
     fetchBusinesses();
-    fetchtableData();
-  }, []);
+    fetchtableData(); // Also fetch table data initially
+    fetchTargetSalesGraphData();
+    fetchSalesCollectionGraphData();
+    fetchTargetCollectionGraphData();
+  }, [
+    fetchBusinesses,
+    fetchtableData,
+    fetchTargetSalesGraphData,
+    fetchSalesCollectionGraphData,
+    fetchTargetCollectionGraphData,
+  ]);
 
-  useMemo(() => {
+  // --- Fetch Filters (Cities and Categories) once on mount ---
+  useEffect(() => {
     async function getFilters() {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/business/getfilter`
-        );
-        const data = response.data;
-        setCities(data.cities);
-        setCategories(data.businessCategories);
+        const [citiesResponse, categoriesResponse] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_BASE_URL}/api/city/get`),
+          axios.get(`${import.meta.env.VITE_BASE_URL}/api/category/get`),
+        ]);
+        // Assuming your city/category endpoints return an array of objects with 'cityname'/'categoryname'
+        setCities(citiesResponse.data.map((item) => item.cityname));
+        setCategories(categoriesResponse.data.map((item) => item.categoryname));
       } catch (error) {
-        console.log(error);
+        console.log("Error fetching filters:", error);
       }
     }
     getFilters();
-    fetchTargetSalesGraphData();
-    fetchSalesCollectionGraphData();
-    fetchTargetCollectionGraphData();
-  }, []);
+  }, []); // Empty dependency array means it runs once on mount
 
-  useEffect(() => {
-    fetchBusinesses();
-  }, [dateRange, selectedCategory, selectedCity]);
-
+  // --- useEffect to trigger fetchtableData when tableDateRange changes ---
   useEffect(() => {
     fetchtableData();
+  }, [tableDateRange, fetchtableData]); // Depend on tableDateRange and the memoized fetchtableData
+
+  // --- useEffects to trigger graph data fetches when their respective years change ---
+  useEffect(() => {
     fetchTargetSalesGraphData();
+  }, [targetSalesYear, fetchTargetSalesGraphData]);
+
+  useEffect(() => {
     fetchSalesCollectionGraphData();
+  }, [salesCollectionYear, fetchSalesCollectionGraphData]);
+
+  useEffect(() => {
     fetchTargetCollectionGraphData();
-  }, [tableDateRange]);
+  }, [targetCollectionYear, fetchTargetCollectionGraphData]);
 
-  const calculateCounts = (data) => {
-    const totalBusiness = data.totalCount;
-    const followUps = data.statuscount.FollowupCount;
-    const visits = data.statuscount.visitCount;
-    const dealCloses = data.statuscount.dealCloseCount;
+  // --- calculateCounts: Aggregates overall dashboard numbers ---
+  const calculateCounts = useCallback(
+    (data) => {
+      const totalBusiness = data.totalCount;
+      const followUps = data.statusCount.FollowupCount;
+      const visits = data.statusCount.visitCount;
+      const dealCloses = data.statusCount.dealCloseCount;
 
-    let targets = 0,
-      achievements = 0;
+      let totalTargets = 0; // Overall sales target (sum of 'amount')
+      let totalSalesAchievements = 0; // Overall sales achievement (sum of 'achievement')
 
-    for (const item of data.target) {
-      if (dateRange && dateRange.startDate) {
-        const startDate = new Date(dateRange.startDate);
-        const itemMonthIndex = new Date(
-          Date.parse(item.month + " 1, " + item.year)
-        ).getMonth(); // Convert month name to 0-11 index
-        const itemYear = item.year;
+      // Iterate through the combined targets array
+      for (const item of data.target) {
+        // Apply date range filter if provided for overall counts
+        if (dateRange && dateRange.startDate && item.month && item.year) {
+          const startDate = new Date(dateRange.startDate);
+          const itemDate = new Date(
+            Date.parse(`${item.month} 1, ${item.year}`)
+          );
 
-        // Compare by month (0-11 index) and year
-        if (
-          itemMonthIndex === startDate.getMonth() &&
-          itemYear === startDate.getFullYear()
-        ) {
-          targets += item.amount;
-          achievements += parseInt(item.achievement);
+          // Compare by month and year within the selected date range
+          if (
+            itemDate.getMonth() === startDate.getMonth() &&
+            itemDate.getFullYear() === startDate.getFullYear()
+          ) {
+            totalTargets += parseFloat(item.amount || 0); // Use parseFloat and default to 0
+            totalSalesAchievements += parseFloat(item.achievement || 0); // Use parseFloat and default to 0
+          }
+        } else if (!dateRange || !dateRange.startDate) {
+          // If no dateRange.startDate is provided, sum all amounts and achievements
+          totalTargets += parseFloat(item.amount || 0); // Use parseFloat and default to 0
+          totalSalesAchievements += parseFloat(item.achievement || 0); // Use parseFloat and default to 0
         }
-      } else {
-        // If no dateRange.startDate is provided, sum all amounts
-        targets += item.amount;
-        achievements += parseInt(item.achievement ?? 0);
       }
-    }
 
-    setCounts({
-      totalBusiness,
-      followUps,
-      visits,
-      dealCloses,
-      targets,
-      achievements,
-    });
-  };
+      setCounts({
+        totalBusiness,
+        followUps,
+        visits,
+        dealCloses,
+        targets: totalTargets, // Overall Sales Targets
+        achievements: totalSalesAchievements, // Overall Sales Achievements
+      });
+    },
+    [dateRange]
+  ); // Dependency: dateRange for filtering overall counts
 
+  // --- Event Handlers for Filters ---
   const handleDateRangeChange = (ranges) => {
     setDateRange({
       startDate: ranges.selection.startDate,
       endDate: ranges.selection.endDate,
       key: "selection",
     });
-
-    setIsDateFilterApplied(false);
+    setIsDateFilterApplied(false); // Reset filter applied status
   };
 
   const clearDateFilter = () => {
     const emptyDateRange = {
-      startDate: "",
-      endDate: "",
+      startDate: null,
+      endDate: null,
       key: "selection",
     };
     setDateRange(emptyDateRange);
     setIsDateFilterApplied(false);
-    fetchBusinesses(category, city, mobileNumber, 1, emptyDateRange);
   };
 
   const handleCategoryChange = (e) => {
@@ -880,11 +750,16 @@ const SalesDashboard = () => {
     { name: "Follow Ups", number: counts.followUps },
     { name: "Visit", number: counts.visits },
     { name: "Deal Close", number: counts.dealCloses },
+    { name: "Overall Target", number: rupeeFormatter.format(counts.targets) }, // Display overall target
+    {
+      name: "Overall Sales Achievement",
+      number: rupeeFormatter.format(counts.achievements),
+    }, // Display overall sales achievement
   ];
 
   return (
     <AdminDashboardTemplate>
-      <div className=" p-4 flex flex-col gap-6">
+      <div className="p-4 flex flex-col gap-6">
         <div className="py-4 border-b border-[#cccccc] w-full flex flex-row gap-4 items-center relative">
           <h1 className="text-[#777777] text-lg font-semibold">Filter</h1>
           <div className="flex items-center gap-2 relative">
@@ -901,11 +776,11 @@ const SalesDashboard = () => {
                 }
                 onClick={() => setShowDatePicker(!showDatePicker)}
                 readOnly
-                className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
+                className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC] cursor-pointer"
               />
 
               {showDatePicker && (
-                <div className="absolute z-10">
+                <div className="absolute z-10 top-full mt-2 left-0">
                   <DateRangePicker
                     ranges={[dateRange]}
                     onChange={handleDateRangeChange}
@@ -916,14 +791,15 @@ const SalesDashboard = () => {
               )}
             </div>
 
-            <div className=" flex items-center gap-2">
+            <div className="flex items-center gap-2">
               {!isDateFilterApplied ? (
                 <button
                   className="px-2 py-1 bg-[#0A5BFF] text-white rounded-md text-sm font-medium cursor-pointer"
                   onClick={() => {
-                    fetchBusinesses();
+                    // When "Show" is clicked, apply the date filter to the main dashboard counts
+                    fetchBusinesses(); // This will use the 'dateRange' state
                     setIsDateFilterApplied(true);
-                    setShowDatePicker(!showDatePicker);
+                    setShowDatePicker(false);
                   }}
                 >
                   Show
@@ -947,8 +823,8 @@ const SalesDashboard = () => {
             >
               <option value="">By City/Town</option>
               {cities.map((city, index) => (
-                <option key={index} value={city}>
-                  {city}
+                <option key={index} value={city._id}>
+                  {city.cityname}
                 </option>
               ))}
             </select>
@@ -962,8 +838,8 @@ const SalesDashboard = () => {
             >
               <option value="">By Category</option>
               {categories.map((category, index) => (
-                <option key={index} value={category}>
-                  {category}
+                <option key={index} value={category._id}>
+                  {category.categoryname}
                 </option>
               ))}
             </select>
@@ -987,31 +863,32 @@ const SalesDashboard = () => {
 
         <EmployeeSection
           employees={allEmployees}
-          dateRange={tableDateRange}
-          setDateRange={setTableDateRange}
-          fetchtableData={fetchtableData}
+          dateRange={tableDateRange} // Pass tableDateRange for EmployeeSection's internal filtering
+          setDateRange={setTableDateRange} // Allow EmployeeSection to update its own date range
+          fetchtableData={fetchtableData} // Pass the function to re-fetch table data
         />
-      </div>
-      <div className=" flex flex-col gap-12 p-4 border-t border-[#cccccc] mt-8">
-        <TargetSalesGraph
-          selectedYear={targetSalesYear}
-          setSelectedYear={setTargetSalesYear}
-          data={targetSalesGraphData}
-        />
-      </div>
-      <div className="flex flex-col gap-12 p-4 border-t border-[#cccccc] mt-8 ">
-        <SalesCollectionGraph
-          selectedYear={salesCollectionYear}
-          setSelectedYear={setSalesCollectionYear}
-          data={salesCollectionGraphData}
-        />
-      </div>
-      <div className=" flex flex-col gap-12 p-4 border-t border-[#cccccc] mt-8 ">
-        <TargetCollectionGraph
-          selectedYear={targetCollectionYear}
-          setSelectedYear={setTargetCollectionYear}
-          data={targetCollectionGraphData}
-        />
+
+        <div className="flex flex-col gap-12 p-4 border-t border-[#cccccc] mt-8">
+          <TargetSalesGraph
+            selectedYear={targetSalesYear}
+            setSelectedYear={setTargetSalesYear}
+            data={targetSalesGraphData}
+          />
+        </div>
+        <div className="flex flex-col gap-12 p-4 border-t border-[#cccccc] mt-8 ">
+          <SalesCollectionGraph
+            selectedYear={salesCollectionYear}
+            setSelectedYear={setSalesCollectionYear}
+            data={salesCollectionGraphData}
+          />
+        </div>
+        <div className="flex flex-col gap-12 p-4 border-t border-[#cccccc] mt-8 ">
+          <TargetCollectionGraph
+            selectedYear={targetCollectionYear}
+            setSelectedYear={setTargetCollectionYear}
+            data={targetCollectionGraphData}
+          />
+        </div>
       </div>
     </AdminDashboardTemplate>
   );

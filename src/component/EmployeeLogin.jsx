@@ -5,6 +5,8 @@ import { TbRefresh } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
 import EmployeeForgotPassword from "./EmployeeForgotPassword";
 import EmployeeOTPLogin from "./EmployeeOTPLogin";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 const EmployeeLogin = () => {
   const [mobileNumber, setMobileNumber] = useState("");
@@ -23,6 +25,8 @@ const EmployeeLogin = () => {
   useEffect(() => {
     generateCaptcha();
   }, []);
+
+  const { login, hasRole } = useContext(AuthContext);
 
   const generateCaptcha = () => {
     const chars =
@@ -67,32 +71,27 @@ const EmployeeLogin = () => {
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/api/login`,
+        `${import.meta.env.VITE_BASE_URL}/api/auth/login`,
         {
           mobileNumber,
           password,
         }
       );
 
-      const { token, name, role, id } = response.data;
+      const { token, user } = response.data;
 
       localStorage.setItem("token", token);
-      localStorage.setItem("name", name);
-      localStorage.setItem("role", role);
-      if (role === "telecaller") {
-        localStorage.setItem("telecallerId", id);
-      } else if (role === "bde") {
-        localStorage.setItem("bdeId", id);
-      } else if (role === "digitalMarketer") {
-        localStorage.setItem("digitalMarketerId", id);
-      }
+      localStorage.setItem("user", JSON.stringify(user));
 
-      if (role === "bde") {
-        navigate(`/bde/bde-dashboard/${id}`);
-      } else if (role === "telecaller") {
-        navigate(`/telecaler/telecaller-dashboard/${id}`);
-      } else if (role === "digitalMarketer") {
-        navigate(`/digitalmarketer/digitalmarketer-dashboard/${id}`);
+      login(token, user);
+      hasRole(user.designation);
+
+      if (user.designation.toLowerCase() === "bde") {
+        navigate(`/bde/bde-dashboard/${user._id}`);
+      } else if (user.designation.toLowerCase() === "telecaller") {
+        navigate(`/telecaler/telecaller-dashboard/${user._id}`);
+      } else if (user.designation.toLowerCase() === "digital marketer") {
+        navigate(`/digitalmarketer/digitalmarketer-dashboard/${user._id}`);
       }
     } catch (error) {
       if (error.response && error.response.data) {

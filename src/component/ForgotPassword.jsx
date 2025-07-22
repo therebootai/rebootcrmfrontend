@@ -116,7 +116,7 @@ const ForgotPassword = ({ onClose }) => {
 
     try {
       await axios.put(
-        `${import.meta.env.VITE_BASE_URL}/api/users/reset-password`,
+        `${import.meta.env.VITE_BASE_URL}/api/auth/reset-password`,
         {
           mobileNumber,
           newPassword,
