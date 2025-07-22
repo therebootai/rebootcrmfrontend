@@ -1,9 +1,16 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { format } from "date-fns";
 import { DateRangePicker } from "react-date-range";
 import AdminDashboardTemplate from "../template/AdminDashboardTemplate";
 import DashboardEmployeeSection from "../component/adminbuisness/DashboardEmployeeSection";
+
+const rupeeFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  minimumFractionDigits: 0, // No decimal places for whole rupees
+  maximumFractionDigits: 0,
+});
 
 const AdminDashboard = () => {
   const [counts, setCounts] = useState({
@@ -11,6 +18,8 @@ const AdminDashboard = () => {
     followUps: 0,
     visits: 0,
     dealCloses: 0,
+    targets: 0, // Overall Sales Target Amount
+    achievements: 0, // Overall Sales Achievement Amount
   });
   const [categories, setCategories] = useState([]);
   const [cities, setCities] = useState([]);
@@ -24,109 +33,120 @@ const AdminDashboard = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
 
-  const rupeeFormatter = new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 0, // No decimal places for whole rupees
-    maximumFractionDigits: 0,
-  });
+  // Note: allEmployees, tableDateRange, and graph-related states/functions
+  // are assumed to be managed within DashboardEmployeeSection and the graph components themselves,
+  // as per the separation of concerns for AdminDashboard.
 
-  const fetchBusinesses = async () => {
+  // --- fetchBusinesses: Fetches overall business counts and combined targets for main dashboard ---
+  const fetchBusinesses = useCallback(async () => {
     try {
-      const response = await axios.get(
+      const formattedStartDate = dateRange.startDate
+        ? new Date(
+            dateRange.startDate.getTime() -
+              dateRange.startDate.getTimezoneOffset() * 60000
+          ).toISOString()
+        : "";
+      const formattedEndDate = dateRange.endDate
+        ? new Date(
+            dateRange.endDate.getTime() -
+              dateRange.endDate.getTimezoneOffset() * 60000
+          ).toISOString()
+        : "";
+
+      const businessResponse = await axios.get(
         `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?category=${selectedCategory}&city=${selectedCity}&createdstartdate=${
-          dateRange.startDate
-            ? new Date(
-                dateRange.startDate.getTime() -
-                  dateRange.startDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }&createdenddate=${
-          dateRange.endDate
-            ? new Date(
-                dateRange.endDate.getTime() -
-                  dateRange.endDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }`
+        }/api/business/get?category=${selectedCategory}&city=${selectedCity}&createdstartdate=${formattedStartDate}&createdenddate=${formattedEndDate}`
       );
-      const [telecallers, digitalMarketers, bdes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/digitalmarketer/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
-      ]);
 
-      const businessData = response.data;
+      // Fetch all user types to get their targets for overall dashboard counts
+      const [telecallersResponse, digitalMarketersResponse, bdesResponse] =
+        await Promise.all([
+          axios.get(
+            `${
+              import.meta.env.VITE_BASE_URL
+            }/api/users/get?designation=Telecaller`
+          ),
+          axios.get(
+            `${
+              import.meta.env.VITE_BASE_URL
+            }/api/users/get?designation=Digital%20Marketer` // Ensure space is encoded
+          ),
+          axios.get(
+            `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+          ),
+        ]);
 
-      const combinedData = {
-        target: [
-          ...telecallers.data.map((item) => item.targets),
-          ...digitalMarketers.data.map((item) => item.targets),
-          ...bdes.data.map((item) => item.targets),
-        ].flat(),
-      };
+      const businessData = businessResponse.data;
 
-      calculateCounts({ ...businessData, ...combinedData });
+      // Combine targets from all employee types for overall dashboard counts
+      // Use flatMap to ensure the result is a single flat array of target objects
+      const combinedTargets = [
+        ...telecallersResponse.data.users.flatMap((item) => item.targets || []),
+        ...digitalMarketersResponse.data.users.flatMap(
+          (item) => item.targets || []
+        ),
+        ...bdesResponse.data.users.flatMap((item) => item.targets || []),
+      ];
+
+      calculateCounts({ ...businessData, target: combinedTargets });
     } catch (error) {
-      console.error("Error fetching businesses:", error);
+      console.error("Error fetching dashboard data:", error);
     }
-  };
+  }, [dateRange, selectedCategory, selectedCity]); // Dependencies for useCallback
 
+  // Initial fetch for main dashboard data on component mount
   useEffect(() => {
     fetchBusinesses();
-  }, []);
+  }, [fetchBusinesses]); // Dependency: fetchBusinesses useCallback
 
-  useMemo(() => {
+  // Fetch filters (cities and categories) once on component mount
+  useEffect(() => {
     async function getFilters() {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/business/getfilter`
-        );
-        const data = response.data;
-        setCities(data.cities);
-        setCategories(data.businessCategories);
+        const [citiesResponse, categoriesResponse] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_BASE_URL}/api/city/get`),
+          axios.get(`${import.meta.env.VITE_BASE_URL}/api/category/get`),
+        ]);
+        // Assuming your city/category endpoints return an array of objects with 'cityname'/'categoryname'
+        setCities(citiesResponse.data.map((item) => item));
+        setCategories(categoriesResponse.data.map((item) => item));
       } catch (error) {
-        console.log(error);
+        console.log("Error fetching filters:", error);
       }
     }
     getFilters();
-  }, []);
+  }, []); // Empty dependency array means it runs once on mount
 
-  useEffect(() => {
-    fetchBusinesses();
-  }, [dateRange, selectedCategory, selectedCity]);
-
+  // --- calculateCounts: Aggregates overall dashboard numbers ---
   const calculateCounts = (data) => {
     const totalBusiness = data.totalCount;
-    const followUps = data.statuscount.FollowupCount;
-    const visits = data.statuscount.visitCount;
-    const dealCloses = data.statuscount.dealCloseCount;
+    const followUps = data.statusCount.FollowupCount; // Ensure 'statusCount' matches backend response
+    const visits = data.statusCount.visitCount;
+    const dealCloses = data.statusCount.dealCloseCount;
 
-    let targets = 0,
-      achievements = 0;
+    let totalTargets = 0; // Overall sales target (sum of 'amount')
+    let totalSalesAchievements = 0; // Overall sales achievement (sum of 'achievement')
 
+    // Iterate through the combined targets array
     for (const item of data.target) {
-      if (dateRange && dateRange.startDate) {
+      // Apply date range filter if provided for overall counts
+      if (dateRange && dateRange.startDate && item.month && item.year) {
         const startDate = new Date(dateRange.startDate);
-        const itemMonthIndex = new Date(
-          Date.parse(item.month + " 1, " + item.year)
-        ).getMonth(); // Convert month name to 0-11 index
-        const itemYear = item.year;
+        const itemDate = new Date(Date.parse(`${item.month} 1, ${item.year}`));
 
-        // Compare by month (0-11 index) and year
+        // Compare by month and year within the selected date range
         if (
-          itemMonthIndex === startDate.getMonth() &&
-          itemYear === startDate.getFullYear()
+          itemDate.getMonth() === startDate.getMonth() &&
+          itemDate.getFullYear() === startDate.getFullYear()
         ) {
-          targets += item.amount;
-          achievements += parseInt(item.achievement);
+          totalTargets += parseFloat(item.amount || 0); // Use parseFloat and default to 0
+          totalSalesAchievements += parseFloat(item.achievement || 0); // Use parseFloat and default to 0
         }
-      } else {
-        // If no dateRange.startDate is provided, sum all amounts
-        targets += item.amount;
-        achievements += parseInt(item.achievement ?? 0);
+      } else if (!dateRange || !dateRange.startDate) {
+        // If no dateRange.startDate is provided, sum all amounts and achievements
+        totalTargets += parseFloat(item.amount || 0); // Use parseFloat and default to 0
+        totalSalesAchievements += parseFloat(item.achievement || 0); // Use parseFloat and default to 0
       }
     }
 
@@ -135,30 +155,30 @@ const AdminDashboard = () => {
       followUps,
       visits,
       dealCloses,
-      targets,
-      achievements,
+      targets: totalTargets, // Overall Sales Targets
+      achievements: totalSalesAchievements, // Overall Sales Achievements
     });
   };
 
+  // --- Event Handlers for Filters ---
   const handleDateRangeChange = (ranges) => {
     setDateRange({
       startDate: ranges.selection.startDate,
       endDate: ranges.selection.endDate,
       key: "selection",
     });
-
-    setIsDateFilterApplied(false);
+    setIsDateFilterApplied(false); // Reset filter applied status
   };
 
   const clearDateFilter = () => {
     const emptyDateRange = {
-      startDate: "",
-      endDate: "",
+      startDate: null,
+      endDate: null,
       key: "selection",
     };
     setDateRange(emptyDateRange);
     setIsDateFilterApplied(false);
-    fetchBusinesses(category, city, mobileNumber, 1, emptyDateRange);
+    // fetchBusinesses will be triggered by the useEffect dependency on dateRange
   };
 
   const handleCategoryChange = (e) => {
@@ -246,8 +266,8 @@ const AdminDashboard = () => {
             >
               <option value="">By City/Town</option>
               {cities.map((city, index) => (
-                <option key={index} value={city}>
-                  {city}
+                <option key={index} value={city._id}>
+                  {city.cityname}
                 </option>
               ))}
             </select>
@@ -261,8 +281,8 @@ const AdminDashboard = () => {
             >
               <option value="">By Category</option>
               {categories.map((category, index) => (
-                <option key={index} value={category}>
-                  {category}
+                <option key={index} value={category._id}>
+                  {category.categoryname}
                 </option>
               ))}
             </select>

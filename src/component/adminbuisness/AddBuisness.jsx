@@ -4,16 +4,25 @@ import { useParams } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-const AddBuisness = ({ onAddBusiness }) => {
-  const [citys, setCity] = useState([]);
-  const [categories, setCategory] = useState([]);
+const statusOptions = [
+  "Fresh Data",
+  "Appointment Generated",
+  "Followup",
+  "Not Interested",
+  "Invalid Data",
+  "Not Responding",
+  "Deal Closed",
+];
+
+const AddBuisness = ({ onAddBusiness, currentUserId }) => {
+  // currentUserId comes as a prop
+  const [cities, setCities] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [sources, setSources] = useState([]);
-  const [allBDE, setAllBDE] = useState([]);
+  const [allBDEs, setAllBDEs] = useState([]);
+
   const [showFollowUpDate, setShowFollowUpDate] = useState(false);
-  const [showAppoinmentDate, setShowAppoinmentDate] = useState(false);
-  const { telecallerId } = useParams();
-  const { bdeId } = useParams();
-  const { digitalMarketerId } = useParams();
+  const [showAppointmentDate, setShowAppointmentDate] = useState(false);
 
   const [formData, setFormData] = useState({
     buisnessname: "",
@@ -26,106 +35,68 @@ const AddBuisness = ({ onAddBusiness }) => {
     appointmentDate: null,
     followUpDate: null,
     remarks: "",
-    telecallerId: "",
-    digitalMarketerId: "",
-    bdeId: "",
-    tagAppointment: "",
+    appoint_to: null,
+    created_by: null,
+    lead_by: null, // Initialize lead_by from prop
   });
   const [errors, setErrors] = useState({});
+
+  // Effect to set lead_by from currentUserId prop
   useEffect(() => {
-    // Set the telecallerId in formData if it exists
-    if (telecallerId) {
+    if (currentUserId !== "Admin") {
       setFormData((prevData) => ({
         ...prevData,
-        telecallerId: telecallerId,
+        lead_by: currentUserId,
       }));
     }
-    if (bdeId) {
-      setFormData((prevData) => ({
-        ...prevData,
-        bdeId: bdeId,
-      }));
-    }
-    if (digitalMarketerId) {
-      setFormData((prevData) => ({
-        ...prevData,
-        digitalMarketerId: digitalMarketerId,
-      }));
-    }
-  }, [telecallerId, bdeId, digitalMarketerId]);
+  }, [currentUserId]); // Dependency array ensures it updates if currentUserId changes
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const cityResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/city/get?sorting=true`
-        );
-        setCity(cityResponse.data);
+  // ... (rest of the AddBuisness component remains as previously updated)
+  // Ensure the fetching logic and handleSubmit correctly use the formData.lead_by
+  // which is populated by the currentUserId prop.
 
-        const categoryResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/category/get?sorting=true`
-        );
-        setCategory(categoryResponse.data);
-
-        const sourcesResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/source/get`
-        );
-        setSources(sourcesResponse.data);
-
-        const bdeResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/bde/get?status=active`
-        );
-        setAllBDE(bdeResponse.data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
-    fetchData();
-  }, []);
-
+  // The rest of the component (fetching dropdowns, handleInputChange, handleSubmit, return JSX)
+  // is exactly as provided in the previous response.
+  // ...
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    let newFormData = { ...formData };
 
     if (name === "mobileNumber") {
-      // Remove spaces from the mobile number
       const sanitizedValue = value.replace(/\s+/g, "");
-
-      // Prevent input more than 10 digits
       if (sanitizedValue.length > 10) {
         return;
       }
-
-      setFormData({
-        ...formData,
-        [name]: sanitizedValue,
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value,
-      });
-    }
-
-    if (name === "status") {
+      newFormData[name] = sanitizedValue;
+    } else if (name === "city") {
+      const selectedCityObj = cities.find((c) => c.cityname === value);
+      newFormData.city = selectedCityObj ? selectedCityObj._id : "";
+    } else if (name === "category") {
+      const selectedCategoryObj = categories.find(
+        (c) => c.categoryname === value
+      );
+      newFormData.category = selectedCategoryObj ? selectedCategoryObj._id : "";
+    } else if (name === "source") {
+      const selectedSourceObj = sources.find((s) => s.sourcename === value);
+      newFormData.source = selectedSourceObj ? selectedSourceObj._id : "";
+    } else if (name === "status") {
+      newFormData.status = value;
       setShowFollowUpDate(value === "Followup");
-      setShowAppoinmentDate(value === "Appointment Generated");
-      if (value !== "Followup" || value !== "Appointment Generated") {
-        setFormData({
-          ...formData,
-          tagAppointment: "",
-          bdeId: "",
-        });
+      setShowAppointmentDate(value === "Appointment Generated");
+
+      if (value !== "Followup" && value !== "Appointment Generated") {
+        newFormData.followUpDate = null;
+        newFormData.appointmentDate = null;
+        newFormData.appoint_to = "";
       }
+    } else if (name === "appoint_to") {
+      newFormData.appoint_to = value;
+    } else {
+      newFormData[name] = value;
     }
 
-    if (name === "bdeId") {
-      setFormData({
-        ...formData,
-        tagAppointment: value,
-        bdeId: value,
-      });
-    }
+    setFormData(newFormData);
+    setErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
   };
 
   const handleDateChange = (date, name) => {
@@ -133,12 +104,44 @@ const AddBuisness = ({ onAddBusiness }) => {
       ...formData,
       [name]: date,
     });
+    setErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
   };
+
+  // Fetch initial data for dropdowns (same as before)
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [cityResponse, categoryResponse, sourcesResponse, bdeResponse] =
+          await Promise.all([
+            axios.get(
+              `${import.meta.env.VITE_BASE_URL}/api/city/get?sorting=true`
+            ),
+            axios.get(
+              `${import.meta.env.VITE_BASE_URL}/api/category/get?sorting=true`
+            ),
+            axios.get(`${import.meta.env.VITE_BASE_URL}/api/source/get`),
+            axios.get(
+              `${
+                import.meta.env.VITE_BASE_URL
+              }/api/users/get?designation=BDE&status=true`
+            ),
+          ]);
+
+        setCities(cityResponse.data);
+        setCategories(categoryResponse.data);
+        setSources(sourcesResponse.data);
+        setAllBDEs(bdeResponse.data.users);
+      } catch (error) {
+        console.error("Error fetching dropdown data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic form validation
     let formValid = true;
     const newErrors = {};
 
@@ -146,27 +149,22 @@ const AddBuisness = ({ onAddBusiness }) => {
       newErrors.buisnessname = "Business name is required";
       formValid = false;
     }
-
     if (!formData.mobileNumber.trim() || formData.mobileNumber.length !== 10) {
       newErrors.mobileNumber = "Mobile Number must be a 10-digit number";
       formValid = false;
     }
-
     if (!formData.city) {
       newErrors.city = "City is required";
       formValid = false;
     }
-
     if (!formData.category) {
       newErrors.category = "Category is required";
       formValid = false;
     }
-
     if (!formData.status) {
       newErrors.status = "Status is required";
       formValid = false;
     }
-
     if (!formData.source) {
       newErrors.source = "Lead Source is required";
       formValid = false;
@@ -175,7 +173,6 @@ const AddBuisness = ({ onAddBusiness }) => {
       newErrors.followUpDate = "Follow-up date is required";
       formValid = false;
     }
-
     if (
       formData.status === "Appointment Generated" &&
       !formData.appointmentDate
@@ -183,59 +180,67 @@ const AddBuisness = ({ onAddBusiness }) => {
       newErrors.appointmentDate = "Appointment date is required";
       formValid = false;
     }
-
-    if (formData.status === "Appointment Generated" && !formData.bdeId) {
-      newErrors.bdeId = "BDE is required";
+    if (formData.status === "Appointment Generated" && !formData.appoint_to) {
+      newErrors.appoint_to = "BDE is required for appointment";
       formValid = false;
     }
 
     setErrors(newErrors);
-    if (formValid) {
-      try {
-        // Send data to backend
-        const response = await axios.post(
-          `${import.meta.env.VITE_BASE_URL}/api/business/create`,
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
+    if (!formValid) {
+      console.error("Form validation failed:", newErrors);
+      return;
+    }
 
-        if (response.status === 200) {
-          if (formData.status === "Appointment Generated") {
-            await axios.post(
-              `${import.meta.env.VITE_BASE_URL}/api/send-notification`,
-              {
-                targetUserId: formData.bdeId,
-                title: "New Business Appointment has been Assigned",
-                body: `New Business named ${
-                  formData.buisnessname
-                } has been assigned to you on ${new Date(
-                  formData.appointmentDate
-                ).toLocaleDateString("en-IN", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                })} at ${new Date(formData.appointmentDate).toLocaleTimeString(
-                  "en-IN",
-                  {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  }
-                )}. Please check the details and get in touch with the customer.`,
-              }
-            );
-          }
+    const formDataWithUserId = {
+      ...formData,
+      user: currentUserId,
+    };
+
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/api/business/create`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
+      );
 
-        const newBusiness = response.data.newBusiness;
+      if (response.status === 201) {
+        if (formData.status === "Appointment Generated") {
+          const assignedBDE = allBDEs.find(
+            (bde) => bde._id === formData.appoint_to
+          );
+          const bdeName = assignedBDE ? assignedBDE.name : "Assigned User";
+
+          await axios.post(
+            `${import.meta.env.VITE_BASE_URL}/api/send-notification`,
+            {
+              targetUserId: formData.appoint_to,
+              title: "New Business Appointment has been Assigned",
+              body: `New Business named ${
+                formData.buisnessname
+              } has been assigned to ${bdeName} on ${new Date(
+                formData.appointmentDate
+              ).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })} at ${new Date(formData.appointmentDate).toLocaleTimeString(
+                "en-IN",
+                {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                }
+              )}. Please check the details and get in touch with the customer.`,
+            }
+          );
+        }
 
         onAddBusiness(response.data);
 
-        // Optionally, reset form data
         setFormData({
           buisnessname: "",
           contactpersonName: "",
@@ -244,42 +249,41 @@ const AddBuisness = ({ onAddBusiness }) => {
           category: "",
           status: "",
           source: "",
+          appointmentDate: null,
           followUpDate: null,
           remarks: "",
+          appoint_to: "",
+          lead_by: currentUserId || "",
+          created_by: currentUserId || "",
         });
-      } catch (error) {
-        console.error("Error creating Business Details:", error);
-        if (
-          error.response &&
-          error.response.data.error === "Mobile number already exists"
-        ) {
+        setShowFollowUpDate(false);
+        setShowAppointmentDate(false);
+        setErrors({});
+      } else {
+        console.warn(
+          "Unexpected successful response status:",
+          response.status,
+          response.data
+        );
+        alert(
+          response.data.message ||
+            "Business created, but with unexpected status."
+        );
+        onAddBusiness(response.data);
+      }
+    } catch (error) {
+      console.error("Error creating Business Details:", error);
+      if (error.response) {
+        if (error.response.data.error === "Mobile number already exists") {
           setErrors({ mobileNumber: "Mobile number already exists" });
         } else {
-          setFormData({
-            buisnessname: "",
-            contactpersonName: "",
-            mobileNumber: "",
-            city: "",
-            category: "",
-            status: "",
-            source: "",
-            followUpDate: null,
-            remarks: "",
-          });
+          alert(error.response.data.error || "Failed to create business.");
         }
+      } else {
+        alert("Network error or server unreachable.");
       }
     }
   };
-
-  const statusOptions = [
-    "Fresh Data",
-    "Appointment Generated",
-    "Followup",
-    "Not Interested",
-    "Invalid Data",
-    "Not Responding",
-    "Deal Closed",
-  ];
 
   return (
     <div className="p-4 flex flex-col w-full gap-6">
@@ -327,13 +331,13 @@ const AddBuisness = ({ onAddBusiness }) => {
           <label>City/Town</label>
           <select
             name="city"
-            value={formData.city}
+            value={cities.find((c) => c._id === formData.city)?._id || ""}
             onChange={handleInputChange}
             className="bg-white rounded-sm p-4 border border-[#cccccc]"
           >
             <option value="">Choose</option>
-            {citys.map((city) => (
-              <option key={city.cityId} value={city.cityname}>
+            {cities.map((city) => (
+              <option key={city._id} value={city._id}>
                 {city.cityname}
               </option>
             ))}
@@ -344,13 +348,16 @@ const AddBuisness = ({ onAddBusiness }) => {
           <label>Business Category</label>
           <select
             name="category"
-            value={formData.category}
+            value={
+              categories.find((c) => c._id === formData.category)
+                ?.categoryname || ""
+            }
             onChange={handleInputChange}
             className="bg-white rounded-sm p-4 border border-[#cccccc]"
           >
             <option value="">Choose</option>
             {categories.map((category) => (
-              <option key={category.categoryId} value={category.categoryname}>
+              <option key={category._id} value={category.categoryname}>
                 {category.categoryname}
               </option>
             ))}
@@ -363,13 +370,15 @@ const AddBuisness = ({ onAddBusiness }) => {
           <label>Select Lead Source</label>
           <select
             name="source"
-            value={formData.source}
+            value={
+              sources.find((s) => s._id === formData.source)?.sourcename || ""
+            }
             onChange={handleInputChange}
             className="bg-white rounded-sm p-4 border border-[#cccccc]"
           >
             <option value="">Choose</option>
             {sources.map((source) => (
-              <option key={source.sourceId} value={source.sourcename}>
+              <option key={source._id} value={source.sourcename}>
                 {source.sourcename}
               </option>
             ))}
@@ -414,9 +423,9 @@ const AddBuisness = ({ onAddBusiness }) => {
           </div>
         )}
 
-        {showAppoinmentDate && (
+        {showAppointmentDate && (
           <div className="flex flex-col ">
-            <label>Appoinment Date</label>
+            <label>Appointment Date</label>
             <DatePicker
               selected={formData.appointmentDate}
               onChange={(date) => handleDateChange(date, "appointmentDate")}
@@ -431,24 +440,24 @@ const AddBuisness = ({ onAddBusiness }) => {
           </div>
         )}
 
-        {showAppoinmentDate && (
+        {showAppointmentDate && (
           <div className="flex flex-col ">
             <label>Select BDE</label>
             <select
-              name="bdeId"
-              value={formData.bdeId}
+              name="appoint_to"
+              value={formData.appoint_to}
               onChange={handleInputChange}
               className="bg-white rounded-sm p-4 border border-[#cccccc]"
             >
               <option value="">Choose Bde</option>
-              {allBDE.map((bde, index) => (
-                <option key={index} value={bde.bdeId}>
-                  {bde.bdename}
+              {allBDEs.map((bde) => (
+                <option key={bde._id} value={bde._id}>
+                  {bde.name}
                 </option>
               ))}
             </select>
-            {errors.bdeId && (
-              <span className="text-red-500">{errors.bdeId}</span>
+            {errors.appoint_to && (
+              <span className="text-red-500">{errors.appoint_to}</span>
             )}
           </div>
         )}

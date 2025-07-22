@@ -5,43 +5,43 @@ import "react-datepicker/dist/react-datepicker.css";
 
 const AddTarget = ({ closeModal, onUpdate }) => {
   const [employees, setEmployees] = useState([]);
-  const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(""); // Stores the user's _id
   const [targetDate, setTargetDate] = useState(new Date());
   const [targetAmount, setTargetAmount] = useState("");
+  const [achievementAmount, setAchievementAmount] = useState(""); // New state for collection/achievement
+  const [errors, setErrors] = useState({});
 
+  // Fetch all relevant employees (users) on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [telecallers, digitalMarketers, bdes] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-          axios.get(`${import.meta.env.VITE_BASE_URL}/api/digitalmarketer/get`),
-          axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
-        ]);
+        const [telecallersRes, digitalMarketersRes, bdesRes] =
+          await Promise.all([
+            axios.get(
+              `${
+                import.meta.env.VITE_BASE_URL
+              }/api/users/get?designation=Telecaller`
+            ),
+            axios.get(
+              `${
+                import.meta.env.VITE_BASE_URL
+              }/api/users/get?designation=DigitalMarketer`
+            ),
+            axios.get(
+              `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+            ),
+          ]);
 
-        const combinedData = [
-          ...telecallers.data.map((item) => ({
-            ...item,
-            role: "Telecaller",
-            name: item.telecallername,
-            id: item.telecallerId,
-          })),
-          ...digitalMarketers.data.map((item) => ({
-            ...item,
-            role: "Digital Marketer",
-            name: item.digitalMarketername,
-            id: item.digitalMarketerId,
-          })),
-          ...bdes.data.map((item) => ({
-            ...item,
-            role: "BDE",
-            name: item.bdename,
-            id: item.bdeId,
-          })),
+        // Combine users from all relevant designations
+        const combinedUsers = [
+          ...telecallersRes.data.users,
+          ...digitalMarketersRes.data.users,
+          ...bdesRes.data.users,
         ];
-
-        setEmployees(combinedData);
+        setEmployees(combinedUsers);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching employee data:", error);
+        alert("Failed to load employee data.");
       }
     };
 
@@ -49,49 +49,116 @@ const AddTarget = ({ closeModal, onUpdate }) => {
   }, []);
 
   const handleEmployeeChange = (e) => {
-    setSelectedEmployee(e.target.value);
+    setSelectedEmployeeId(e.target.value);
+    setErrors((prev) => ({ ...prev, employee: "" })); // Clear error
   };
 
   const handleAmountChange = (e) => {
     setTargetAmount(e.target.value);
+    setErrors((prev) => ({ ...prev, targetAmount: "" })); // Clear error
+  };
+
+  const handleAchievementChange = (e) => {
+    setAchievementAmount(e.target.value);
+    setErrors((prev) => ({ ...prev, achievementAmount: "" })); // Clear error
+  };
+
+  const handleDateChange = (date) => {
+    setTargetDate(date);
+    setErrors((prev) => ({ ...prev, targetDate: "" })); // Clear error
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const employee = employees.find((emp) => emp.name === selectedEmployee);
+    const newErrors = {};
+    let formValid = true;
+
+    if (!selectedEmployeeId) {
+      newErrors.employee = "Please select an employee.";
+      formValid = false;
+    }
+    if (
+      !targetAmount ||
+      isNaN(parseFloat(targetAmount)) ||
+      parseFloat(targetAmount) <= 0
+    ) {
+      newErrors.targetAmount = "Target amount must be a positive number.";
+      formValid = false;
+    }
+    // Achievement amount is optional, but if entered, validate it
+    if (
+      achievementAmount &&
+      (isNaN(parseFloat(achievementAmount)) ||
+        parseFloat(achievementAmount) < 0)
+    ) {
+      newErrors.achievementAmount =
+        "Achievement amount must be a non-negative number.";
+      formValid = false;
+    }
+    if (!targetDate) {
+      newErrors.targetDate = "Please select a month and year.";
+      formValid = false;
+    }
+
+    setErrors(newErrors);
+    if (!formValid) {
+      return;
+    }
+
+    const employee = employees.find((emp) => emp._id === selectedEmployeeId);
 
     if (!employee) {
-      alert("Please select a valid employee.");
+      alert("Selected employee not found. Please try again.");
       return;
     }
 
     const targetMonth = targetDate.toLocaleString("default", { month: "long" });
     const targetYear = targetDate.getFullYear();
 
-    const urlMap = {
-      Telecaller: `/api/telecaller/addTarget/${employee.id}`,
-      "Digital Marketer": `/api/digitalmarketer/addTarget/${employee.id}`,
-      BDE: `/api/bde/addTarget/${employee.id}`,
+    // The target object to be sent to the backend
+    const newTarget = {
+      month: targetMonth,
+      year: targetYear,
+      amount: parseFloat(targetAmount), // Ensure it's a number
+      achievement: parseFloat(achievementAmount) || 0, // Default to 0 if not provided
     };
 
     try {
-      await axios.post(
-        `${import.meta.env.VITE_BASE_URL}${urlMap[employee.role]}`,
+      // Send the new/updated target to the unified user update endpoint
+      const response = await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/api/users/users/${employee._id}`,
         {
-          month: targetMonth,
-          year: targetYear,
-          amount: targetAmount,
+          targets: [newTarget], // Send as an array, backend handles merging
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // Ensure token is sent
+          },
         }
       );
-      setTargetDate(new Date());
-      setTargetAmount("");
-      setSelectedEmployee("");
-      onUpdate();
-      closeModal(); // Close the modal after successful submission
+
+      if (response.status === 200) {
+        alert("Target and achievement updated successfully!");
+        setTargetDate(new Date());
+        setTargetAmount("");
+        setAchievementAmount("");
+        setSelectedEmployeeId("");
+        setErrors({}); // Clear errors on success
+        onUpdate(); // Trigger parent to refresh data
+        closeModal(); // Close the modal
+      } else {
+        alert(response.data.message || "Failed to add target.");
+      }
     } catch (error) {
-      console.error("Error adding target:", error);
-      alert("Error adding target");
+      console.error(
+        "Error adding target:",
+        error.response?.data || error.message
+      );
+      alert(
+        error.response?.data?.message ||
+          "Error adding target. Please try again."
+      );
     }
   };
 
@@ -102,43 +169,72 @@ const AddTarget = ({ closeModal, onUpdate }) => {
         onSubmit={handleSubmit}
       >
         <div className="flex flex-col">
-          <label>Name</label>
+          <label>Select Employee</label>
           <select
-            name="employeename"
-            value={selectedEmployee}
+            name="employee"
+            value={selectedEmployeeId}
             onChange={handleEmployeeChange}
             className="bg-white rounded-sm p-4 border border-[#cccccc]"
           >
-            <option value="">Choose</option>
+            <option value="">Choose Employee</option>
             {employees.map((employee) => (
-              <option key={employee.id} value={employee.name}>
-                {employee.name} - {employee.role}
+              <option key={employee._id} value={employee._id}>
+                {employee.name} - {employee.designation}
               </option>
             ))}
           </select>
+          {errors.employee && (
+            <span className="text-red-500">{errors.employee}</span>
+          )}
         </div>
+
         <div className="flex flex-col">
           <label>Enter Monthly Target Amount (in INR)</label>
           <input
             type="number"
-            name="targetamount"
+            name="targetAmount"
             value={targetAmount}
             onChange={handleAmountChange}
             className="bg-white rounded-sm p-4 border border-[#cccccc]"
+            min="0"
           />
+          {errors.targetAmount && (
+            <span className="text-red-500">{errors.targetAmount}</span>
+          )}
         </div>
+
+        <div className="flex flex-col">
+          <label>Enter Achieved Amount (in INR) (Optional)</label>
+          <input
+            type="number"
+            name="achievementAmount"
+            value={achievementAmount}
+            onChange={handleAchievementChange}
+            className="bg-white rounded-sm p-4 border border-[#cccccc]"
+            min="0"
+          />
+          {errors.achievementAmount && (
+            <span className="text-red-500">{errors.achievementAmount}</span>
+          )}
+        </div>
+
         <div className="flex flex-col">
           <label>Select Month and Year</label>
           <DatePicker
             selected={targetDate}
-            onChange={(date) => setTargetDate(date)}
+            onChange={handleDateChange}
             dateFormat="MMMM yyyy"
             showMonthYearPicker
-            className="bg-white rounded-sm p-4 border border-[#cccccc]"
+            className="bg-white rounded-sm p-4 border border-[#cccccc] w-full"
           />
+          {errors.targetDate && (
+            <span className="text-red-500">{errors.targetDate}</span>
+          )}
         </div>
+
         <div className="flex flex-col">
-          <div className="text-transparent">submit</div>
+          <div className="text-transparent">submit</div>{" "}
+          {/* Placeholder for alignment */}
           <button
             type="submit"
             className="w-[50%] bg-[#0a5cff20] p-4 flex justify-center items-center text-[#0A5BFF] text-xl font-medium rounded-sm"

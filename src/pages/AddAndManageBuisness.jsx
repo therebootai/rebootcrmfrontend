@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import AdminDashboardTemplate from "../template/AdminDashboardTemplate";
 import Modal from "react-modal";
@@ -15,218 +15,235 @@ import SendSingleProposal from "../component/adminbuisness/SendSingleProposal";
 
 const AddAndManageBuisness = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [allBusinesses, setAllBusinesses] = useState([]);
-  const [filteredBusinesses, setFilteredBusinesses] = useState([]);
+  const [allBusinesses, setAllBusinesses] = useState([]); // This will hold the paginated data from backend
+  // const [filteredBusinesses, setFilteredBusinesses] = useState([]); // REMOVED: Redundant, backend handles filtering
   const [mobileNumber, setMobileNumber] = useState("");
   const [city, setCity] = useState("");
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
   const [uniqueCities, setUniqueCities] = useState([]);
   const [uniqueCategories, setUniqueCategories] = useState([]);
-  const [uniqueStatuses, setUniqueStatuses] = useState([]);
+  const [uniqueStatuses, setUniqueStatuses] = useState([
+    // Hardcode unique statuses as they are fixed enums
+    "Fresh Data",
+    "Appointment Generated",
+    "Followup",
+    "Not Interested",
+    "Invalid Data",
+    "Not Responding",
+    "Deal Closed",
+    "Visited",
+  ]);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [duplicateNumbers, setDuplicateNumbers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // For import loading
+  const [fetchLoading, setFetchLoading] = useState(false); // For business fetch loading
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [isNewDataImport, setIsNewDataImport] = useState(false);
+  const [isNewDataImport, setIsNewDataImport] = useState(false); // To trigger re-fetch after import
   const [dateRange, setDateRange] = useState({
-    startDate: "",
-    endDate: "",
+    startDate: null, // Use null for initial empty state
+    endDate: null, // Use null for initial empty state
     key: "selection",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false); // For date filter button logic
   const [allSources, setAllSources] = useState([]);
   const [currentSource, setCurrentSource] = useState("");
+  const [createdBy, setCreatedBy] = useState(""); // Renamed from 'createdby' for consistency
+  const [allUsers, setAllUsers] = useState([]); // Renamed from 'allUser' for consistency
+
   const [proposalModal, setProposalModal] = useState(false);
   const [proposalNumber, setProposalNumber] = useState("");
-  const [createdby, setCreatedBy] = useState("");
-  const [allUser, setAllUser] = useState([]);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
   const openPopup = () => setIsPopupOpen(true);
-  const closePopup = () => setIsPopupOpen(false);
+  const closePopup = () => setDuplicateNumbers([]); // Clear duplicates when closing popup
+  // const closePopup = () => setIsPopupOpen(false); // Original closePopup
 
-  async function getAllUser() {
+  // --- Unified User Fetching ---
+  const getAllUsers = useCallback(async () => {
     try {
-      const [bde, telecaller, admin] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/users`),
-      ]);
-      setAllUser([
-        ...bde.data.map((bde) => ({ id: bde.bdeId, name: bde.bdename })),
-        ...telecaller.data.map((tele) => ({
-          id: tele.telecallerId,
-          name: tele.telecallername,
-        })),
-        ...admin.data.map((user) => ({ id: user._id, name: user.name })),
-      ]);
+      // Fetch all users from the unified endpoint, potentially with a limit to get all
+      // You might need to adjust the limit if you have many users, or add pagination here
+      const response = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/api/users/get?limit=1000`
+      ); // Fetch a large number or implement pagination
+      if (response.data.success) {
+        setAllUsers(
+          response.data.users.map((user) => ({
+            id: user._id, // Use MongoDB _id
+            name: user.name,
+            designation: user.designation, // Keep designation for display if needed
+          }))
+        );
+      } else {
+        console.error("Failed to fetch users:", response.data.message);
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching all users:", error);
     }
-  }
+  }, []); // No dependencies, runs once or when called
 
-  const handleNewBusiness = (newBusinessResponse) => {
-    const newBusiness = newBusinessResponse.newBusiness;
-
-    const updatedBusinesses = [...allBusinesses, newBusiness];
-
-    setAllBusinesses(updatedBusinesses);
-    setFilteredBusinesses(applyFilters(updatedBusinesses));
-    // setUniqueFilters(updatedBusinesses);
-
-    closeModal();
-  };
-
-  const fetchAllBusinesses = async (
-    status,
-    category,
-    city,
-    mobileNumber,
-    dateRange = { startDate: "", endDate: "" },
-    createdBy = ""
-  ) => {
+  // --- Fetch Businesses (Main Data Fetcher) ---
+  const fetchAllBusinesses = useCallback(async () => {
     try {
       setFetchLoading(true);
+
+      // Format dates for API call (toISOString() is crucial for backend Date parsing)
+      const formattedStartDate = dateRange.startDate
+        ? new Date(
+            dateRange.startDate.getTime() -
+              dateRange.startDate.getTimezoneOffset() * 60000
+          ).toISOString()
+        : "";
+      const formattedEndDate = dateRange.endDate
+        ? new Date(
+            dateRange.endDate.getTime() -
+              dateRange.endDate.getTimezoneOffset() * 60000
+          ).toISOString()
+        : "";
+
+      // Construct the URL with all filters
+      const params = new URLSearchParams();
+      params.append("page", currentPage);
+      if (status) params.append("status", status);
+      if (category) params.append("category", category); // Backend expects name
+      if (city) params.append("city", city); // Backend expects name
+      if (mobileNumber) params.append("mobileNumber", mobileNumber);
+      if (formattedStartDate)
+        params.append("createdstartdate", formattedStartDate);
+      if (formattedEndDate) params.append("createdenddate", formattedEndDate);
+      if (currentSource) params.append("source", currentSource); // Backend expects name
+      if (createdBy) params.append("createdBy", createdBy); // Backend expects user _id or userId
+
       const response = await axios.get(
-        `${
-          import.meta.env.VITE_BASE_URL
-        }/api/business/get?page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&createdstartdate=${
-          dateRange.startDate
-            ? new Date(
-                dateRange.startDate.getTime() -
-                  dateRange.startDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }&createdenddate=${
-          dateRange.endDate
-            ? new Date(
-                dateRange.endDate.getTime() -
-                  dateRange.endDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : ""
-        }&source=${currentSource}&createdBy=${createdBy}`
+        `${import.meta.env.VITE_BASE_URL}/api/business/get?${params.toString()}`
       );
+
       const data = response.data;
 
-      setAllBusinesses(data.businesses);
-
-      setTotalPages(data.totalPages);
-      setIsNewDataImport(false);
+      if (data.success) {
+        setAllBusinesses(data.businesses); // Backend returns paginated and filtered data
+        setTotalPages(data.totalPages);
+        // setFilteredBusinesses(data.businesses); // REMOVED: No client-side filtering needed
+      } else {
+        console.error("Failed to fetch businesses:", data.message);
+        setAllBusinesses([]);
+        setTotalPages(1);
+      }
     } catch (error) {
       console.error("Error fetching businesses:", error);
+      setAllBusinesses([]);
+      setTotalPages(1);
     } finally {
       setFetchLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchAllBusinesses(
-      status,
-      category,
-      city,
-      mobileNumber,
-      dateRange,
-      createdby
-    );
   }, [
+    currentPage,
     status,
     category,
     city,
     mobileNumber,
     dateRange,
-    currentPage,
     currentSource,
-    createdby,
-  ]);
+    createdBy,
+  ]); // Dependencies for useCallback
 
+  // --- Effect to fetch businesses when filters or page change ---
+  useEffect(() => {
+    fetchAllBusinesses();
+  }, [fetchAllBusinesses]); // fetchAllBusinesses is memoized, so this runs when its dependencies change
+
+  // --- Handle New Business Added ---
+  const handleNewBusiness = (newBusinessResponse) => {
+    // After adding a new business, re-fetch the entire list to ensure pagination and filters are correct
+    fetchAllBusinesses();
+    closeModal();
+  };
+
+  // --- Date Range Handlers ---
   const handleDateRangeChange = (ranges) => {
     setDateRange({
       startDate: ranges.selection.startDate,
       endDate: ranges.selection.endDate,
       key: "selection",
     });
+    setIsDateFilterApplied(false); // Indicate that filter is not yet applied
+  };
 
-    setIsDateFilterApplied(false);
+  const applyDateFilter = () => {
+    setCurrentPage(1); // Reset to first page when applying new date filter
+    setIsDateFilterApplied(true);
+    setShowDatePicker(false);
+    // fetchAllBusinesses will be triggered by useEffect due to dateRange change
   };
 
   const clearDateFilter = () => {
-    const emptyDateRange = {
-      startDate: "",
-      endDate: "",
+    setDateRange({
+      startDate: null, // Use null for empty date range
+      endDate: null,
       key: "selection",
-    };
-    setDateRange(emptyDateRange);
+    });
     setIsDateFilterApplied(false);
-    fetchAllBusinesses(category, status, city, mobileNumber, 1, emptyDateRange);
+    setCurrentPage(1); // Reset to first page
+    // fetchAllBusinesses will be triggered by useEffect due to dateRange change
   };
 
+  // --- Fetch Filter Options (Cities, Categories, Sources) ---
   useMemo(() => {
     async function getFilters() {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/business/getfilter`
+        const [citiesResponse, categoriesResponse, sourcesResponse] =
+          await Promise.all([
+            // Assuming these endpoints return arrays of objects like { _id: "...", cityname: "..." }
+            axios.get(`${import.meta.env.VITE_BASE_URL}/api/city/get`),
+            axios.get(`${import.meta.env.VITE_BASE_URL}/api/category/get`),
+            axios.get(`${import.meta.env.VITE_BASE_URL}/api/source/get`),
+          ]);
+
+        // Map to get just the names (strings) for select options
+        setUniqueCities(citiesResponse.data.map((c) => c).filter(Boolean)); // Filter out null/undefined
+        setUniqueCategories(
+          categoriesResponse.data.map((c) => c).filter(Boolean)
         );
-        const sourcesResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/source/get`
-        );
-        const data = response.data;
-        setUniqueCities(data.cities);
-        setUniqueCategories(data.businessCategories);
-        setUniqueStatuses(data.status);
-        setIsNewDataImport(false);
-        setAllSources(sourcesResponse.data);
+        setAllSources(sourcesResponse.data); // Assuming sourcesResponse.data is already an array of { sourceId, sourcename }
+
+        setIsNewDataImport(false); // Reset this flag if it's used to trigger filter fetch
       } catch (error) {
-        console.log(error);
+        console.error("Error fetching filter options:", error);
       }
     }
     getFilters();
-    getAllUser();
-  }, [isNewDataImport]);
+    getAllUsers(); // Fetch all users when filters are loaded
+  }, [getAllUsers, isNewDataImport]); // isNewDataImport will trigger re-fetch after import
 
-  const applyFilters = (data) => {
-    let filteredData = data;
+  // --- Client-side filtering (REMOVED - Backend handles this) ---
+  // const applyFilters = (data) => { ... }
 
-    if (mobileNumber) {
-      filteredData = filteredData.filter((business) =>
-        business.mobileNumber.includes(mobileNumber)
-      );
-    }
-    if (city) {
-      filteredData = filteredData.filter((business) => business.city === city);
-    }
-    if (category) {
-      filteredData = filteredData.filter(
-        (business) => business.category === category
-      );
-    }
-    if (status) {
-      filteredData = filteredData.filter(
-        (business) => business.status === status
-      );
-    }
-
-    return filteredData;
-  };
-
+  // --- Export Function ---
   const handleExport = () => {
-    const exportData = (
-      filteredBusinesses.length > 0 ? filteredBusinesses : allBusinesses
-    ).map((business) => ({
+    // Export all current businesses (already filtered/paginated by backend)
+    const exportData = allBusinesses.map((business) => ({
       "Business Id": business.businessId,
       "Business Name": business.buisnessname,
       "Contact Person": business.contactpersonName,
       "Mobile Number": business.mobileNumber,
-      "City/Town": business.city,
-      "Business Category": business.category,
+      // Access populated fields correctly
+      "City/Town": business.city?.cityname || business.city, // Use city.cityname if populated, else raw city (for safety)
+      "Business Category": business.category?.categoryname || business.category,
       Status: business.status,
-      Source: business.source,
-      "Follow-up Date": new Date(business.createdAt).toLocaleString(),
+      Source: business.source?.sourcename || business.source,
+      "Follow-up Date": business.followUpDate
+        ? format(new Date(business.followUpDate), "dd/MM/yyyy")
+        : "N/A",
+      "Created At": business.createdAt
+        ? format(new Date(business.createdAt), "dd/MM/yyyy")
+        : "N/A",
       Remarks: business.remarks,
+      "Lead By": business.lead_by?.name || "N/A", // Access populated lead_by name
+      "Assigned To": business.appoint_to?.name || "N/A", // Access populated appoint_to name
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -241,6 +258,7 @@ const AddAndManageBuisness = () => {
     saveAs(data, "business.xlsx");
   };
 
+  // --- Import Function ---
   const handleImport = async (event) => {
     const file = event.target.files[0];
     const allowedExtensions = /(\.csv)$/i;
@@ -252,7 +270,7 @@ const AddAndManageBuisness = () => {
 
     if (!allowedExtensions.exec(file.name)) {
       alert("Please upload a valid CSV file");
-      event.target.value = ""; // Reset file input
+      event.target.value = "";
       return;
     }
 
@@ -273,31 +291,27 @@ const AddAndManageBuisness = () => {
       );
 
       const allDuplicates = [
-        ...response.data.duplicatesInFile,
-        ...response.data.duplicatesInDB,
+        ...(response.data.duplicatesInFile || []), // Ensure arrays are handled
+        ...(response.data.duplicatesInDB || []),
       ];
 
       if (allDuplicates.length > 0) {
         setDuplicateNumbers(allDuplicates);
-        openPopup();
+        setIsPopupOpen(true); // Open popup using state
       }
 
-      setIsNewDataImport(true);
+      setIsNewDataImport(true); // Trigger re-fetch of businesses and filters
+      setCurrentPage(1); // Go back to page 1 after import
 
-      // const newBusinesses = response.data.createdBusinesses || [];
-      // if (newBusinesses.length > 0) {
-      //   const updatedBusinesses = [...allBusinesses, ...newBusinesses];
-      //   setAllBusinesses(updatedBusinesses);
-      //   setFilteredBusinesses(applyFilters(updatedBusinesses));
-      //   setUniqueFilters(updatedBusinesses);
-      // }
+      alert(response.data.message || "File imported successfully!");
     } catch (error) {
       console.error(
         "Error importing businesses:",
         error.response?.data || error.message
       );
       alert(
-        "Failed to import businesses. Please check the file and try again."
+        error.response?.data?.message ||
+          "Failed to import businesses. Please check the file and try again."
       );
     } finally {
       setLoading(false);
@@ -392,8 +406,8 @@ const AddAndManageBuisness = () => {
             >
               <option value="">All Categories</option>
               {uniqueCategories.map((cat, index) => (
-                <option key={index} value={cat}>
-                  {cat}
+                <option key={index} value={cat._id}>
+                  {cat.categoryname}
                 </option>
               ))}
             </select>
@@ -410,8 +424,8 @@ const AddAndManageBuisness = () => {
             >
               <option value="">All Cities</option>
               {uniqueCities.map((cty, index) => (
-                <option key={index} value={cty}>
-                  {cty}
+                <option key={index} value={cty._id}>
+                  {cty.cityname}
                 </option>
               ))}
             </select>
@@ -452,7 +466,7 @@ const AddAndManageBuisness = () => {
               ))}
             </select>
           </div>
-          <div>
+          {/* <div>
             <select
               name="user"
               value={createdby}
@@ -469,7 +483,7 @@ const AddAndManageBuisness = () => {
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
           <div
             className="px-2 p-1 bg-[#FF2722] text-white rounded-md text-sm font-medium cursor-pointer"
             onClick={openModal}

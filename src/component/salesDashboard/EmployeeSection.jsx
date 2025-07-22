@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Modal from "react-modal";
 import AddTarget from "../adminbuisness/AddTarget";
 import { DateRangePicker } from "react-date-range";
@@ -8,15 +8,15 @@ import EditTarget from "../adminbuisness/EditTarget";
 const rupeeFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
-  minimumFractionDigits: 0, // No decimal places for whole rupees
+  minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
 
 const EmployeeSection = ({
   employees,
-  dateRange,
-  setDateRange,
-  fetchtableData,
+  dateRange, // This is the dateRange for the overall dashboard filters
+  setDateRange, // Function to update the overall dashboard dateRange
+  fetchtableData, // Function to re-fetch employee table data
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -24,33 +24,36 @@ const EmployeeSection = ({
   const [openFor, setOpenFor] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState(null);
 
-  const openModal = (openFor, emp) => {
+  const openModal = (openForType, emp) => {
     setSelectedEmployee(emp);
-    setOpenFor(openFor);
+    setOpenFor(openForType);
     setIsModalOpen(true);
   };
+
   const closeModal = () => {
     setOpenFor("");
+    setSelectedEmployee(null);
     setIsModalOpen(false);
   };
+
   const headers = [
     "Employee Name",
     "Role",
     "Appointment",
     "Visit",
     "Deal Close",
-    "Target",
-    "Sales",
-    "Collection",
-    "Achievement",
+    "Target (Sales)", // Clarified
+    "Sales Achievement", // Clarified
+    "Collection", // Now distinct from Sales Achievement
+    "Achievement %",
   ];
 
+  // This function finds the latest target object within a given date range
   const getLatestTarget = (targets, startDate = null, endDate = null) => {
     if (!targets || targets.length === 0) return null;
 
     let filteredTargets = targets;
 
-    // Check if a valid date range is provided
     const applyDateRangeFilter =
       startDate instanceof Date &&
       !isNaN(startDate) &&
@@ -58,112 +61,54 @@ const EmployeeSection = ({
       !isNaN(endDate);
 
     if (applyDateRangeFilter) {
-      const start = new Date(startDate.getFullYear(), startDate.getMonth(), 1); // Normalize to start of month
-      const end = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0); // Normalize to end of month
+      const startOfMonthFilter = new Date(
+        startDate.getFullYear(),
+        startDate.getMonth(),
+        1
+      );
+      const endOfMonthFilter = new Date(
+        endDate.getFullYear(),
+        endDate.getMonth() + 1,
+        0
+      );
 
       filteredTargets = targets.filter((target) => {
         const targetDate = new Date(
           target.year,
           new Date(Date.parse(target.month + " 1, 2000")).getMonth(),
           1
-        ); // Normalize target month/year to a Date object
+        );
 
-        // Compare targetDate with the start and end of the filter range
-        return targetDate >= start && targetDate <= end;
+        return (
+          targetDate >= startOfMonthFilter && targetDate <= endOfMonthFilter
+        );
       });
     }
 
-    // If after filtering, no targets remain, return null
     if (filteredTargets.length === 0) {
       return null;
     }
 
-    // Find the latest target from the (potentially filtered) list
     const latestTarget = filteredTargets.reduce((latest, current) => {
-      const currentTargetDate = new Date(current.month + " " + current.year);
+      const currentTargetDate = new Date(current.month + " 1, " + current.year);
       const latestTargetDate = latest
-        ? new Date(latest.month + " " + latest.year)
+        ? new Date(latest.month + " 1, " + latest.year)
         : null;
 
       return !latest || currentTargetDate > latestTargetDate ? current : latest;
     }, null);
 
-    // Ensure 'achievement' property exists on the returned object, defaulting to 0 if missing
-    if (latestTarget && latestTarget.achievement === undefined) {
-      latestTarget.achievement = 0;
+    // Ensure all expected properties exist, defaulting to 0 if missing
+    if (latestTarget) {
+      latestTarget.amount = latestTarget.amount ?? 0;
+      latestTarget.achievement = latestTarget.achievement ?? 0;
+      latestTarget.collection = latestTarget.collection ?? 0; // Ensure collection is also defaulted
     }
 
     return latestTarget;
   };
 
-  const getTotalCollection = (collection, filterDate = null) => {
-    // If the collection is empty or not provided, return 0
-    if (!collection || collection.length === 0) return 0;
-
-    let totalCollection = 0;
-
-    // Determine if a date filter should be applied
-    // A filterDate is applied if it's a valid Date object.
-    const applyDateFilter = filterDate instanceof Date && !isNaN(filterDate);
-
-    let targetMonth = null;
-    let targetYear = null;
-
-    if (applyDateFilter) {
-      targetMonth = filterDate.toLocaleString("en-IN", {
-        month: "long",
-      }); // e.g., "July"
-      targetYear = filterDate.getFullYear();
-    }
-
-    collection.forEach((item) => {
-      // Sum amounts from cleardAmount
-      if (item.cleardAmount && item.cleardAmount.length > 0) {
-        item.cleardAmount.forEach((clearItem) => {
-          const paymentAmount = parseFloat(clearItem.amount || 0);
-
-          if (applyDateFilter) {
-            const paymentDate = new Date(clearItem.createdAt);
-            const paymentMonth = paymentDate.toLocaleString("en-IN", {
-              month: "long",
-            });
-            const paymentYear = paymentDate.getFullYear();
-
-            if (paymentMonth === targetMonth && paymentYear === targetYear) {
-              totalCollection += paymentAmount;
-            }
-          } else {
-            // No date filter applied, sum all
-            totalCollection += paymentAmount;
-          }
-        });
-      }
-
-      // Sum amounts from monthlyPaymentAmount
-      if (item.monthlyPaymentAmount && item.monthlyPaymentAmount.length > 0) {
-        item.monthlyPaymentAmount.forEach((monthlyItem) => {
-          const paymentAmount = parseFloat(monthlyItem.totalAmount || 0);
-
-          if (applyDateFilter) {
-            const paymentDate = new Date(monthlyItem.createdAt);
-            const paymentMonth = paymentDate.toLocaleString("en-IN", {
-              month: "long",
-            });
-            const paymentYear = paymentDate.getFullYear();
-
-            if (paymentMonth === targetMonth && paymentYear === targetYear) {
-              totalCollection += paymentAmount;
-            }
-          } else {
-            // No date filter applied, sum all
-            totalCollection += paymentAmount;
-          }
-        });
-      }
-    });
-
-    return totalCollection;
-  };
+  // --- REMOVED: getCollectionValue is no longer needed as employee.collections is already the sum ---
 
   const handleDateRangeChange = (ranges) => {
     setDateRange({
@@ -171,23 +116,26 @@ const EmployeeSection = ({
       endDate: ranges.selection.endDate,
       key: "selection",
     });
-
     setIsDateFilterApplied(false);
   };
 
   const clearDateFilter = () => {
     const emptyDateRange = {
-      startDate: "",
-      endDate: "",
+      startDate: null,
+      endDate: null,
       key: "selection",
     };
     setDateRange(emptyDateRange);
     setIsDateFilterApplied(false);
   };
 
+  useEffect(() => {
+    fetchtableData();
+  }, [dateRange, fetchtableData]);
+
   return (
-    <div className=" flex flex-col gap-4">
-      <div className=" flex flex-row gap-6 items-center">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-row gap-6 items-center">
         <h1 className="text-[#777777] text-lg font-semibold">Filter</h1>
         <div className="flex items-center gap-2 relative">
           <div className="relative">
@@ -203,11 +151,11 @@ const EmployeeSection = ({
               }
               onClick={() => setShowDatePicker(!showDatePicker)}
               readOnly
-              className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC]"
+              className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-lg border border-[#CCCCCC] cursor-pointer"
             />
 
             {showDatePicker && (
-              <div className="absolute z-10">
+              <div className="absolute z-10 top-full mt-2 left-0">
                 <DateRangePicker
                   ranges={[dateRange]}
                   onChange={handleDateRangeChange}
@@ -218,13 +166,13 @@ const EmployeeSection = ({
             )}
           </div>
 
-          <div className=" flex items-center gap-2">
+          <div className="flex items-center gap-2">
             {!isDateFilterApplied ? (
               <button
                 className="px-2 py-1 bg-[#0A5BFF] text-white rounded-md text-sm font-medium cursor-pointer"
                 onClick={() => {
                   setIsDateFilterApplied(true);
-                  setShowDatePicker(!showDatePicker);
+                  setShowDatePicker(false);
                 }}
               >
                 Show
@@ -241,12 +189,13 @@ const EmployeeSection = ({
         </div>
         <button
           onClick={() => openModal("Add Target", null)}
-          className=" h-[2rem] px-6 flex justify-center items-center bg-[#0A5BFF] rounded-md text-sm font-medium text-white"
+          className="h-[2rem] px-6 flex justify-center items-center bg-[#0A5BFF] rounded-md text-sm font-medium text-white"
         >
           Add Target
         </button>
       </div>
-      <div className=" flex flex-col gap-2">
+
+      <div className="flex flex-col gap-2">
         <div className="flex gap-2">
           {headers.map((header, index) => (
             <div key={index} className="flex-1 text-center text-sm font-medium">
@@ -264,10 +213,15 @@ const EmployeeSection = ({
               ) || {
                 amount: 0,
                 achievement: 0,
+                collection: 0, // Ensure collection is also defaulted here
               };
 
+              // employee.collections is now the pre-calculated sum of target.collection for the tableDateRange
+              const totalCollectionForPeriod =
+                parseFloat(employee.collections) || 0;
+
               const achievementPercentage =
-                latestTarget.amount && latestTarget.achievement
+                latestTarget.amount && latestTarget.amount > 0
                   ? (
                       (latestTarget.achievement / latestTarget.amount) *
                       100
@@ -276,11 +230,11 @@ const EmployeeSection = ({
 
               return (
                 <div
-                  key={rowIndex}
-                  className="flex flex-row text-center gap-2 text-[#777777] text-sm font-medium flex-wrap"
+                  key={employee._id}
+                  className="flex flex-row text-center gap-2 text-[#777777] text-sm font-medium flex-wrap border-b py-2"
                 >
                   <div className="flex-1 line-clamp-1">{employee.name}</div>
-                  <div className="flex-1">{employee.role}</div>
+                  <div className="flex-1">{employee.designation}</div>
                   <div className="flex-1 cursor-pointer">
                     {employee.statuscount?.appointmentCount || "0"}
                   </div>
@@ -294,36 +248,32 @@ const EmployeeSection = ({
                   </div>
 
                   <div className="flex-1">
-                    {latestTarget.amount
-                      ? rupeeFormatter.format(latestTarget.amount)
-                      : "0"}
+                    {rupeeFormatter.format(latestTarget.amount)}
                   </div>
                   <div
                     className="flex-1 cursor-pointer"
                     onClick={() => openModal("Update Target", employee)}
                   >
-                    {latestTarget.achievement
-                      ? rupeeFormatter.format(latestTarget.achievement)
-                      : "0"}
+                    {rupeeFormatter.format(latestTarget.achievement)}
                   </div>
                   <div className="flex-1">
-                    {rupeeFormatter.format(
-                      getTotalCollection(employee.collections)
-                    )}
+                    {rupeeFormatter.format(totalCollectionForPeriod)}
                   </div>
                   <div className="flex-1">{achievementPercentage}%</div>
                 </div>
               );
             })
           ) : (
-            <div>No employees available</div>
+            <div className="text-center py-4 text-gray-500">
+              No employees available.
+            </div>
           )}
         </div>
       </div>
       <Modal
         isOpen={isModalOpen}
         onRequestClose={closeModal}
-        contentLabel="Add Target Modal"
+        contentLabel="Target Modal"
         className="modal-content"
         overlayClassName="modal-overlay"
       >
