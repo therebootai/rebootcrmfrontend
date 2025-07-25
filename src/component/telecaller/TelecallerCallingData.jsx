@@ -93,13 +93,13 @@ const TelecallerCallingData = () => {
     return utcDate.toISOString();
   };
 
-  // --- calculateCounts: Aggregates dashboard numbers based on fetched data ---
   const calculateCounts = useCallback(
     (data) => {
       const totalBusiness = data.totalCount || 0;
       const followUps = data.statusCount?.FollowupCount || 0;
       const visits = data.statusCount?.visitCount || 0;
       const dealCloses = data.statusCount?.dealCloseCount || 0;
+      const appointments = data.statusCount?.appointmentCount || 0;
 
       let totalTargetsAmount = 0;
       let totalAchievementsAmount = 0;
@@ -143,6 +143,7 @@ const TelecallerCallingData = () => {
         followUps,
         visits,
         dealCloses,
+        appointments,
         target: {
           amount: totalTargetsAmount,
           achievement: totalAchievementsAmount,
@@ -254,7 +255,8 @@ const TelecallerCallingData = () => {
 
       // Pass the telecaller's targets to calculateCounts
       calculateCounts({
-        businesses: uniqueBusinessesArray,
+        totalCount: busisnessResponse.data.totalCount,
+        statusCount: busisnessResponse.data.statusCount,
         targets: telecallerData.targets || [],
       });
     } catch (error) {
@@ -443,7 +445,7 @@ const TelecallerCallingData = () => {
   const handleUpdate = (updatedBusiness) => {
     setBusinesses((prevBusinesses) =>
       prevBusinesses.map((business) =>
-        business.businessId === updatedBusiness.businessId
+        business._id === updatedBusiness._id
           ? { ...business, ...updatedBusiness }
           : business
       )
@@ -469,7 +471,8 @@ const TelecallerCallingData = () => {
   const dashboard = [
     { name: "Total Business", number: counts.totalBusiness },
     { name: "Follow Ups", number: counts.followUps },
-    { name: "Appointment Generated", number: counts.visits },
+    { name: "Visited", number: counts.visits },
+    { name: "Appointment Generated", number: counts.appointments },
     { name: "Deal Close", number: counts.dealCloses },
     {
       name: "Achievement",

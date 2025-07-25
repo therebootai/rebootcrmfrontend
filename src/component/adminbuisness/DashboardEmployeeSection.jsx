@@ -21,6 +21,17 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString("en-IN", options) + " ";
 };
 
+const toUTCISOStringForQuery = (date, isEndDate = false) => {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isEndDate) {
+    d.setHours(23, 59, 59, 999);
+  } else {
+    d.setHours(0, 0, 0, 0);
+  }
+  return d.toISOString();
+};
+
 const DashboardEmployeeSection = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -41,6 +52,203 @@ const DashboardEmployeeSection = () => {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(true);
+
+  const fetchBusinessCountsForEmployee = useCallback(
+    async (employeeId, currentComponentDateRange) => {
+      try {
+        // Prepare base date parameters, which will be the same for all three calls
+        const baseDateParams = {
+          createdstartdate: toUTCISOStringForQuery(
+            currentComponentDateRange.startDate
+          ),
+          createdenddate: toUTCISOStringForQuery(
+            currentComponentDateRange.endDate,
+            true
+          ),
+          appointmentstartdate: toUTCISOStringForQuery(
+            currentComponentDateRange.startDate
+          ),
+          appointmentenddate: toUTCISOStringForQuery(
+            currentComponentDateRange.endDate,
+            true
+          ),
+          followupstartdate: toUTCISOStringForQuery(
+            currentComponentDateRange.startDate
+          ),
+          followupenddate: toUTCISOStringForQuery(
+            currentComponentDateRange.endDate,
+            true
+          ),
+        };
+
+        // Helper function to create cleaned parameters for each request
+        const getCleanedParams = (additionalFilter) => {
+          const params = { ...baseDateParams, ...additionalFilter };
+          const cleaned = {};
+          for (const key in params) {
+            if (params[key] !== null) {
+              // Only include parameters that are not null
+              cleaned[key] = params[key];
+            }
+          }
+          return cleaned;
+        };
+
+        const baseUrl = `${import.meta.env.VITE_BASE_URL}/api/business/get`;
+
+        // --- 1. Fetch for `createdBy` ---
+        const createdByParams = getCleanedParams({ createdBy: employeeId });
+        console.log(
+          `[Counts] CreatedBy Request for ${employeeId}. Params:`,
+          createdByParams
+        );
+        const createdByResponsePromise = axios.get(baseUrl, {
+          params: createdByParams,
+        });
+
+        // --- 2. Fetch for `leadBy` ---
+        const leadByParams = getCleanedParams({ leadBy: employeeId });
+        console.log(
+          `[Counts] LeadBy Request for ${employeeId}. Params:`,
+          leadByParams
+        );
+        const leadByResponsePromise = axios.get(baseUrl, {
+          params: leadByParams,
+        });
+
+        // --- 3. Fetch for `assignedTo` ---
+        const assignedToParams = getCleanedParams({ assignedTo: employeeId });
+        console.log(
+          `[Counts] AssignedTo Request for ${employeeId}. Params:`,
+          assignedToParams
+        );
+        const assignedToResponsePromise = axios.get(baseUrl, {
+          params: assignedToParams,
+        });
+
+        // Wait for all three requests to complete, using Promise.allSettled to handle individual failures
+        const [createdByRes, leadByRes, assignedToRes] =
+          await Promise.allSettled([
+            createdByResponsePromise,
+            leadByResponsePromise,
+            assignedToResponsePromise,
+          ]);
+
+        // Initialize aggregated status counts and a sum for the final totalCount
+        let aggregatedStatusCount = {
+          FollowupCount: 0,
+          appointmentCount: 0,
+          visitCount: 0,
+          dealCloseCount: 0,
+          created_business_count: 0, // This count will specifically come from the 'createdBy' endpoint
+        };
+        let totalSumOfCounts = 0; // The sum of all relevant individual counts
+
+        // Process createdBy response
+        if (
+          createdByRes.status === "fulfilled" &&
+          createdByRes.value.data.success
+        ) {
+          const data = createdByRes.value.data;
+          console.log(`[Counts] CreatedBy Response for ${employeeId}:`, data);
+          // As per your requirement, created_business_count comes from this endpoint's totalCount or statusCount
+          aggregatedStatusCount.created_business_count =
+            data.statusCount?.created_business_count || data.totalCount || 0;
+
+          // Also add other status counts from this call if applicable (e.g., if a created lead can also be an appointment for this user)
+          aggregatedStatusCount.FollowupCount +=
+            data.statusCount?.FollowupCount || 0;
+          aggregatedStatusCount.appointmentCount +=
+            data.statusCount?.appointmentCount || 0;
+          aggregatedStatusCount.visitCount += data.statusCount?.visitCount || 0;
+          aggregatedStatusCount.dealCloseCount +=
+            data.statusCount?.dealCloseCount || 0;
+        } else if (createdByRes.status === "rejected") {
+          console.error(
+            `[Counts] Failed to fetch createdBy counts for ${employeeId}:`,
+            createdByRes.reason
+          );
+        }
+
+        // Process leadBy response (typically for Telecallers/Digital Marketers)
+        if (leadByRes.status === "fulfilled" && leadByRes.value.data.success) {
+          const data = leadByRes.value.data;
+          console.log(`[Counts] LeadBy Response for ${employeeId}:`, data);
+          aggregatedStatusCount.FollowupCount +=
+            data.statusCount?.FollowupCount || 0;
+          aggregatedStatusCount.appointmentCount +=
+            data.statusCount?.appointmentCount || 0;
+          aggregatedStatusCount.visitCount += data.statusCount?.visitCount || 0;
+          aggregatedStatusCount.dealCloseCount +=
+            data.statusCount?.dealCloseCount || 0;
+        } else if (leadByRes.status === "rejected") {
+          console.error(
+            `[Counts] Failed to fetch leadBy counts for ${employeeId}:`,
+            leadByRes.reason
+          );
+        }
+
+        // Process assignedTo response (typically for BDEs)
+        if (
+          assignedToRes.status === "fulfilled" &&
+          assignedToRes.value.data.success
+        ) {
+          const data = assignedToRes.value.data;
+          console.log(`[Counts] AssignedTo Response for ${employeeId}:`, data);
+          aggregatedStatusCount.FollowupCount +=
+            data.statusCount?.FollowupCount || 0;
+          aggregatedStatusCount.appointmentCount +=
+            data.statusCount?.appointmentCount || 0;
+          aggregatedStatusCount.visitCount += data.statusCount?.visitCount || 0;
+          aggregatedStatusCount.dealCloseCount +=
+            data.statusCount?.dealCloseCount || 0;
+        } else if (assignedToRes.status === "rejected") {
+          console.error(
+            `[Counts] Failed to fetch assignedTo counts for ${employeeId}:`,
+            assignedToRes.reason
+          );
+        }
+
+        // Calculate the final totalCount by summing all aggregated status counts
+        totalSumOfCounts =
+          aggregatedStatusCount.created_business_count +
+          aggregatedStatusCount.FollowupCount +
+          aggregatedStatusCount.appointmentCount +
+          aggregatedStatusCount.visitCount +
+          aggregatedStatusCount.dealCloseCount;
+
+        console.log(
+          `[Counts] Final Aggregated Status Counts for ${employeeId}:`,
+          aggregatedStatusCount
+        );
+        console.log(
+          `[Counts] Final Total Sum of Counts for ${employeeId}:`,
+          totalSumOfCounts
+        );
+
+        return {
+          totalCount: totalSumOfCounts,
+          statusCount: aggregatedStatusCount,
+        };
+      } catch (error) {
+        console.error(
+          `[Counts] Critical error in fetchBusinessCountsForEmployee for ${employeeId}:`,
+          error
+        );
+        return {
+          totalCount: 0,
+          statusCount: {
+            FollowupCount: 0,
+            appointmentCount: 0,
+            visitCount: 0,
+            dealCloseCount: 0,
+            created_business_count: 0,
+          },
+        };
+      }
+    },
+    [] // Dependencies remain empty as it relies on arguments and internal helpers
+  );
 
   const fetchEmployeeBusinessData = useCallback(
     async (
@@ -73,14 +281,14 @@ const DashboardEmployeeSection = () => {
         }/api/business/get?page=${page}`;
 
         if (status === "New Data") {
-          url += `&createdBy=${leadByUserId}`;
+          url += `&createdBy=${leadByUserId}&createdstartdate=${formattedStartDate}&createdenddate=${formattedEndDate}`;
         } else {
           url += `&status=${status}`;
 
           if (role === "telecaller") {
-            url += `&assignedTo=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+            url += `&leadBy=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
           } else if (role === "digitalmarketer") {
-            url += `&assignedTo=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+            url += `&leadBy=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
           } else if (role === "bde") {
             url += `&assignedTo=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
             url += `&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
@@ -190,7 +398,12 @@ const DashboardEmployeeSection = () => {
   };
 
   const fetchEmployeeData = useCallback(async () => {
+    console.log("[fetchEmployeeData] Initiated. Current dateRange:", dateRange);
     try {
+      // Set loading state before fetching
+      // Assuming you have an isLoading state, otherwise add one
+      // setIsLoading(true); // Uncomment if you have an isLoading state
+
       const [telecallersResponse, bdesResponse, digitalMarketersResponse] =
         await Promise.all([
           axios.get(
@@ -208,37 +421,63 @@ const DashboardEmployeeSection = () => {
           ),
         ]);
 
-      setBdeData(
-        bdesResponse.data.users.map((item) => ({
+      const processEmployees = async (users, role) => {
+        const employeesWithRole = users.map((item) => ({
           ...item,
-          role: "BDE",
+          id: item._id,
+          role: role,
           name: item.name,
-        }))
-      );
+        }));
 
-      setTelecallerData(
-        telecallersResponse.data.users.map((item) => ({
-          ...item,
-          role: "Telecaller",
-          name: item.name,
-        }))
-      );
+        const employeesWithCountsPromises = employeesWithRole.map(
+          async (employee) => {
+            const counts = await fetchBusinessCountsForEmployee(
+              employee.id,
+              dateRange // This is the dateRange that `fetchEmployeeData` depends on
+            );
+            return {
+              ...employee,
+              totalCount: counts.totalCount,
+              statuscount: counts.statusCount,
+            };
+          }
+        );
+        return Promise.all(employeesWithCountsPromises);
+      };
 
-      setDigitalMarketerData(
-        digitalMarketersResponse.data.users.map((item) => ({
-          ...item,
-          role: "Digital Marketer",
-          name: item.name,
-        }))
-      );
+      const [telecallersWithData, bdesWithData, digitalMarketersWithData] =
+        await Promise.all([
+          processEmployees(telecallersResponse.data.users, "Telecaller"),
+          processEmployees(bdesResponse.data.users, "BDE"),
+          processEmployees(
+            digitalMarketersResponse.data.users,
+            "Digital Marketer"
+          ),
+        ]);
+
+      setBdeData(bdesWithData);
+      setTelecallerData(telecallersWithData);
+      setDigitalMarketerData(digitalMarketersWithData);
+      console.log("[fetchEmployeeData] Employee data states updated.");
     } catch (error) {
-      console.error("Error fetching employee data:", error);
+      console.error("[fetchEmployeeData] Error fetching employee data:", error);
+    } finally {
+      // setIsLoading(false); // Uncomment if you have an isLoading state
+      console.log("[fetchEmployeeData] Finished.");
     }
-  }, []);
+  }, [dateRange, fetchBusinessCountsForEmployee]); // Correct dependencies
+
+  // --- useEffect to trigger fetchEmployeeData ---
+  useEffect(() => {
+    // This effect runs on mount and whenever fetchEmployeeData (or its dependencies) changes.
+    // Since fetchEmployeeData depends on dateRange, this effect will re-run when dateRange is updated.
+    console.log("[useEffect] Triggered. Calling fetchEmployeeData...");
+    fetchEmployeeData();
+  }, [fetchEmployeeData]);
 
   useEffect(() => {
     fetchEmployeeData();
-  }, [fetchEmployeeData]);
+  }, [fetchEmployeeData, dateRange]);
 
   const handleDateRangeChange = (ranges) => {
     setDateRange({

@@ -28,8 +28,8 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
     appointmentDate: null,
     followUpDate: null,
     remarks: "",
-    appoint_to: "", // Will store User ObjectId for assigned BDE/DM/Telecaller
-    lead_by: "", // Will store User ObjectId of who initially led the business
+    appoint_to: null, // Will store User ObjectId for assigned BDE/DM/Telecaller
+    lead_by: null, // Will store User ObjectId of who initially led the business
   });
   const [errors, setErrors] = useState({});
   const [showFollowUpDate, setShowFollowUpDate] = useState(false);
@@ -59,8 +59,8 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
         city: business.city?._id || business.city || "",
         category: business.category?._id || business.category || "",
         source: business.source?._id || business.source || "",
-        appoint_to: business.appoint_to?._id || business.appoint_to || "",
-        lead_by: business.lead_by?._id || business.lead_by || "",
+        appoint_to: business.appoint_to?._id || business.appoint_to || null,
+        lead_by: business.lead_by?._id || business.lead_by || null,
       };
       setFormData(initialFormData);
       setShowFollowUpDate(initialFormData.status === "Followup");
@@ -136,7 +136,7 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
       if (value !== "Followup" && value !== "Appointment Generated") {
         newFormData.followUpDate = null;
         newFormData.appointmentDate = null;
-        newFormData.appoint_to = ""; // Clear assigned BDE
+        newFormData.appoint_to = null; // Clear assigned BDE
       }
     } else if (name === "appoint_to") {
       // Changed from bdeId to appoint_to
@@ -216,7 +216,7 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
     try {
       const response = await axios.put(
         `${import.meta.env.VITE_BASE_URL}/api/business/update/${
-          business.businessId // Assuming business.businessId is the unique identifier for the URL
+          business._id // Assuming business.businessId is the unique identifier for the URL
         }`,
         formData, // formData now contains correct _id for selects and appoint_to
         {

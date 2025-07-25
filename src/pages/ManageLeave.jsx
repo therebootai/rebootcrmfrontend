@@ -24,25 +24,31 @@ const ManageLeave = () => {
   const fetchEmployeeData = async () => {
     try {
       const [telecallers, bdes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+        axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/users/get?designation=Telecaller`
+        ),
+        axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+        ),
       ]);
 
       setBdeData([
-        ...bdes.data.map((item) => ({
+        ...bdes.data.users.map((item) => ({
           ...item,
           role: "BDE",
-          name: item.bdename,
+          name: item.name,
           id: item._id,
           targets: item.targets || [],
         })),
       ]);
 
       setTelecallerData([
-        ...telecallers.data.map((item) => ({
+        ...telecallers.data.users.map((item) => ({
           ...item,
           role: "Telecaller",
-          name: item.telecallername,
+          name: item.name,
           id: item._id,
           targets: item.targets || [],
         })),
@@ -58,14 +64,14 @@ const ManageLeave = () => {
 
   const combinedData = [...bdeData, ...telecallerData].map((employee) => ({
     ...employee,
-    label: `${employee.name} (${employee.role})`,
+    label: `${employee.name} (${employee.designation})`,
   }));
 
   useEffect(() => {
     const fetchLeaveRequests = async () => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/users/leave/requests`,
+          `${import.meta.env.VITE_BASE_URL}/api/auth/leave/requests`,
           {
             params: {
               userId: selectedEmployee,
@@ -100,7 +106,7 @@ const ManageLeave = () => {
   const handleApprovalChange = async (user, newStatus) => {
     try {
       const response = await axios.put(
-        `${import.meta.env.VITE_BASE_URL}/api/users/leave/requests/${
+        `${import.meta.env.VITE_BASE_URL}/api/auth/leave/requests/${
           user.userId
         }/${user.attendanceRecordId}`,
         {
@@ -228,7 +234,7 @@ const ManageLeave = () => {
             >
               <option value="">Select Employee</option>
               {combinedData.map((employee) => (
-                <option key={employee.id} value={employee._id}>
+                <option key={employee._id} value={employee._id}>
                   {employee.label}
                 </option>
               ))}

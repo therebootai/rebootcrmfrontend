@@ -127,39 +127,30 @@ const BdeBusiness = () => {
           user.assignCategories.map((c) => c._id).join(",")
         );
       }
+      params.append("assignedTo", bdeId);
 
       const generalBusinessParams = new URLSearchParams(params); // Clone baseParams
 
-      // 2. Parameters for leadBy
-      const leadByParams = new URLSearchParams(params); // Clone baseParams
-      leadByParams.append("appointTo", bdeId);
-
       // 3. Parameters for createdBy
       const createdByParams = new URLSearchParams(params); // Clone baseParams
+      createdByParams.delete("assignedTo");
       createdByParams.append("createdBy", bdeId);
 
-      const [businessResponse, leadByResponse, createdByResponse] =
-        await Promise.all([
-          axios.get(
-            `${
-              import.meta.env.VITE_BASE_URL
-            }/api/business/get?${generalBusinessParams.toString()}`
-          ),
-          axios.get(
-            `${
-              import.meta.env.VITE_BASE_URL
-            }/api/business/get?${leadByParams.toString()}`
-          ),
-          axios.get(
-            `${
-              import.meta.env.VITE_BASE_URL
-            }/api/business/get?${createdByParams.toString()}`
-          ),
-        ]);
+      const [businessResponse, createdByResponse] = await Promise.all([
+        axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/business/get?${generalBusinessParams.toString()}`
+        ),
+        axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/business/get?${createdByParams.toString()}`
+        ),
+      ]);
 
       const allBusinesses = [
         ...businessResponse.data.businesses,
-        ...leadByResponse.data.businesses,
         ...createdByResponse.data.businesses,
       ];
 
@@ -175,7 +166,7 @@ const BdeBusiness = () => {
       // Convert the Map values back to an array
       const uniqueBusinessesArray = Array.from(uniqueBusinessesMap.values());
 
-      if (data.success) {
+      if (businessResponse.data.success) {
         setAllBusinesses(uniqueBusinessesArray); // Backend returns paginated and filtered data
         setTotalPages(businessResponse.data.totalPages);
         // setFilteredBusinesses(data.businesses); // REMOVED: No client-side filtering needed

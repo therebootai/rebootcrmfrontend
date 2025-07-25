@@ -2,6 +2,168 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { MdOutlineVisibility } from "react-icons/md";
 import { Link } from "react-router-dom";
+
+const getISTDateString = (dateValue) => {
+  if (!dateValue) return null;
+  try {
+    const d = new Date(dateValue); // Attempt to parse into a Date object
+    if (isNaN(d.getTime())) return null; // Check for invalid date
+
+    const options = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Asia/Kolkata", // Crucial for IST
+    };
+    return new Intl.DateTimeFormat("en-CA", options).format(d); // 'en-CA' gives YYYY-MM-DD
+  } catch (e) {
+    console.error("Error formatting date to IST string:", e);
+    return null;
+  }
+};
+
+// Formats a date value (Date object or string) into a 12-hour time string for IST.
+const formatTo12HourFormat = (timeValue) => {
+  if (!timeValue) return "N/A";
+
+  let dateObj;
+
+  if (timeValue instanceof Date) {
+    dateObj = timeValue; // Already a Date object, no parsing needed
+  } else if (typeof timeValue === "string") {
+    dateObj = new Date(timeValue);
+
+    if (isNaN(dateObj.getTime())) {
+      console.warn(
+        "Direct parsing failed for:",
+        timeValue,
+        "Attempting robust manual parse."
+      );
+
+      const parts = timeValue.match(
+        /(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s(\d{1,2})\s(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec),\s(\d{4}),\s(\d{2}:\d{2}:\d{2})/
+      );
+
+      if (parts && parts.length === 5) {
+        const [, day, monthStr, year, time] = parts;
+        const monthMap = {
+          Jan: 0,
+          Feb: 1,
+          Mar: 2,
+          Apr: 3,
+          May: 4,
+          Jun: 5,
+          Jul: 6,
+          Aug: 7,
+          Sep: 8,
+          Oct: 9,
+          Nov: 10,
+          Dec: 11,
+        };
+        const month = monthMap[monthStr];
+
+        dateObj = new Date(
+          Date.UTC(
+            year,
+            month,
+            day,
+            parseInt(time.substring(0, 2)) - 5,
+            parseInt(time.substring(3, 5)) - 30,
+            parseInt(time.substring(6, 8))
+          )
+        );
+
+        const isoLikeString = `${year}-${(month + 1)
+          .toString()
+          .padStart(2, "0")}-${day.padStart(2, "0")}T${time}`;
+        dateObj = new Date(isoLikeString);
+      } else {
+        console.error(
+          "Manual parsing failed: Could not extract parts from:",
+          timeValue
+        );
+        return "Invalid Time";
+      }
+    }
+  } else {
+    // If timeValue is neither Date nor string
+    return "N/A";
+  }
+
+  // If we reach here, dateObj should be a valid Date object
+  if (isNaN(dateObj.getTime())) {
+    console.error(
+      "Final check: Invalid Date object after parsing attempts:",
+      timeValue
+    );
+    return "Invalid Time";
+  }
+
+  // Now format the valid Date object to the desired 12-hour time for IST
+  return dateObj.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata", // Ensure correct timezone is applied for display
+  });
+};
+
+// Gets attendance record for a specific date, considering IST.
+const getAttendanceForDate = (attendanceList, targetDate) => {
+  let effectiveTargetDate = targetDate;
+
+  if (!effectiveTargetDate) {
+    effectiveTargetDate = new Date(); // Defaults to today if no date provided
+  }
+
+  const targetDateISTString = getISTDateString(effectiveTargetDate);
+
+  if (!targetDateISTString) {
+    console.error("Could not determine target date in IST for comparison.");
+    return {
+      entryTime: "nd",
+      exitTime: "nd",
+      entryLocation: null,
+      exitLocation: null,
+    };
+  }
+
+  // Filter attendance records by comparing their IST date strings
+  const filteredAttendance = attendanceList.filter((record) => {
+    const recordDateISTString = getISTDateString(record.date);
+    return recordDateISTString === targetDateISTString;
+  });
+
+  if (filteredAttendance.length > 0) {
+    const record = filteredAttendance[0]; // Assuming only one valid record per day
+
+    const entryTime = record.entry_time
+      ? formatTo12HourFormat(record.entry_time)
+      : "nd";
+    const exitTime = record.exit_time
+      ? formatTo12HourFormat(record.exit_time)
+      : "nd";
+
+    const entryLocation = {
+      latitude: record.entry_time_location?.latitude ?? null,
+      longitude: record.entry_time_location?.longitude ?? null,
+    };
+    const exitLocation = {
+      latitude: record.exit_time_location?.latitude ?? null,
+      longitude: record.exit_time_location?.longitude ?? null,
+    };
+
+    return { entryTime, exitTime, entryLocation, exitLocation };
+  }
+
+  return {
+    entryTime: "nd",
+    exitTime: "nd",
+    entryLocation: null,
+    exitLocation: null,
+  };
+};
+
 const DataDisplayTable = ({
   headers,
   filteredData,
@@ -9,67 +171,51 @@ const DataDisplayTable = ({
   handleViewDetails,
   dateRange,
 }) => {
-  const [visualData, setVisualData] = useState(filteredData);
+  const [visualData, setVisualData] = useState([]);
+
+  // Helper to ensure the date sent to backend is a clean start/end of day in UTC
+  // to match how MongoDB typically queries date ranges effectively.
+  const toUTCISOStringForQuery = (date, isEndDate = false) => {
+    if (!date) return null;
+    const d = new Date(date);
+    // Setting hours to start/end of day in the *local timezone* of the server
+    // then converting to ISO string effectively captures the whole day in UTC
+    // given typical server setups.
+    if (isEndDate) {
+      d.setHours(23, 59, 59, 999);
+    } else {
+      d.setHours(0, 0, 0, 0);
+    }
+    return d.toISOString();
+  };
 
   const fetchBusinessData = async (employees) => {
     try {
       const businessPromises = employees.map((employee) => {
         const params = {
-          createdstartdate: dateRange.startDate
-            ? new Date(
-                dateRange.startDate.getTime() -
-                  dateRange.startDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : null,
-          createdenddate: dateRange.endDate
-            ? new Date(
-                dateRange.endDate.getTime() -
-                  dateRange.endDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : null,
-          appointmentstartdate: dateRange.startDate
-            ? new Date(
-                dateRange.startDate.getTime() -
-                  dateRange.startDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : null,
-          appointmentenddate: dateRange.endDate
-            ? new Date(
-                dateRange.endDate.getTime() -
-                  dateRange.endDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : null,
-          followupstartdate: dateRange.startDate
-            ? new Date(
-                dateRange.startDate.getTime() -
-                  dateRange.startDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : null,
-          followupenddate: dateRange.endDate
-            ? new Date(
-                dateRange.endDate.getTime() -
-                  dateRange.endDate.getTimezoneOffset() * 60000
-              ).toISOString()
-            : null,
+          createdstartdate: toUTCISOStringForQuery(dateRange.startDate),
+          createdenddate: toUTCISOStringForQuery(dateRange.endDate, true),
+          appointmentstartdate: toUTCISOStringForQuery(dateRange.startDate),
+          appointmentenddate: toUTCISOStringForQuery(dateRange.endDate, true),
+          followupstartdate: toUTCISOStringForQuery(dateRange.startDate),
+          followupenddate: toUTCISOStringForQuery(dateRange.endDate, true),
         };
 
         let url = "";
-
         if (employee.role === "Telecaller") {
-          url = `${
-            import.meta.env.VITE_BASE_URL
-          }/api/business/get?telecallerId=${employee.id}`;
+          url = `${import.meta.env.VITE_BASE_URL}/api/business/get?leadBy=${
+            employee.id
+          }`;
         } else if (employee.role === "Digital Marketer") {
-          url = `${
-            import.meta.env.VITE_BASE_URL
-          }/api/business/get?digitalMarketerId=${employee.id}`;
+          url = `${import.meta.env.VITE_BASE_URL}/api/business/get?leadBy=${
+            employee.id
+          }`;
         } else if (employee.role === "BDE") {
-          url = `${import.meta.env.VITE_BASE_URL}/api/business/get?bdeId=${
+          url = `${import.meta.env.VITE_BASE_URL}/api/business/get?assignedTo=${
             employee.id
           }&byTagAppointment=true`;
         }
 
-        // Attach query params
         return axios
           .get(url, { params })
           .then((response) => ({
@@ -78,7 +224,6 @@ const DataDisplayTable = ({
             statuscount: response.data.statuscount,
             totalCount: response.data.totalCount || 0,
           }))
-
           .catch((err) => {
             console.error(
               `Error fetching business data for ${employee.role}:`,
@@ -94,7 +239,6 @@ const DataDisplayTable = ({
       });
 
       const updatedData = await Promise.all(businessPromises);
-
       setVisualData(updatedData);
     } catch (error) {
       console.error("Error fetching business data:", error);
@@ -102,89 +246,101 @@ const DataDisplayTable = ({
   };
 
   useEffect(() => {
+    // Only fetch if filteredData is available and has items
     if (filteredData && filteredData.length > 0) {
       fetchBusinessData(filteredData);
     } else {
-      setVisualData([]);
+      setVisualData([]); // Clear visual data if filteredData is empty
     }
-  }, [filteredData, dateRange]);
+  }, [filteredData, dateRange]); // Re-run when filteredData or dateRange changes
 
+  // Get the latest target for an employee based on month and year
   const getLatestTarget = (targets) => {
     if (!targets || targets.length === 0) return null;
+
+    // Use a consistent Date object for comparison to handle timezone correctly
     return targets.reduce((latest, current) => {
-      return !latest ||
-        new Date(current.month + " " + current.year) >
-          new Date(latest.month + " " + latest.year)
-        ? current
-        : latest;
+      // Create a Date object from "Month Year" string, ensure it's comparable
+      const currentDate = new Date(`${current.month} 1, ${current.year}`);
+      const latestDate = latest
+        ? new Date(`${latest.month} 1, ${latest.year}`)
+        : null;
+
+      // Handle invalid dates from parsing if any
+      if (isNaN(currentDate.getTime())) return latest;
+
+      if (
+        !latestDate ||
+        isNaN(latestDate.getTime()) ||
+        currentDate.getTime() > latestDate.getTime()
+      ) {
+        return current;
+      }
+      return latest;
     }, null);
   };
 
-  function calculateTotalDayCountByDate(attendanceList, targetDateObj = null) {
+  // Calculate total day count for attendance within a given date range (IST-aware)
+  function calculateTotalDayCountByDate(
+    attendanceList,
+    targetDateRange = null
+  ) {
     let totalDayCount = 0;
-
-    let useDateRangeFilter = false;
-    let startDate = null;
-    let endDate = null;
-
-    // Determine if valid startDate and endDate were provided for filtering
-    if (
-      targetDateObj &&
-      targetDateObj.startDate instanceof Date &&
-      !isNaN(targetDateObj.startDate.getTime()) &&
-      targetDateObj.endDate instanceof Date &&
-      !isNaN(targetDateObj.endDate.getTime())
-    ) {
-      useDateRangeFilter = true;
-      startDate = targetDateObj.startDate;
-      endDate = targetDateObj.endDate;
-
-      // Ensure endDate is at the end of the day for inclusive range
-      endDate.setHours(23, 59, 59, 999);
-    }
 
     if (!attendanceList || attendanceList.length === 0) {
       return totalDayCount;
     }
 
-    attendanceList.forEach((record) => {
-      // Check for both 'date' and 'date.$date' to handle different date formats if needed
-      // Assuming 'record.date' is the primary field for date information
-      if (record.date) {
-        const recordDate = new Date(record.date);
+    let filterStartDateIST = null;
+    let filterEndDateIST = null;
 
-        if (isNaN(recordDate.getTime())) {
+    // Determine if valid startDate and endDate were provided for filtering
+    if (
+      targetDateRange &&
+      targetDateRange.startDate instanceof Date &&
+      !isNaN(targetDateRange.startDate.getTime()) &&
+      targetDateRange.endDate instanceof Date &&
+      !isNaN(targetDateRange.endDate.getTime())
+    ) {
+      // Get the IST date strings for the start and end of the filter range
+      filterStartDateIST = getISTDateString(targetDateRange.startDate);
+      filterEndDateIST = getISTDateString(targetDateRange.endDate);
+    }
+
+    attendanceList.forEach((record) => {
+      if (record.date) {
+        const recordDateISTString = getISTDateString(record.date); // Get IST date for record
+
+        if (!recordDateISTString) {
           console.warn(
-            `Warning: Invalid date string '${record.date}' in attendance record. Skipping.`
+            `Warning: Invalid date in attendance record for IST comparison. Skipping: ${record.date}`
           );
           return;
         }
 
-        if (useDateRangeFilter) {
-          if (recordDate >= startDate && recordDate <= endDate) {
+        if (filterStartDateIST && filterEndDateIST) {
+          // Compare IST date strings for range inclusion
+          if (
+            recordDateISTString >= filterStartDateIST &&
+            recordDateISTString <= filterEndDateIST
+          ) {
             const dayCountValue = parseFloat(record.day_count);
             if (!isNaN(dayCountValue)) {
               totalDayCount += dayCountValue;
             } else {
               console.warn(
-                `Warning: Invalid day_count '${
-                  record.day_count
-                }' for record on ${
-                  recordDate.toISOString().split("T")[0]
-                }. Skipping.`
+                `Warning: Invalid day_count '${record.day_count}' for record on ${recordDateISTString}. Skipping.`
               );
             }
           }
         } else {
-          // No date range filter, sum all day_count values
+          // If no specific date range filter is active, sum all day_count values
           const dayCountValue = parseFloat(record.day_count);
           if (!isNaN(dayCountValue)) {
             totalDayCount += dayCountValue;
           } else {
             console.warn(
-              `Warning: Invalid day_count '${record.day_count}' for record on ${
-                recordDate.toISOString().split("T")[0]
-              }. Skipping.`
+              `Warning: Invalid day_count '${record.day_count}'. Skipping.`
             );
           }
         }
@@ -198,56 +354,7 @@ const DataDisplayTable = ({
     return totalDayCount;
   }
 
-  const formatTo12HourFormat = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
-
-  const getAttendanceForDate = (attendanceList, targetDate) => {
-    // If no target date is provided (i.e., dateRange is cleared), set the target to today's date
-    if (!targetDate) {
-      targetDate = new Date(); // Set to today's date
-    }
-
-    const filteredAttendance = attendanceList.filter((record) => {
-      const recordDate = new Date(record.date);
-      return (
-        recordDate.getFullYear() === targetDate.getFullYear() &&
-        recordDate.getMonth() === targetDate.getMonth() &&
-        recordDate.getDate() === targetDate.getDate()
-      );
-    });
-
-    if (filteredAttendance.length > 0) {
-      const record = filteredAttendance[0];
-
-      const entryTime = record.entry_time
-        ? formatTo12HourFormat(record.entry_time)
-        : "nd";
-      const exitTime = record.exit_time
-        ? formatTo12HourFormat(record.exit_time)
-        : "nd";
-
-      const entryLocation = {
-        latitude: record.entry_time_location?.latitude ?? null,
-        longitude: record.entry_time_location?.longitude ?? null,
-      };
-      const exitLocation = {
-        latitude: record.exit_time_location?.latitude ?? null,
-        longitude: record.exit_time_location?.longitude ?? null,
-      };
-
-      return { entryTime, exitTime, entryLocation, exitLocation };
-    }
-
-    return { entryTime: "nd", exitTime: "nd" };
-  };
-
-  const isBDE = (employee) => employee.role === "BDE";
+  const isBDE = (employee) => employee.designation === "BDE";
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
@@ -258,8 +365,8 @@ const DataDisplayTable = ({
         ))}
       </div>
       <div className="flex flex-col gap-4">
-        {visualData?.length > 0 ? (
-          visualData?.map((employee, rowIndex) => {
+        {filteredData?.length > 0 ? (
+          filteredData?.map((employee, rowIndex) => {
             const latestTarget = getLatestTarget(employee.targets) || {
               amount: 0,
               achievement: 0,

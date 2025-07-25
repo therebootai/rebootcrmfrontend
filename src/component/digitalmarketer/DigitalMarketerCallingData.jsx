@@ -189,7 +189,7 @@ const DigitalMarketerCallingData = () => {
   const handleUpdate = (updatedBusiness) => {
     setBusinesses((prevBusinesses) =>
       prevBusinesses.map((business) =>
-        business.businessId === selectedBusiness.businessId
+        business._id === selectedBusiness._id
           ? { ...business, ...updatedBusiness }
           : business
       )

@@ -80,21 +80,6 @@ const ManageBusiness = ({
   // ensuring consistency with pagination and sorting.
   // For now, we'll update the local state which is `businesses` prop.
   const handleEditSuccess = (updatedBusiness) => {
-    // This assumes `businesses` is mutable or we create a new array.
-    // In React, it's better to pass an update function to the parent to re-fetch.
-    // For direct local update, you'd modify the prop or trigger parent re-fetch.
-    // If you expect `businesses` to be directly updated, consider if this is
-    // truly reflecting the backend state, especially with pagination.
-    // The best approach is to make the parent component re-fetch the data after an edit.
-    // For now, this local update works for immediate visual feedback.
-    // If you're using `setData` (which was removed), this would be `setData((prevData) => ...)`
-    // Since `businesses` is a prop, we usually don't modify it directly.
-    // The parent's `fetchAllBusinesses` would be called after a successful edit.
-    // For this example, I'll remove the `handleEditSuccess` internal update logic
-    // and assume the parent will re-fetch. If `EditBusiness` successfully updates
-    // the backend, the parent's `useEffect` for `businesses` will trigger.
-
-    // Removed direct modification of `businesses` prop, rely on parent re-fetch.
     setEditModalIsOpen(false);
     setSelectedBusiness(null);
     // You might want to call a prop function like `onBusinessUpdated()` here
@@ -116,21 +101,9 @@ const ManageBusiness = ({
           businessToDelete._id
         }` // Use _id for delete
       );
-      // After successful delete, trigger a re-fetch in the parent component
-      // to update the list and pagination correctly.
-      // If you're using a context or global state, update it there.
-      // For now, we assume the parent handles the `businesses` prop update.
-      // This means the parent `AddAndManageBuisness` needs to re-run `fetchAllBusinesses`.
-      // You could pass a prop `onDeleteSuccess` from parent.
-      // For example: props.onDeleteSuccess();
 
       setDeleteModalIsOpen(false);
       setBusinessToDelete(null);
-      // A simple way to trigger re-render and re-fetch in the parent:
-      // If you are expecting `businesses` to be dynamically updated here,
-      // you need to pass a callback from the parent, e.g., `onDelete(businessId)`
-      // or make the parent re-fetch.
-      // For now, I'm assuming the parent will handle re-fetching.
     } catch (error) {
       console.error("Error deleting business", error);
       alert("Failed to delete business. Please try again.");

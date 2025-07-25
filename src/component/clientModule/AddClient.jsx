@@ -30,13 +30,13 @@ const AddClient = ({ closeModal, existingData = null, fetchAllClients }) => {
   useEffect(() => {
     const fetchData = async () => {
       const bdeResponse = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/bde/get`
+        `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
       );
-      setBdes(bdeResponse.data);
+      setBdes(bdeResponse.data.users);
       const tmeResponse = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/telecaller/get`
+        `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=Telecaller`
       );
-      setTelecalers(tmeResponse.data);
+      setTelecalers(tmeResponse.data.users);
     };
     fetchData();
   }, []);
@@ -304,7 +304,7 @@ const AddClient = ({ closeModal, existingData = null, fetchAllClients }) => {
             >
               <option value="">Choose BDE</option>
               {bdes.map((item) => (
-                <option value={item._id}>{item.bdename}</option>
+                <option value={item._id}>{item.name}</option>
               ))}
             </select>
           </div>
@@ -321,7 +321,7 @@ const AddClient = ({ closeModal, existingData = null, fetchAllClients }) => {
             >
               <option value="">Choose TME</option>
               {telecalers.map((item) => (
-                <option value={item._id}>{item.telecallername}</option>
+                <option value={item._id}>{item.name}</option>
               ))}
             </select>
           </div>

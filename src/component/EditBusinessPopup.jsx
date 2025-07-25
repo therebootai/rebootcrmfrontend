@@ -12,9 +12,7 @@ const EditBusinessPopup = ({ show, onClose, business, onUpdate }) => {
     business.followUpDate ? new Date(business.followUpDate) : null
   );
   const [bdeList, setBdeList] = useState([]);
-  const [selectedBdeId, setSelectedBdeId] = useState(
-    business.tagAppointment || ""
-  );
+  const [selectedBdeId, setSelectedBdeId] = useState(business.appoint_to || "");
   const [appointmentDate, setAppointmentDate] = useState(
     business.appointmentDate ? new Date(business.appointmentDate) : null
   );
@@ -23,9 +21,9 @@ const EditBusinessPopup = ({ show, onClose, business, onUpdate }) => {
     const fetchBdeList = async () => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/bde/get`
+          `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
         );
-        setBdeList(response.data);
+        setBdeList(response.data.users);
       } catch (error) {
         console.error("Error fetching BDE list:", error);
       }
@@ -43,9 +41,7 @@ const EditBusinessPopup = ({ show, onClose, business, onUpdate }) => {
       };
 
       await axios.put(
-        `${import.meta.env.VITE_BASE_URL}/api/business/update/${
-          business.businessId
-        }`,
+        `${import.meta.env.VITE_BASE_URL}/api/business/update/${business._id}`,
         updatedBusiness
       );
 
@@ -56,42 +52,45 @@ const EditBusinessPopup = ({ show, onClose, business, onUpdate }) => {
         appointmentDate
       ) {
         await axios.put(
-          `${import.meta.env.VITE_BASE_URL}/api/business/tagappointment/${
-            business.businessId
+          `${import.meta.env.VITE_BASE_URL}/api/business/update/${
+            business._id
           }`,
           {
-            bdeId: selectedBdeId,
+            appoint_to: selectedBdeId,
             appointmentDate: appointmentDate.toISOString(),
           }
         );
-
-        await axios.post(
-          `${import.meta.env.VITE_BASE_URL}/api/send-notification`,
-          {
-            targetUserId: selectedBdeId,
-            title: "New Business Appointment has been Assigned",
-            body: `New Business named ${
-              business.buisnessname
-            } has been assigned to you on ${appointmentDate.toLocaleDateString(
-              "en-IN",
-              {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-              }
-            )} at ${appointmentDate.toLocaleTimeString("en-IN", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-            })}. Please check the details and get in touch with the customer.`,
-          }
-        );
+        try {
+          await axios.post(
+            `${import.meta.env.VITE_BASE_URL}/api/send-notification`,
+            {
+              targetUserId: selectedBdeId,
+              title: "New Business Appointment has been Assigned",
+              body: `New Business named ${
+                business.buisnessname
+              } has been assigned to you on ${appointmentDate.toLocaleDateString(
+                "en-IN",
+                {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                }
+              )} at ${appointmentDate.toLocaleTimeString("en-IN", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })}. Please check the details and get in touch with the customer.`,
+            }
+          );
+        } catch (error) {
+          console.error("Error sending notification:", error);
+        }
       }
 
       onUpdate({
         ...business,
         ...updatedBusiness,
-        tagAppointment: selectedBdeId,
+        appoint_to: selectedBdeId,
         appointmentDate: appointmentDate,
       });
 
@@ -156,8 +155,8 @@ const EditBusinessPopup = ({ show, onClose, business, onUpdate }) => {
             >
               <option value="">Select BDE</option>
               {bdeList.map((bde) => (
-                <option key={bde.bdeId} value={bde.bdeId}>
-                  {bde.bdename}
+                <option key={bde._id} value={bde._id}>
+                  {bde.name}
                 </option>
               ))}
             </select>

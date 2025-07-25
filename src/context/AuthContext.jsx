@@ -13,20 +13,13 @@ const AuthContextProvider = ({ children }) => {
     if (userData) {
       setUser(userData);
       setIsAuthenticated(true);
-      // Store the token and the entire user object in localStorage
       localStorage.setItem("token", localStorage.getItem("token")); // Keep existing token
       localStorage.setItem("user", JSON.stringify(userData));
     } else {
       setUser(null);
       setIsAuthenticated(false);
-      // Clear all authentication-related items from localStorage
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      // IMPORTANT: Remove any other legacy items if you had them
-      // localStorage.removeItem("role");
-      // localStorage.removeItem("name");
-      // localStorage.removeItem("telecallerId");
-      // localStorage.removeItem("bdeId");
     }
   };
 
@@ -36,8 +29,6 @@ const AuthContextProvider = ({ children }) => {
     if (!user || !user.designation) return false;
     // Assuming user.role is a single string (e.g., "admin", "telecaller")
     return requiredRoles.includes(user.designation.toLowerCase());
-    // If user.role could be an array of roles (e.g., ["admin", "editor"]):
-    // return requiredRoles.some(role => user.role.includes(role));
   };
 
   // Function to fetch current user data from the backend using the /check-me endpoint

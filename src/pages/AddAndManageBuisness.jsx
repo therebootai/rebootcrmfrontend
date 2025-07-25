@@ -219,9 +219,6 @@ const AddAndManageBuisness = () => {
     getAllUsers(); // Fetch all users when filters are loaded
   }, [getAllUsers, isNewDataImport]); // isNewDataImport will trigger re-fetch after import
 
-  // --- Client-side filtering (REMOVED - Backend handles this) ---
-  // const applyFilters = (data) => { ... }
-
   // --- Export Function ---
   const handleExport = () => {
     // Export all current businesses (already filtered/paginated by backend)
