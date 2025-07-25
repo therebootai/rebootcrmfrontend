@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { AuthContext } from "../../context/AuthContext";
+import { set } from "date-fns";
 
 const statusOptions = [
   "Fresh Data",
@@ -14,7 +16,7 @@ const statusOptions = [
   "Deal Closed",
 ];
 
-const AddBuisness = ({ onAddBusiness, currentUserId }) => {
+const AddBuisness = ({ onAddBusiness }) => {
   // currentUserId comes as a prop
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -41,23 +43,22 @@ const AddBuisness = ({ onAddBusiness, currentUserId }) => {
   });
   const [errors, setErrors] = useState({});
 
+  const { user } = useContext(AuthContext);
+
   // Effect to set lead_by from currentUserId prop
   useEffect(() => {
-    if (currentUserId !== "Admin") {
+    setFormData((prevData) => ({
+      ...prevData,
+      created_by: user._id,
+    }));
+    if (user.designation !== "Admin") {
       setFormData((prevData) => ({
         ...prevData,
-        lead_by: currentUserId,
+        lead_by: user._id,
       }));
     }
-  }, [currentUserId]); // Dependency array ensures it updates if currentUserId changes
+  }, [user]); // Dependency array ensures it updates if currentUserId changes
 
-  // ... (rest of the AddBuisness component remains as previously updated)
-  // Ensure the fetching logic and handleSubmit correctly use the formData.lead_by
-  // which is populated by the currentUserId prop.
-
-  // The rest of the component (fetching dropdowns, handleInputChange, handleSubmit, return JSX)
-  // is exactly as provided in the previous response.
-  // ...
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     let newFormData = { ...formData };
@@ -69,7 +70,7 @@ const AddBuisness = ({ onAddBusiness, currentUserId }) => {
       }
       newFormData[name] = sanitizedValue;
     } else if (name === "city") {
-      const selectedCityObj = cities.find((c) => c.cityname === value);
+      const selectedCityObj = cities.find((c) => c._id === value);
       newFormData.city = selectedCityObj ? selectedCityObj._id : "";
     } else if (name === "category") {
       const selectedCategoryObj = categories.find(
@@ -87,7 +88,7 @@ const AddBuisness = ({ onAddBusiness, currentUserId }) => {
       if (value !== "Followup" && value !== "Appointment Generated") {
         newFormData.followUpDate = null;
         newFormData.appointmentDate = null;
-        newFormData.appoint_to = "";
+        newFormData.appoint_to = null;
       }
     } else if (name === "appoint_to") {
       newFormData.appoint_to = value;
@@ -190,11 +191,6 @@ const AddBuisness = ({ onAddBusiness, currentUserId }) => {
       console.error("Form validation failed:", newErrors);
       return;
     }
-
-    const formDataWithUserId = {
-      ...formData,
-      user: currentUserId,
-    };
 
     try {
       const response = await axios.post(

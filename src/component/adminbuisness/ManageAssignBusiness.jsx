@@ -17,13 +17,23 @@ const ManageAssignBusiness = ({ shouldRefresh }) => {
   const fetchData = async () => {
     try {
       const [telecallers, digitalMarketers, bdes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/digitalmarketer/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+        axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/users/get?designation=Telecaller`
+        ),
+        axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/users/get?designation=DigitalMarketer`
+        ),
+        axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+        ),
       ]);
 
       const combinedData = [
-        ...telecallers.data
+        ...telecallers.data.users
           .filter(
             (item) =>
               item.assignCategories.length > 0 || item.assignCities.length > 0
@@ -31,10 +41,10 @@ const ManageAssignBusiness = ({ shouldRefresh }) => {
           .map((item) => ({
             ...item,
             role: "Telecaller",
-            name: item.telecallername,
-            id: item.telecallerId,
+            name: item.name,
+            id: item._id,
           })),
-        ...digitalMarketers.data
+        ...digitalMarketers.data.users
           .filter(
             (item) =>
               item.assignCategories.length > 0 || item.assignCities.length > 0
@@ -42,10 +52,10 @@ const ManageAssignBusiness = ({ shouldRefresh }) => {
           .map((item) => ({
             ...item,
             role: "Digital Marketer",
-            name: item.digitalMarketername,
-            id: item.digitalMarketerId,
+            name: item.name,
+            id: item._id,
           })),
-        ...bdes.data
+        ...bdes.data.users
           .filter(
             (item) =>
               item.assignCategories.length > 0 || item.assignCities.length > 0
@@ -53,8 +63,8 @@ const ManageAssignBusiness = ({ shouldRefresh }) => {
           .map((item) => ({
             ...item,
             role: "BDE",
-            name: item.bdename,
-            id: item.bdeId,
+            name: item.name,
+            id: item._id,
           })),
       ];
 
@@ -125,13 +135,13 @@ const ManageAssignBusiness = ({ shouldRefresh }) => {
             <div className="flex-1">{row.name}</div>
             <div className="flex-1">
               {row.assignCategories
-                .map((assign) => assign.category)
+                .map((assign) => assign.categoryname)
                 .filter(Boolean)
                 .join(", ")}
             </div>
             <div className="flex-1">
               {row.assignCities
-                .map((assign) => assign.city)
+                .map((assign) => assign.cityname)
                 .filter(Boolean)
                 .join(", ")}
             </div>
@@ -175,14 +185,14 @@ const ManageAssignBusiness = ({ shouldRefresh }) => {
             <p>
               Assigned Categories:{" "}
               {viewUser.assignCategories
-                .map((assign) => assign.category)
+                .map((assign) => assign.categoryname)
                 .filter(Boolean)
                 .join(", ")}
             </p>
             <p>
               Assigned Cities:{" "}
               {viewUser.assignCities
-                .map((assign) => assign.city)
+                .map((assign) => assign.cityname)
                 .filter(Boolean)
                 .join(", ")}
             </p>

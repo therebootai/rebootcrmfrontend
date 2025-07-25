@@ -101,13 +101,14 @@ const BdeAppointmentData = () => {
     (data) => {
       const totalBusiness = data.totalCount || 0;
       const followUps = data.statusCount?.FollowupCount || 0;
-      const visits = data.statusCount?.appointmentCount || 0; // Backend sends 'appointmentCount' for 'Visit' in BDE context
+      const visits = data.statusCount?.visitCount || 0;
       const dealCloses = data.statusCount?.dealCloseCount || 0;
+      const appointments = data.statusCount?.appointmentCount || 0;
 
       let totalTargetsAmount = 0;
       let totalAchievementsAmount = 0;
 
-      // Sum targets and achievements from the BDE's targets array within the selected date range
+      // Sum targets and achievements from the telecaller's targets array within the selected date range
       if (data.targets && Array.isArray(data.targets)) {
         data.targets.forEach((target) => {
           if (target.month && target.year) {
@@ -126,7 +127,7 @@ const BdeAppointmentData = () => {
                   new Date(
                     dateRange.endDate.getFullYear(),
                     dateRange.endDate.getMonth() + 1,
-                    0 // Last day of the month
+                    0
                   ))
             ) {
               totalTargetsAmount += parseFloat(target.amount || 0);
@@ -146,6 +147,7 @@ const BdeAppointmentData = () => {
         followUps,
         visits,
         dealCloses,
+        appointments,
         target: {
           amount: totalTargetsAmount,
           achievement: totalAchievementsAmount,
@@ -153,17 +155,15 @@ const BdeAppointmentData = () => {
         },
       });
     },
-    [dateRange] // Dependency: dateRange to recalculate counts when filter changes
-  );
+    [dateRange]
+  ); // Dependency: dateRange to recalculate counts when filter changes
 
   // --- fetchBusinessesData: Fetches business data and BDE targets from backend ---
   const fetchBusinessesData = useCallback(async () => {
     setFetchLoading(true);
     try {
       let params = {
-        // Send assignedTo and createdBy as the current bdeId
-        assignedTo: bdeId, // BDE is assignedTo
-        createdBy: bdeId, // BDE also creates businesses
+        assignedTo: bdeId,
         page: currentPage,
         limit: itemsPerPage,
         appointmentstartdate: dateRange.startDate // BDE filters by appointmentDate
@@ -211,24 +211,17 @@ const BdeAppointmentData = () => {
         )
       );
 
-      const [busisnessResponse, leadByResponse, createdByResponse] =
-        await Promise.all([
-          axios.get(`${import.meta.env.VITE_BASE_URL}/api/business/get`, {
-            params: filteredParams,
-          }),
-          axios.get(`${import.meta.env.VITE_BASE_URL}/api/business/get`, {
-            params: {
-              ...filteredParams,
-              appointTo: bdeId,
-            },
-          }),
-          axios.get(`${import.meta.env.VITE_BASE_URL}/api/business/get`, {
-            params: {
-              ...filteredParams,
-              createdBy: bdeId,
-            },
-          }),
-        ]);
+      const [busisnessResponse, createdByResponse] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/business/get`, {
+          params: filteredParams,
+        }),
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/business/get`, {
+          params: {
+            ...filteredParams,
+            createdBy: bdeId,
+          },
+        }),
+      ]);
 
       // Fetch BDE's own data for targets (from /api/users endpoint, assuming BDEs are Users)
       const bdeResponse = await axios.get(
@@ -239,7 +232,6 @@ const BdeAppointmentData = () => {
 
       const allBusinesses = [
         ...busisnessResponse.data.businesses,
-        ...leadByResponse.data.businesses,
         ...createdByResponse.data.businesses,
       ];
 
@@ -260,7 +252,8 @@ const BdeAppointmentData = () => {
 
       // Pass the BDE's targets to calculateCounts
       calculateCounts({
-        businesses: uniqueBusinessesArray,
+        totalCount: busisnessResponse.data.totalCount,
+        statusCount: busisnessResponse.data.statusCount,
         targets: bdeData.targets || [],
       });
     } catch (error) {
@@ -496,7 +489,8 @@ const BdeAppointmentData = () => {
   const dashboard = [
     { name: "Total Business", number: counts.totalBusiness },
     { name: "Follow Ups", number: counts.followUps },
-    { name: "Visit", number: counts.visits }, // Renamed from Appointment Generated to Visit as per BDE context
+    { name: "Visited", number: counts.visits },
+    { name: "Appointment Generated", number: counts.appointments },
     { name: "Deal Close", number: counts.dealCloses },
     {
       name: "Achievement",
@@ -656,12 +650,6 @@ const BdeAppointmentData = () => {
                     </div>
                     <div className="flex text-lg gap-4 ">
                       <div
-                        className=" cursor-pointer text-[#00A3FF]"
-                        onClick={() => handleEdit(business)}
-                      >
-                        <FaRegEdit />
-                      </div>
-                      <div
                         onClick={() => handleCopy(business)}
                         className=" cursor-pointer text-[#777777]"
                       >
@@ -728,15 +716,6 @@ const BdeAppointmentData = () => {
                         className="px-2 p-1 bg-[#FF2722] rounded-md text-sm font-semibold"
                       >
                         Send Proposal
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedBusiness(business);
-                          setShowVisitPopup(true);
-                        }}
-                        className="px-2 p-1 bg-green-500 rounded-md text-sm font-semibold"
-                      >
-                        Mark Visited
                       </button>
                     </div>
                   </div>
