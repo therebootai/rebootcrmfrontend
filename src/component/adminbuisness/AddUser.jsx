@@ -75,7 +75,7 @@ const AddUserFromEmployeeForm = ({ closeModal }) => {
       newErrors.role = "Please select an organization role";
       formValid = false;
     }
-    if (!password) {
+    if (!password.trim()) {
       newErrors.password = "Password is required";
       formValid = false;
     }

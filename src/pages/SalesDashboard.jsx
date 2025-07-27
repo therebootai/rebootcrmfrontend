@@ -82,32 +82,6 @@ const SalesDashboard = () => {
     []
   );
 
-  // --- Helper: Calculates total Sales Achievement for a user within a given date range ---
-  const calculateSalesAchievementForRange = useCallback(
-    (targets, startDate, endDate) => {
-      let totalAchievement = 0;
-      if (!targets || !Array.isArray(targets)) return 0;
-
-      const start = startDate ? new Date(startDate) : null;
-      const end = endDate ? new Date(endDate) : null;
-
-      targets.forEach((target) => {
-        if (target.month && target.year) {
-          const targetDate = new Date(`${target.month} 1, ${target.year}`);
-          if (
-            !isNaN(targetDate.getTime()) &&
-            (!start || targetDate >= start) &&
-            (!end || targetDate <= end)
-          ) {
-            totalAchievement += parseFloat(target.achievement || 0); // Use parseFloat and default to 0
-          }
-        }
-      });
-      return totalAchievement;
-    },
-    []
-  );
-
   // --- Helper: Calculates total Collection for a user within a given date range ---
   const calculateCollectionForRange = useCallback(
     (targets, startDate, endDate) => {

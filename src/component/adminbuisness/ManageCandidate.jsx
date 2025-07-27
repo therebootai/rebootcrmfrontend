@@ -6,6 +6,7 @@ import { RiDeleteBin5Line } from "react-icons/ri";
 import Modal from "react-modal";
 import EditCandidte from "./EditCandidte";
 import { Link } from "react-router-dom";
+import SendSingleProposal from "./SendSingleProposal";
 
 Modal.setAppElement("#root"); // Set the root element for accessibility
 
@@ -16,6 +17,8 @@ const ManageCandidate = ({ candidates }) => {
   const [editModalIsOpen, setEditModalIsOpen] = useState(false);
   const [deleteModalIsOpen, setDeleteModalIsOpen] = useState(false);
   const [candidateToDelete, setCandidateToDelete] = useState(null);
+  const [proposalModal, setProposalModal] = useState(false);
+  const [proposalNumber, setProposalNumber] = useState(null);
 
   const closeModal = () => {
     setViewModalIsOpen(false);
@@ -133,7 +136,15 @@ const ManageCandidate = ({ candidates }) => {
             className="flex flex-row gap-2 text-[#777777] text-sm font-medium"
           >
             <div className="flex-1">{row.candidatename}</div>
-            <div className="flex-1">{row.mobileNumber}</div>
+            <div
+              className="flex-1 cursor-pointer"
+              onClick={() => {
+                setProposalModal(true);
+                setProposalNumber(row.mobileNumber);
+              }}
+            >
+              {row.mobileNumber}
+            </div>
             <div className="flex-1">{row.city}</div>
             <div className="flex-1">{row.interestPost}</div>
             <div className="flex-1">{row.experience}</div>
@@ -266,6 +277,21 @@ const ManageCandidate = ({ candidates }) => {
           </div>
         </div>
       )}
+      <Modal
+        isOpen={proposalModal}
+        onRequestClose={() => setProposalModal(false)}
+        contentLabel="Send Proposal Modal"
+        className="modal-content"
+        overlayClassName="modal-overlay"
+      >
+        <button
+          onClick={() => setProposalModal(false)}
+          className="close-button"
+        >
+          &times;
+        </button>
+        <SendSingleProposal phoneNumber={proposalNumber} />
+      </Modal>
     </div>
   );
 };
