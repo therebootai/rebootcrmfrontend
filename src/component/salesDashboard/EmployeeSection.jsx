@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Modal from "react-modal";
 import AddTarget from "../adminbuisness/AddTarget";
 import { DateRangePicker } from "react-date-range";
 import { format } from "date-fns";
 import EditTarget from "../adminbuisness/EditTarget";
+import InfiniteScroll from "../InfiniteScroll";
+import axios from "axios";
+import { GoDotFill } from "react-icons/go";
+import { Link } from "react-router-dom";
+import { FaMapLocationDot } from "react-icons/fa6";
 
 const rupeeFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -11,6 +16,18 @@ const rupeeFormatter = new Intl.NumberFormat("en-IN", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
+
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const options = {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  };
+  return new Date(dateString).toLocaleDateString("en-IN", options) + " ";
+};
 
 const EmployeeSection = ({
   employees,
@@ -23,11 +40,28 @@ const EmployeeSection = ({
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
   const [openFor, setOpenFor] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [modalData, setModalData] = useState([]);
+  const [modalPage, setModalPage] = useState(1);
+  const [allModalPages, setAllModalPages] = useState(1);
 
   const openModal = (openForType, emp) => {
     setSelectedEmployee(emp);
     setOpenFor(openForType);
     setIsModalOpen(true);
+  };
+
+  const openBusinessModal = async (openForStatus, emp) => {
+    setSelectedEmployee(emp);
+    setOpenFor(openForStatus);
+    setIsModalOpen(true);
+    await fetchEmployeeBusinessData(
+      emp.role.toLowerCase(),
+      emp._id,
+      openForStatus,
+      dateRange,
+      1,
+      emp._id
+    );
   };
 
   const closeModal = () => {
@@ -133,6 +167,77 @@ const EmployeeSection = ({
     fetchtableData();
   }, [dateRange, fetchtableData]);
 
+  const fetchEmployeeBusinessData = useCallback(
+    async (
+      role,
+      employeeId,
+      status,
+      currentDateRange,
+      page = 1,
+      leadByUserId
+    ) => {
+      try {
+        setModalData([]);
+        setModalPage(1);
+
+        const formattedStartDate = currentDateRange.startDate
+          ? new Date(
+              currentDateRange.startDate.getTime() -
+                currentDateRange.startDate.getTimezoneOffset() * 60000
+            ).toISOString()
+          : "";
+        const formattedEndDate = currentDateRange.endDate
+          ? new Date(
+              currentDateRange.endDate.getTime() -
+                currentDateRange.endDate.getTimezoneOffset() * 60000
+            ).toISOString()
+          : "";
+
+        let url = `${
+          import.meta.env.VITE_BASE_URL
+        }/api/business/get?page=${page}`;
+
+        if (status === "New Data") {
+          url += `&createdBy=${leadByUserId}&createdstartdate=${formattedStartDate}&createdenddate=${formattedEndDate}`;
+        } else {
+          url += `&status=${status}`;
+
+          if (role === "telecaller") {
+            url += `&leadBy=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+          } else if (role === "digitalmarketer") {
+            url += `&leadBy=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+          } else if (role === "bde") {
+            url += `&assignedTo=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+            url += `&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+            // REMOVED: &byTagAppointment=true
+          }
+        }
+
+        const response = await axios.get(url);
+
+        if (response.data.success) {
+          setModalData(response.data.businesses);
+          setModalPage(response.data.currentPage);
+          setAllModalPages(response.data.totalPages);
+        } else {
+          console.error(
+            "Failed to fetch business data:",
+            response.data.message
+          );
+          setModalData([]);
+          setModalPage(1);
+          setAllModalPages(1);
+        }
+      } catch (error) {
+        console.error("Error fetching business data:", error);
+        setModalData([]);
+        setModalPage(1);
+        setAllModalPages(1);
+      }
+    },
+    []
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-row gap-6 items-center">
@@ -235,15 +340,26 @@ const EmployeeSection = ({
                 >
                   <div className="flex-1 line-clamp-1">{employee.name}</div>
                   <div className="flex-1">{employee.designation}</div>
-                  <div className="flex-1 cursor-pointer">
+                  <div
+                    className="flex-1 cursor-pointer"
+                    onClick={() =>
+                      openBusinessModal("Appointment Generated", employee)
+                    }
+                  >
                     {employee.statuscount?.appointmentCount || "0"}
                   </div>
 
-                  <div className="flex-1 cursor-pointer">
+                  <div
+                    className="flex-1 cursor-pointer"
+                    onClick={() => openBusinessModal("Followup", employee)}
+                  >
                     {employee.statuscount?.visitCount || "0"}
                   </div>
 
-                  <div className="flex-1 cursor-pointer">
+                  <div
+                    className="flex-1 cursor-pointer"
+                    onClick={() => openBusinessModal("Deal Closed", employee)}
+                  >
                     {employee.statuscount?.dealCloseCount || "0"}
                   </div>
 
@@ -293,6 +409,106 @@ const EmployeeSection = ({
             onUpdate={async () => await fetchtableData()}
             updateDate={dateRange.startDate}
           />
+        )}
+        {(openFor === "Appointment Generated" ||
+          openFor === "Followup" ||
+          openFor === "Deal Closed") && (
+          <>
+            <button onClick={closeModal} className="close-button">
+              &times;
+            </button>
+            <div className="grid place-items-stretch justify-items-stretch gap-4">
+              {modalData && modalData.length > 0 ? (
+                modalData.map((data) => (
+                  <div
+                    key={data._id}
+                    className="bg-white text-[#2F2C49] rounded-lg border border-[#CCCCCC] text-sm font-medium flex justify-between p-4"
+                  >
+                    <div className="flex flex-col gap-4 w-full">
+                      <div className="flex justify-between w-full items-center">
+                        <div className="flex items-center gap-2">
+                          <span>
+                            <GoDotFill />
+                          </span>
+                          <span className="line-clamp-2">
+                            {data.buisnessname}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>
+                          <GoDotFill />
+                        </span>
+                        <a href={`tel:${data.mobileNumber}`}>
+                          {data.mobileNumber}
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>
+                          <GoDotFill />
+                        </span>
+                        <span className=" flex flex-row items-center gap-2">
+                          {data.status} - (
+                          {formatDate(
+                            data.followUpDate ||
+                              data.visit_result?.visit_time ||
+                              ""
+                          )}
+                          )
+                          <span>
+                            {data.visit_result?.update_location ? (
+                              <Link
+                                to={`https://maps.google.com/?q=${data.visit_result.update_location.latitude},${data.visit_result.update_location.longitude}`}
+                                target="_blank"
+                              >
+                                <FaMapLocationDot className=" text-green-800 text-lg" />
+                              </Link>
+                            ) : (
+                              ""
+                            )}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>
+                          <GoDotFill />
+                        </span>
+                        <span>{data.category.categoryname}</span>
+                      </div>
+                      <div className="flex  justify-between w-full items-center ">
+                        <div className="flex flex-col gap-4">
+                          <div className="flex items-center gap-2">
+                            <span>
+                              <GoDotFill />
+                            </span>
+                            <span>{data.city.cityname}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex gap-2 p-2 items-center justify-center font-semibold text-lg">
+                  <h1>No Data Found</h1>
+                </div>
+              )}
+              <InfiniteScroll
+                modalPage={modalPage}
+                fn={async () =>
+                  await fetchEmployeeBusinessData(
+                    selectedEmployee.designation.toLowerCase(),
+                    selectedEmployee._id,
+                    openFor,
+                    dateRange,
+                    modalPage + 1,
+                    selectedEmployee._id
+                  )
+                }
+                allModalPages={allModalPages}
+              />
+            </div>
+          </>
         )}
       </Modal>
     </div>

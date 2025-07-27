@@ -692,10 +692,8 @@ const DashboardEmployeeSection = () => {
             modalPage={modalPage}
             fn={() =>
               fetchEmployeeBusinessData(
-                selectedEmployee.role.toLowerCase(),
-                selectedEmployee.telecallerId ??
-                  selectedEmployee.bdeId ??
-                  selectedEmployee.digitalMarketerId,
+                selectedEmployee.designation.toLowerCase(),
+                selectedEmployee._id,
                 openFor,
                 dateRange,
                 modalPage + 1,

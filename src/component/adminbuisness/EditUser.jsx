@@ -114,7 +114,7 @@ const EditUser = ({ isOpen, onClose, user, onUpdate }) => {
     try {
       // Use the unified /users/:userId endpoint
       const response = await axios.put(
-        `${import.meta.env.VITE_BASE_URL}/users/${user.userId}`, // Use user.userId or user._id
+        `${import.meta.env.VITE_BASE_URL}/api/users/users/${user.userId}`, // Use user.userId or user._id
         dataToSend
       );
 

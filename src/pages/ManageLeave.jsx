@@ -3,6 +3,10 @@ import axios from "axios";
 import AdminDashboardTemplate from "../template/AdminDashboardTemplate";
 import { DateRangePicker } from "react-date-range";
 import { format } from "date-fns";
+import {
+  MdKeyboardDoubleArrowLeft,
+  MdKeyboardDoubleArrowRight,
+} from "react-icons/md";
 
 const ManageLeave = () => {
   const [leaveRequests, setLeaveRequests] = useState([]);
@@ -20,6 +24,8 @@ const ManageLeave = () => {
   const [bdeData, setBdeData] = useState([]);
   const [telecallerData, setTelecallerData] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchEmployeeData = async () => {
     try {
@@ -71,7 +77,9 @@ const ManageLeave = () => {
     const fetchLeaveRequests = async () => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/auth/leave/requests`,
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/auth/leave/requests?page=${currentPage}`,
           {
             params: {
               userId: selectedEmployee,
@@ -92,6 +100,7 @@ const ManageLeave = () => {
         );
         if (response.data.success) {
           setLeaveRequests(response.data.leaveRequests);
+          setTotalPages(response.data.totalPages);
         }
       } catch (error) {
         console.error("Error fetching leave requests:", error);
@@ -102,6 +111,25 @@ const ManageLeave = () => {
 
     fetchLeaveRequests();
   }, [dateRange, selectedEmployee]);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber); // This triggers the parent to re-fetch
+  };
+
+  // Calculate the range of page numbers to show
+  const pageRange = 5;
+  let startPage = Math.max(1, currentPage - Math.floor(pageRange / 2));
+  let endPage = startPage + pageRange - 1;
+
+  if (endPage > totalPages) {
+    endPage = totalPages;
+    startPage = Math.max(1, endPage - pageRange + 1);
+  }
+
+  if (totalPages <= pageRange) {
+    startPage = 1;
+    endPage = totalPages;
+  }
 
   const handleApprovalChange = async (user, newStatus) => {
     try {
@@ -284,6 +312,50 @@ const ManageLeave = () => {
               </div>
             </div>
           ))}
+        </div>
+        <div className="flex justify-center gap-4 pb-4 border-b items-center mt-4">
+          <button
+            className={`flex gap-1 text-center items-center ${
+              currentPage === 1 ? "text-[#777777]" : "text-[#D53F3A]"
+            } font-bold rounded`}
+            disabled={currentPage === 1}
+            onClick={() => handlePageChange(currentPage - 1)}
+          >
+            <div>
+              <MdKeyboardDoubleArrowLeft />
+            </div>
+            <div>Prev</div>
+          </button>
+          <div className="flex gap-2">
+            {Array.from({ length: endPage - startPage + 1 }, (_, i) => {
+              const pageNumber = startPage + i;
+              return (
+                <button
+                  key={pageNumber}
+                  className={`px-4 py-2 ${
+                    currentPage === pageNumber
+                      ? "text-[#D53F3A]"
+                      : "text-[#777777]"
+                  } font-bold rounded`}
+                  onClick={() => handlePageChange(pageNumber)}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            className={`flex gap-1 text-center items-center ${
+              currentPage === totalPages ? "text-[#777777]" : "text-[#D53F3A]"
+            } font-bold rounded`}
+            disabled={currentPage === totalPages}
+            onClick={() => handlePageChange(currentPage + 1)}
+          >
+            <div>Next</div>
+            <div>
+              <MdKeyboardDoubleArrowRight />
+            </div>
+          </button>
         </div>
       </div>
     </AdminDashboardTemplate>

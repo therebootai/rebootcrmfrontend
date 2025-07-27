@@ -1,6 +1,7 @@
 import axios from "axios";
-import React, { useState, useRef } from "react";
+import { useState, useRef, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
 
 const EmployeeOTPLogin = ({ onClose }) => {
   const [mobileNumber, setMobileNumber] = useState("");
@@ -11,12 +12,14 @@ const EmployeeOTPLogin = ({ onClose }) => {
   const otpRefs = useRef([]);
   const navigate = useNavigate();
 
+  const { login, hasRole } = useContext(AuthContext);
+
   const handleCheckNumber = async () => {
     setLoading(true);
     setError("");
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/employees/checknumber`,
+        `${import.meta.env.VITE_BASE_URL}/api/auth/employees/checknumber`,
         {
           params: { phone: mobileNumber },
         }
@@ -44,7 +47,7 @@ const EmployeeOTPLogin = ({ onClose }) => {
       setError("");
 
       await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/api/employees/send-otp`,
+        `${import.meta.env.VITE_BASE_URL}/api/auth/employees/send-otp`,
         {
           phone: mobileNumber,
         }
@@ -64,27 +67,24 @@ const EmployeeOTPLogin = ({ onClose }) => {
       setError("");
       const otpCode = otp.join("");
       const response = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/api/employees/verify-with-otp`,
+        `${import.meta.env.VITE_BASE_URL}/api/auth/employees/verify-with-otp`,
         { phone: mobileNumber, otp: otpCode }
       );
 
-      if (response.data.success) {
-        const { token, name, role, id } = response.data;
-        localStorage.setItem("token", token);
-        localStorage.setItem("name", name);
-        localStorage.setItem("role", role);
-        if (role === "telecaller") {
-          localStorage.setItem("telecallerId", id);
-          navigate(`/telecaler/telecaller-dashboard/${id}`);
-        } else if (role === "bde") {
-          localStorage.setItem("bdeId", id);
-          navigate(`/bde/bde-dashboard/${id}`);
-        } else if (role === "digitalMarketer") {
-          localStorage.setItem("digitalMarketerId", id);
-          navigate(`/digitalmarketer/digitalmarketer-dashboard/${id}`);
-        }
-      } else {
-        setError("Invalid OTP. Try again.");
+      const { token, user } = response.data;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      login(token, user);
+      hasRole(user.designation);
+
+      if (user.designation.toLowerCase() === "bde") {
+        navigate(`/bde/bde-dashboard/${user._id}`);
+      } else if (user.designation.toLowerCase() === "telecaller") {
+        navigate(`/telecaler/telecaller-dashboard/${user._id}`);
+      } else if (user.designation.toLowerCase() === "digital marketer") {
+        navigate(`/digitalmarketer/digitalmarketer-dashboard/${user._id}`);
       }
     } catch (error) {
       setError("Error verifying OTP.");
