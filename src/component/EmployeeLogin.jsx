@@ -196,13 +196,12 @@ const EmployeeLogin = () => {
         </div>
       </form>
       <div className="flex flex-col  gap-1 items-start font-medium">
-        <button
+        {/* <button
           className="text-[#777777] hover:text-[#FF2722]"
           onClick={() => setShowForgotPassword(true)}
         >
-          {" "}
           Forgot my password
-        </button>
+        </button> */}
         <button
           className="text-[#777777] hover:text-[#FF2722]"
           type="button"
@@ -212,9 +211,9 @@ const EmployeeLogin = () => {
         </button>
       </div>
 
-      {showForgotPassword && (
+      {/* {showForgotPassword && (
         <EmployeeForgotPassword onClose={() => setShowForgotPassword(false)} />
-      )}
+      )} */}
       {showOtpLogin && (
         <EmployeeOTPLogin onClose={() => setShowOtpLogin(false)} />
       )}

@@ -42,7 +42,7 @@ import ProtectedRoute from "./context/ProtectedRoutes";
 function App() {
   return (
     <Routes>
-      <Route path="" element={<LoginPage />} />
+      <Route path="/" element={<LoginPage />} />
       {/* admin Part */}
       <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />

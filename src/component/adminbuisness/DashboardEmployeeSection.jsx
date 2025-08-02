@@ -417,7 +417,7 @@ const DashboardEmployeeSection = () => {
           axios.get(
             `${
               import.meta.env.VITE_BASE_URL
-            }/api/users/get?designation=digital%20marketer`
+            }/api/users/get?designation=DigitalMarketer`
           ),
         ]);
 
@@ -458,20 +458,13 @@ const DashboardEmployeeSection = () => {
       setBdeData(bdesWithData);
       setTelecallerData(telecallersWithData);
       setDigitalMarketerData(digitalMarketersWithData);
-      console.log("[fetchEmployeeData] Employee data states updated.");
     } catch (error) {
       console.error("[fetchEmployeeData] Error fetching employee data:", error);
-    } finally {
-      // setIsLoading(false); // Uncomment if you have an isLoading state
-      console.log("[fetchEmployeeData] Finished.");
-    }
+    } 
   }, [dateRange, fetchBusinessCountsForEmployee]); // Correct dependencies
 
   // --- useEffect to trigger fetchEmployeeData ---
   useEffect(() => {
-    // This effect runs on mount and whenever fetchEmployeeData (or its dependencies) changes.
-    // Since fetchEmployeeData depends on dateRange, this effect will re-run when dateRange is updated.
-    console.log("[useEffect] Triggered. Calling fetchEmployeeData...");
     fetchEmployeeData();
   }, [fetchEmployeeData]);
 
