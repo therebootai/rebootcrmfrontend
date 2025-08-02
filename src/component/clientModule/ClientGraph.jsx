@@ -9,14 +9,20 @@ const ClientGraph = () => {
   const fetchData = async () => {
     try {
       const [telecallers, bdes, collectionRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-        axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+        axios.get(
+          `${
+            import.meta.env.VITE_BASE_URL
+          }/api/users/get?designation=Telecaller`
+        ),
+        axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+        ),
         axios.get(
           `${import.meta.env.VITE_BASE_URL}/api/client/collection-summary`
         ),
       ]);
 
-      const allUsers = [...telecallers.data, ...bdes.data];
+      const allUsers = [...telecallers.data.users, ...bdes.data.users];
       const allTargets = allUsers.flatMap((user) => user.targets || []);
       const collectionData = collectionRes.data.data;
 

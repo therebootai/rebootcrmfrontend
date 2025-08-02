@@ -654,6 +654,7 @@ const SalesDashboard = () => {
 
       let totalTargets = 0; // Overall sales target (sum of 'amount')
       let totalSalesAchievements = 0; // Overall sales achievement (sum of 'achievement')
+      let totalCollection = 0;
 
       // Iterate through the combined targets array
       for (const item of data.target) {
@@ -671,11 +672,13 @@ const SalesDashboard = () => {
           ) {
             totalTargets += parseFloat(item.amount || 0); // Use parseFloat and default to 0
             totalSalesAchievements += parseFloat(item.achievement || 0); // Use parseFloat and default to 0
+            totalCollection += parseFloat(item.collection || 0);
           }
         } else if (!dateRange || !dateRange.startDate) {
           // If no dateRange.startDate is provided, sum all amounts and achievements
           totalTargets += parseFloat(item.amount || 0); // Use parseFloat and default to 0
           totalSalesAchievements += parseFloat(item.achievement || 0); // Use parseFloat and default to 0
+          totalCollection += parseFloat(item.collection || 0);
         }
       }
 
@@ -686,6 +689,7 @@ const SalesDashboard = () => {
         dealCloses,
         targets: totalTargets, // Overall Sales Targets
         achievements: totalSalesAchievements, // Overall Sales Achievements
+        collection: totalCollection,
       });
     },
     [dateRange]
@@ -724,11 +728,15 @@ const SalesDashboard = () => {
     { name: "Follow Ups", number: counts.followUps },
     { name: "Visit", number: counts.visits },
     { name: "Deal Close", number: counts.dealCloses },
-    { name: "Overall Target", number: rupeeFormatter.format(counts.targets) }, // Display overall target
+    { name: "Total Target", number: rupeeFormatter.format(counts.targets) }, // Display overall target
     {
-      name: "Overall Sales Achievement",
+      name: "Total Sales",
       number: rupeeFormatter.format(counts.achievements),
-    }, // Display overall sales achievement
+    },
+    {
+      name: "Total Collections",
+      number: rupeeFormatter.format(counts.collection ),
+    },
   ];
 
   return (

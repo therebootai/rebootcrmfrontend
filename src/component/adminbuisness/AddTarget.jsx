@@ -9,6 +9,7 @@ const AddTarget = ({ closeModal, onUpdate }) => {
   const [targetDate, setTargetDate] = useState(new Date());
   const [targetAmount, setTargetAmount] = useState("");
   const [achievementAmount, setAchievementAmount] = useState(""); // New state for collection/achievement
+  const [collectionAmount, setCollectionAmount] = useState("");
   const [errors, setErrors] = useState({});
 
   // Fetch all relevant employees (users) on component mount
@@ -50,6 +51,27 @@ const AddTarget = ({ closeModal, onUpdate }) => {
 
   const handleEmployeeChange = (e) => {
     setSelectedEmployeeId(e.target.value);
+    const selected = employees.find((emp) => emp._id === e.target.value);
+    if (selected) {
+      const currentMonth = targetDate.toLocaleString("default", {
+        month: "long",
+      });
+      const currentYear = targetDate.getFullYear();
+
+      const foundTarget = selected.targets?.find(
+        (target) => target.month === currentMonth && target.year === currentYear
+      );
+      if (foundTarget) {
+        setTargetAmount(foundTarget.amount || "");
+        setAchievementAmount(foundTarget.achievement || "");
+        setCollectionAmount(foundTarget.collection || "");
+      } else {
+        // If no target exists for the selected month/year, clear the fields
+        setTargetAmount("");
+        setAchievementAmount("");
+        setCollectionAmount("");
+      }
+    }
     setErrors((prev) => ({ ...prev, employee: "" })); // Clear error
   };
 
@@ -63,8 +85,34 @@ const AddTarget = ({ closeModal, onUpdate }) => {
     setErrors((prev) => ({ ...prev, achievementAmount: "" })); // Clear error
   };
 
+  const handleCollectionAmountChange = (e) => {
+    setCollectionAmount(e.target.value);
+    setErrors((prev) => ({ ...prev, collectionAmount: "" }));
+  };
+
   const handleDateChange = (date) => {
     setTargetDate(date);
+    const selected = employees.find((emp) => emp._id === selectedEmployeeId);
+    if (selected) {
+      const currentMonth = date.toLocaleString("default", {
+        month: "long",
+      });
+      const currentYear = date.getFullYear();
+
+      const foundTarget = selected.targets?.find(
+        (target) => target.month === currentMonth && target.year === currentYear
+      );
+      if (foundTarget) {
+        setTargetAmount(foundTarget.amount || "");
+        setAchievementAmount(foundTarget.achievement || "");
+        setCollectionAmount(foundTarget.collection || "");
+      } else {
+        // If no target exists for the selected month/year, clear the fields
+        setTargetAmount("");
+        setAchievementAmount("");
+        setCollectionAmount("");
+      }
+    }
     setErrors((prev) => ({ ...prev, targetDate: "" })); // Clear error
   };
 
@@ -122,6 +170,7 @@ const AddTarget = ({ closeModal, onUpdate }) => {
       year: targetYear,
       amount: parseFloat(targetAmount), // Ensure it's a number
       achievement: parseFloat(achievementAmount) || 0, // Default to 0 if not provided
+      collection: parseFloat(collectionAmount) || 0,
     };
 
     try {
@@ -229,6 +278,20 @@ const AddTarget = ({ closeModal, onUpdate }) => {
           />
           {errors.targetDate && (
             <span className="text-red-500">{errors.targetDate}</span>
+          )}
+        </div>
+        <div className="flex flex-col">
+          <label>Collection Amount (in INR)</label>
+          <input
+            type="number"
+            name="collectionAmount"
+            value={collectionAmount}
+            onChange={handleCollectionAmountChange}
+            className="bg-white rounded-sm p-4 border border-[#cccccc]"
+            min="0"
+          />
+          {errors.collectionAmount && (
+            <span className="text-red-500">{errors.collectionAmount}</span>
           )}
         </div>
 

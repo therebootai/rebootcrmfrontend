@@ -76,8 +76,8 @@ const EmployeeSection = ({
     "Appointment",
     "Visit",
     "Deal Close",
-    "Target (Sales)", // Clarified
-    "Sales Achievement", // Clarified
+    "Target", // Clarified
+    "Sales", // Clarified
     "Collection", // Now distinct from Sales Achievement
     "Achievement %",
   ];
