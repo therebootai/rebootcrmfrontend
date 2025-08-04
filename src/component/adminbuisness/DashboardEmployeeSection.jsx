@@ -460,7 +460,7 @@ const DashboardEmployeeSection = () => {
       setDigitalMarketerData(digitalMarketersWithData);
     } catch (error) {
       console.error("[fetchEmployeeData] Error fetching employee data:", error);
-    } 
+    }
   }, [dateRange, fetchBusinessCountsForEmployee]); // Correct dependencies
 
   // --- useEffect to trigger fetchEmployeeData ---
