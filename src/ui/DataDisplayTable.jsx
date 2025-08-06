@@ -173,33 +173,40 @@ const DataDisplayTable = ({
 }) => {
   const [visualData, setVisualData] = useState([]);
 
-  // Helper to ensure the date sent to backend is a clean start/end of day in UTC
-  // to match how MongoDB typically queries date ranges effectively.
-  const toUTCISOStringForQuery = (date, isEndDate = false) => {
-    if (!date) return null;
-    const d = new Date(date);
-    // Setting hours to start/end of day in the *local timezone* of the server
-    // then converting to ISO string effectively captures the whole day in UTC
-    // given typical server setups.
-    if (isEndDate) {
-      d.setHours(23, 59, 59, 999);
-    } else {
-      d.setHours(0, 0, 0, 0);
-    }
-    return d.toISOString();
-  };
-
   const fetchBusinessData = async (employees) => {
     try {
       const businessPromises = employees.map((employee) => {
+        const formattedStartDate = dateRange.startDate
+          ? new Date(
+              dateRange.startDate.getTime() -
+                dateRange.startDate.getTimezoneOffset() * 60000
+            )
+              .toISOString()
+              .split("T")[0]
+          : "";
+        const formattedEndDate = dateRange.endDate
+          ? new Date(
+              dateRange.endDate.getTime() -
+                dateRange.endDate.getTimezoneOffset() * 60000
+            )
+              .toISOString()
+              .split("T")[0]
+          : "";
+
         const params = {
-          createdstartdate: toUTCISOStringForQuery(dateRange.startDate),
-          createdenddate: toUTCISOStringForQuery(dateRange.endDate, true),
-          appointmentstartdate: toUTCISOStringForQuery(dateRange.startDate),
-          appointmentenddate: toUTCISOStringForQuery(dateRange.endDate, true),
-          followupstartdate: toUTCISOStringForQuery(dateRange.startDate),
-          followupenddate: toUTCISOStringForQuery(dateRange.endDate, true),
+          createdstartdate: formattedStartDate,
+          createdenddate: formattedEndDate,
+          appointmentstartdate: formattedStartDate,
+          appointmentenddate: formattedEndDate,
+          followupstartdate: formattedStartDate,
+          followupenddate: formattedEndDate,
+          visitdatestart: formattedStartDate,
+          visitdateend: formattedEndDate,
         };
+
+        const safeParams = Object.fromEntries(
+          Object.entries(params).map(([key, val]) => [key, String(val)])
+        );
 
         let url = "";
         if (employee.role === "Telecaller") {
@@ -215,9 +222,9 @@ const DataDisplayTable = ({
             employee.id
           }&byTagAppointment=true`;
         }
-
+        console.log("Request params:", params);
         return axios
-          .get(url, { params })
+          .get(url, { params: safeParams })
           .then((response) => ({
             ...employee,
             businessData: response.data.businesses,

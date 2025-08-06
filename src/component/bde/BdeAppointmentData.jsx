@@ -717,6 +717,15 @@ const BdeAppointmentData = () => {
                       >
                         Send Proposal
                       </button>
+                      <button
+                        onClick={() => {
+                          setSelectedBusiness(business);
+                          setShowVisitPopup(true);
+                        }}
+                        className="px-2 p-1 bg-green-500 rounded-md text-sm font-semibold"
+                      >
+                        Mark Visited
+                      </button>
                     </div>
                   </div>
                 </div>
