@@ -1,66 +1,57 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 
 const AddAssignBusiness = ({ closeModal, triggerRefresh }) => {
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState("");
-  const [targetDate, setTargetDate] = useState(new Date());
-  const [targetAmount, setTargetAmount] = useState("");
   const [citys, setCity] = useState([]);
   const [categories, setCategory] = useState([]);
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [telecallers, digitalMarketers, bdes] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_BASE_URL}/api/telecaller/get`),
-          axios.get(`${import.meta.env.VITE_BASE_URL}/api/digitalmarketer/get`),
-          axios.get(`${import.meta.env.VITE_BASE_URL}/api/bde/get`),
+  const fetchData = useCallback(async () => {
+    try {
+      const [telecallersResponse, bdesResponse, digitalMarketersResponse] =
+        await Promise.all([
+          axios.get(
+            `${
+              import.meta.env.VITE_BASE_URL
+            }/api/users/get?designation=Telecaller`
+          ),
+          axios.get(
+            `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+          ),
+          axios.get(
+            `${
+              import.meta.env.VITE_BASE_URL
+            }/api/users/get?designation=DigitalMarketer`
+          ),
         ]);
 
-        const combinedData = [
-          ...telecallers.data.map((item) => ({
-            ...item,
-            role: "Telecaller",
-            name: item.telecallername,
-            id: item.telecallerId,
-          })),
-          ...digitalMarketers.data.map((item) => ({
-            ...item,
-            role: "Digital Marketer",
-            name: item.digitalMarketername,
-            id: item.digitalMarketerId,
-          })),
-          ...bdes.data.map((item) => ({
-            ...item,
-            role: "BDE",
-            name: item.bdename,
-            id: item.bdeId,
-          })),
-        ];
-
-        setEmployees(combinedData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
-    fetchData();
+      setEmployees([
+        ...telecallersResponse.data.users,
+        ...bdesResponse.data.users,
+        ...digitalMarketersResponse.data.users,
+      ]);
+    } catch (error) {
+      console.error("Error fetching employee data:", error);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     const fetchAssign = async () => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/business/getfilter`
-        );
-        setCity(response.data.cities);
+        const [citiesResponse, categoriesResponse] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_BASE_URL}/api/city/get`),
+          axios.get(`${import.meta.env.VITE_BASE_URL}/api/category/get`),
+        ]);
+        setCity(citiesResponse.data);
 
-        setCategory(response.data.businessCategories);
+        setCategory(categoriesResponse.data);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -85,25 +76,25 @@ const AddAssignBusiness = ({ closeModal, triggerRefresh }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const employee = employees.find((emp) => emp.name === selectedEmployee);
+    const employee = employees.find((emp) => emp._id === selectedEmployee);
 
     if (!employee) {
       alert("Please select a valid employee.");
       return;
     }
 
-    const urlMap = {
-      Telecaller: `/api/telecaller/assignBusiness/${employee.id}`,
-      "Digital Marketer": `/api/digitalmarketer/assignBusiness/${employee.id}`,
-      BDE: `/api/bde/assignBusiness/${employee.id}`,
-    };
-
     try {
-      await axios.post(
-        `${import.meta.env.VITE_BASE_URL}${urlMap[employee.role]}`,
+      await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/api/users/users/${employee._id}`,
         {
-          category: selectedCategory,
-          city: selectedCity,
+          assignCategories: [
+            ...employee.assignCategories.map((emp) => emp._id),
+            selectedCategory,
+          ],
+          assignCities: [
+            ...employee.assignCities.map((emp) => emp._id),
+            selectedCity,
+          ],
         }
       );
 
@@ -136,8 +127,8 @@ const AddAssignBusiness = ({ closeModal, triggerRefresh }) => {
           >
             <option value="">Choose</option>
             {employees.map((employee) => (
-              <option key={employee.id} value={employee.name}>
-                {employee.name} - {employee.role}
+              <option key={employee._id} value={employee._id}>
+                {employee.name} - {employee.designation}
               </option>
             ))}
           </select>
@@ -152,8 +143,8 @@ const AddAssignBusiness = ({ closeModal, triggerRefresh }) => {
           >
             <option value="">Choose</option>
             {citys.map((city) => (
-              <option key={city} value={city}>
-                {city}
+              <option key={city._id} value={city._id}>
+                {city.cityname}
               </option>
             ))}
           </select>
@@ -168,8 +159,8 @@ const AddAssignBusiness = ({ closeModal, triggerRefresh }) => {
           >
             <option value="">Choose</option>
             {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
+              <option key={category._id} value={category._id}>
+                {category.categoryname}
               </option>
             ))}
           </select>

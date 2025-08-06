@@ -32,13 +32,13 @@ const AddAndManageClient = () => {
   useEffect(() => {
     const fetchData = async () => {
       const bdeResponse = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/bde/get`
+        `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
       );
-      setBdes(bdeResponse.data);
+      setBdes(bdeResponse.data.users);
       const tmeResponse = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/telecaller/get`
+        `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=Telecaller`
       );
-      setTelecalers(tmeResponse.data);
+      setTelecalers(tmeResponse.data.users);
     };
     fetchData();
   }, []);
@@ -214,7 +214,7 @@ const AddAndManageClient = () => {
               >
                 <option value="">Filter BDE</option>
                 {bdes.map((item) => (
-                  <option value={item._id}>{item.bdename}</option>
+                  <option value={item._id}>{item.name}</option>
                 ))}
               </select>
             </div>
@@ -229,7 +229,7 @@ const AddAndManageClient = () => {
               >
                 <option value="">Filter TME</option>
                 {telecalers.map((item) => (
-                  <option value={item._id}>{item.telecallername}</option>
+                  <option value={item._id}>{item.name}</option>
                 ))}
               </select>
             </div>

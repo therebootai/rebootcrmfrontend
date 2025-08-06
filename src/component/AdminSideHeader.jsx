@@ -66,15 +66,12 @@ const AdminSideHeader = ({ isMobileSidebarOpen, closeMobileSidebar }) => {
     {
       icon: "/images/sales.svg",
       name: "Sales",
-      links: [
-        { name: "Sales Dashboard", link: "/admin/sales/sales-dashboard" },
-        { name: "target", link: "/admin/sales/add-manage-target" },
-      ],
+      href: "/admin/sales/sales-dashboard",
     },
 
     {
       icon: "/images/weblead.svg",
-      name: "Get Quotation",
+      name: "Website Leads",
       href: "/admin/getquotation/websiteleads",
     },
     {

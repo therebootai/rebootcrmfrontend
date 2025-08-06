@@ -16,7 +16,7 @@ const OTPLogin = ({ onClose }) => {
     setError("");
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/users/checknumber`,
+        `${import.meta.env.VITE_BASE_URL}/api/auth/employees/checknumber`,
         {
           params: { phone: mobileNumber },
         }
@@ -39,9 +39,12 @@ const OTPLogin = ({ onClose }) => {
       setLoading(true);
       setError("");
 
-      await axios.post(`${import.meta.env.VITE_BASE_URL}/api/users/send-otp`, {
-        phone: mobileNumber,
-      });
+      await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/api/auth/employees/send-otp`,
+        {
+          phone: mobileNumber,
+        }
+      );
 
       setStep(2);
     } catch (error) {
@@ -79,14 +82,14 @@ const OTPLogin = ({ onClose }) => {
     const otpCode = otp.join("");
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/api/users/verify-with-otp`,
+        `${import.meta.env.VITE_BASE_URL}/api/auth/employees/verify-with-otp`,
         { phone: mobileNumber, otp: otpCode }
       );
 
+      const { token, user } = response.data;
       if (response.data.success) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("name", response.data.user.name);
-        localStorage.setItem("role", "admin");
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
 
         navigate("/admin/dashboard");
 

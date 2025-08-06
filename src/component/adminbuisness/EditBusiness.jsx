@@ -6,113 +6,148 @@ import Modal from "react-modal";
 
 Modal.setAppElement("#root"); // Set the root element for accessibility
 
+const statusOptions = [
+  "Fresh Data",
+  "Appointment Generated",
+  "Followup",
+  "Not Interested",
+  "Invalid Data",
+  "Not Responding",
+  "Deal Closed",
+];
+
 const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
   const [formData, setFormData] = useState({
     buisnessname: "",
     contactpersonName: "",
     mobileNumber: "",
-    city: "",
-    category: "",
+    city: "", // Will store ObjectId
+    category: "", // Will store ObjectId
     status: "",
-    source: "",
+    source: "", // Will store ObjectId
     appointmentDate: null,
     followUpDate: null,
     remarks: "",
-    telecallerId: "",
-    digitalMarketerId: "",
-    bdeId: "",
-    tagAppointment: "",
+    appoint_to: null, // Will store User ObjectId for assigned BDE/DM/Telecaller
+    lead_by: null, // Will store User ObjectId of who initially led the business
   });
   const [errors, setErrors] = useState({});
   const [showFollowUpDate, setShowFollowUpDate] = useState(false);
-  const [citys, setCitys] = useState([]);
+  const [cities, setCities] = useState([]); // Renamed from citys for clarity
   const [categories, setCategories] = useState([]);
   const [sources, setSources] = useState([]);
-  const [allBDE, setAllBDE] = useState([]);
-  const [showAppoinmentDate, setShowAppoinmentDate] = useState(false);
+  const [allBDEs, setAllBDEs] = useState([]); // Renamed from allBDE, now holds User objects
+  const [showAppointmentDate, setShowAppointmentDate] = useState(false);
 
+  // Effect to populate form data and manage date visibility when 'business' prop changes
   useEffect(() => {
     if (business) {
-      setFormData(business);
-      setShowFollowUpDate(business.status === "Followup");
-      setShowAppoinmentDate(business.status === "Appointment Generated");
+      // Ensure dates are Date objects for DatePicker
+      const initialFormData = {
+        ...business,
+        // Convert ISO strings to Date objects if they exist
+        appointmentDate: business.appointmentDate
+          ? new Date(business.appointmentDate)
+          : null,
+        followUpDate: business.followUpDate
+          ? new Date(business.followUpDate)
+          : null,
+        // Ensure that city, category, source, appoint_to, lead_by are IDs
+        // The 'business' prop might contain full objects or just IDs.
+        // Assuming business.city, business.category, business.source, business.appoint_to, business.lead_by are _ids.
+        // If they are full objects, you'll need to extract the _id:
+        city: business.city?._id || business.city || "",
+        category: business.category?._id || business.category || "",
+        source: business.source?._id || business.source || "",
+        appoint_to: business.appoint_to?._id || business.appoint_to || null,
+        lead_by: business.lead_by?._id || business.lead_by || null,
+      };
+      setFormData(initialFormData);
+      setShowFollowUpDate(initialFormData.status === "Followup");
+      setShowAppointmentDate(
+        initialFormData.status === "Appointment Generated"
+      );
     }
+  }, [business]); // Dependency on 'business' prop
 
+  // Effect to fetch dropdown options (cities, categories, sources, BDEs)
+  useEffect(() => {
     const fetchData = async () => {
       try {
-        const cityResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/city/get?sorting=true`
-        );
-        setCitys(cityResponse.data);
+        const [cityResponse, categoryResponse, sourcesResponse, bdeResponse] =
+          await Promise.all([
+            axios.get(
+              `${import.meta.env.VITE_BASE_URL}/api/city/get?sorting=true`
+            ),
+            axios.get(
+              `${import.meta.env.VITE_BASE_URL}/api/category/get?sorting=true`
+            ),
+            axios.get(`${import.meta.env.VITE_BASE_URL}/api/source/get`),
+            // Fetch BDEs (users with designation 'bde')
+            axios.get(
+              `${
+                import.meta.env.VITE_BASE_URL
+              }/api/users/get?designation=BDE&status=true`
+            ),
+          ]);
 
-        const categoryResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/category/get?sorting=true`
-        );
-        setCategories(categoryResponse.data);
-
-        const sourcesResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/source/get`
-        );
-        setSources(sourcesResponse.data);
-
-        const bdeResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/bde/get?status=active`
-        );
-        setAllBDE(bdeResponse.data);
+        setCities(cityResponse.data); // Assuming data is [{_id, cityname}]
+        setCategories(categoryResponse.data); // Assuming data is [{_id, categoryname}]
+        setSources(sourcesResponse.data); // Assuming data is [{_id, sourcename}]
+        setAllBDEs(bdeResponse.data.users); // Assuming data.users is [{_id, name, designation, userId}]
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching dropdown data:", error);
       }
     };
 
     fetchData();
-  }, [business]);
+  }, [isOpen]); // Re-fetch when modal opens, if needed
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    let newFormData = { ...formData };
 
     if (name === "mobileNumber") {
-      // Remove spaces from the mobile number
       const sanitizedValue = value.replace(/\s+/g, "");
-
-      // Prevent input more than 10 digits
       if (sanitizedValue.length > 10) {
         return;
       }
-
-      setFormData({
-        ...formData,
-        [name]: sanitizedValue,
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value,
-      });
-    }
-
-    if (name === "status") {
+      newFormData[name] = sanitizedValue;
+    } else if (name === "city") {
+      // Find the selected city object and store its _id
+      const selectedCityObj = cities.find((c) => c.cityname === value);
+      newFormData.city = selectedCityObj ? selectedCityObj._id : "";
+    } else if (name === "category") {
+      // Find the selected category object and store its _id
+      const selectedCategoryObj = categories.find(
+        (c) => c.categoryname === value
+      );
+      newFormData.category = selectedCategoryObj ? selectedCategoryObj._id : "";
+    } else if (name === "source") {
+      // Find the selected source object and store its _id
+      const selectedSourceObj = sources.find((s) => s.sourcename === value);
+      newFormData.source = selectedSourceObj ? selectedSourceObj._id : "";
+    } else if (name === "status") {
+      newFormData.status = value;
       setShowFollowUpDate(value === "Followup");
-      setShowAppoinmentDate(value === "Appointment Generated");
-      if (value !== "Followup" || value !== "Appointment Generated") {
-        setFormData({
-          ...formData,
-          tagAppointment: "",
-          bdeId: "",
-        });
+      setShowAppointmentDate(value === "Appointment Generated");
+
+      // Corrected logic for clearing dates and assigned BDE
+      if (value !== "Followup" && value !== "Appointment Generated") {
+        newFormData.followUpDate = null;
+        newFormData.appointmentDate = null;
+        newFormData.appoint_to = null; // Clear assigned BDE
       }
-      setFormData({
-        ...formData,
-        [name]: value,
-      });
+    } else if (name === "appoint_to") {
+      // Changed from bdeId to appoint_to
+      newFormData.appoint_to = value; // Value from select option is already the _id
+    } else {
+      newFormData[name] = value;
     }
 
-    if (name === "bdeId") {
-      setFormData({
-        ...formData,
-        tagAppointment: value,
-        bdeId: value,
-      });
-    }
+    setFormData(newFormData);
+    // Clear errors for the field being changed
+    setErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
   };
 
   const handleDateChange = (date, name) => {
@@ -120,6 +155,8 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
       ...formData,
       [name]: date,
     });
+    // Clear date-related errors when date is selected
+    setErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
   };
 
   const handleSubmit = async (e) => {
@@ -128,31 +165,27 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
     let formValid = true;
     const newErrors = {};
 
+    // Basic form validation
     if (!formData.buisnessname.trim()) {
       newErrors.buisnessname = "Business name is required";
       formValid = false;
     }
-
     if (!formData.mobileNumber.trim() || formData.mobileNumber.length !== 10) {
       newErrors.mobileNumber = "Mobile Number must be a 10-digit number";
       formValid = false;
     }
-
     if (!formData.city) {
       newErrors.city = "City is required";
       formValid = false;
     }
-
     if (!formData.category) {
       newErrors.category = "Category is required";
       formValid = false;
     }
-
     if (!formData.status) {
       newErrors.status = "Status is required";
       formValid = false;
     }
-
     if (!formData.source) {
       newErrors.source = "Lead Source is required";
       formValid = false;
@@ -161,7 +194,6 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
       newErrors.followUpDate = "Follow-up date is required";
       formValid = false;
     }
-
     if (
       formData.status === "Appointment Generated" &&
       !formData.appointmentDate
@@ -169,84 +201,110 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
       newErrors.appointmentDate = "Appointment date is required";
       formValid = false;
     }
-
-    if (formData.status === "Appointment Generated" && !formData.bdeId) {
-      newErrors.bdeId = "BDE is required";
+    if (formData.status === "Appointment Generated" && !formData.appoint_to) {
+      newErrors.appoint_to = "BDE is required for appointment";
       formValid = false;
-    }
+    } // Changed bdeId to appoint_to
 
     setErrors(newErrors);
 
-    if (formValid) {
-      try {
-        const response = await axios.put(
-          `${import.meta.env.VITE_BASE_URL}/api/business/update/${
-            business.businessId
-          }`,
-          formData
-        );
+    if (!formValid) {
+      console.error("Form validation failed:", newErrors);
+      return;
+    }
 
-        if (response.status === 200) {
-          if (formData.status === "Appointment Generated") {
-            await axios.post(
-              `${import.meta.env.VITE_BASE_URL}/api/send-notification`,
-              {
-                targetUserId: formData.bdeId,
-                title: "New Business Appointment has been Assigned",
-                body: `New Business named ${
-                  formData.buisnessname
-                } has been assigned to you on ${new Date(
-                  formData.appointmentDate
-                ).toLocaleDateString("en-IN", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                })} at ${new Date(formData.appointmentDate).toLocaleTimeString(
-                  "en-IN",
-                  {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  }
-                )}. Please check the details and get in touch with the customer.`,
-              }
-            );
-          }
+    try {
+      const response = await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/api/business/update/${
+          business._id // Assuming business.businessId is the unique identifier for the URL
+        }`,
+        formData, // formData now contains correct _id for selects and appoint_to
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // Ensure token is available
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        // Send notification if status is "Appointment Generated"
+        // and if a new BDE is assigned or the appointment is newly generated
+        // (compared to the original business data)
+        const originalAppointTo =
+          business.appoint_to?._id || business.appoint_to;
+
+        if (
+          formData.status === "Appointment Generated" &&
+          (formData.appoint_to !== originalAppointTo ||
+            (!originalAppointTo && formData.appoint_to)) // If it was null before and now assigned
+        ) {
+          const assignedBDE = allBDEs.find(
+            (bde) => bde._id === formData.appoint_to
+          );
+          const bdeName = assignedBDE ? assignedBDE.name : "Assigned User";
+
+          await axios.post(
+            `${import.meta.env.VITE_BASE_URL}/api/send-notification`,
+            {
+              targetUserId: formData.appoint_to, // Use the user's _id
+              title: "Business Appointment Updated/Assigned",
+              body: `Business "${
+                formData.buisnessname
+              }" has been updated and assigned to ${bdeName} for an appointment on ${new Date(
+                formData.appointmentDate
+              ).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })} at ${new Date(formData.appointmentDate).toLocaleTimeString(
+                "en-IN",
+                {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                }
+              )}. Please check details.`,
+            }
+          );
         }
 
-        onSuccess(response.data.businessUpdate);
-        onClose();
-      } catch (error) {
-        console.error("Error updating business:", error);
-        if (
-          error.response &&
-          error.response.data.error === "Mobile number already exists"
-        ) {
+        onSuccess(response.data.businessUpdate); // Pass the updated business data to parent
+        onClose(); // Close the modal
+      } else {
+        console.warn(
+          "Unexpected successful response status:",
+          response.status,
+          response.data
+        );
+        alert(
+          response.data.message ||
+            "Business updated, but with unexpected status."
+        );
+      }
+    } catch (error) {
+      console.error("Error updating business:", error);
+      if (error.response) {
+        if (error.response.data.error === "Mobile number already exists") {
           setErrors({ mobileNumber: "Mobile number already exists" });
         } else {
-          alert("Failed to update business. Please try again.");
+          alert(
+            error.response.data.error ||
+              "Failed to update business. Please try again."
+          );
         }
+      } else {
+        alert("Network error or server unreachable.");
       }
     }
   };
-
-  const statusOptions = [
-    "Fresh Data",
-    "Appointment Generated",
-    "Followup",
-    "Not Interested",
-    "Invalid Data",
-    "Not Responding",
-    "Deal Closed",
-  ];
 
   return (
     <Modal
       isOpen={isOpen}
       onRequestClose={onClose}
       contentLabel="Edit Business"
-      className="modal-content"
-      overlayClassName="modal-overlay"
+      className="modal-content" // Ensure these classNames are defined in your CSS
+      overlayClassName="modal-overlay" // for styling the modal
     >
       <button onClick={onClose} className="close-button">
         &times;
@@ -296,13 +354,16 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
             <label>City/Town</label>
             <select
               name="city"
-              value={formData.city}
+              // Display cityname, but the value for onChange is cityname (which is then mapped to _id)
+              value={
+                cities.find((c) => c._id === formData.city)?.cityname || ""
+              }
               onChange={handleInputChange}
               className="bg-white rounded-sm p-4 border border-[#cccccc]"
             >
               <option value="">Choose</option>
-              {citys.map((city) => (
-                <option key={city.cityId} value={city.cityname}>
+              {cities.map((city) => (
+                <option key={city._id} value={city.cityname}>
                   {city.cityname}
                 </option>
               ))}
@@ -313,13 +374,16 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
             <label>Business Category</label>
             <select
               name="category"
-              value={formData.category}
+              value={
+                categories.find((c) => c._id === formData.category)
+                  ?.categoryname || ""
+              }
               onChange={handleInputChange}
               className="bg-white rounded-sm p-4 border border-[#cccccc]"
             >
               <option value="">Choose</option>
               {categories.map((category) => (
-                <option key={category.categoryId} value={category.categoryname}>
+                <option key={category._id} value={category.categoryname}>
                   {category.categoryname}
                 </option>
               ))}
@@ -332,13 +396,15 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
             <label>Select Lead Source</label>
             <select
               name="source"
-              value={formData.source}
+              value={
+                sources.find((s) => s._id === formData.source)?.sourcename || ""
+              }
               onChange={handleInputChange}
               className="bg-white rounded-sm p-4 border border-[#cccccc]"
             >
               <option value="">Choose</option>
               {sources.map((source) => (
-                <option key={source.sourceId} value={source.sourcename}>
+                <option key={source._id} value={source.sourcename}>
                   {source.sourcename}
                 </option>
               ))}
@@ -383,9 +449,9 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
             </div>
           )}
 
-          {showAppoinmentDate && (
+          {showAppointmentDate && (
             <div className="flex flex-col ">
-              <label>Appoinment Date</label>
+              <label>Appointment Date</label>
               <DatePicker
                 selected={formData.appointmentDate}
                 onChange={(date) => handleDateChange(date, "appointmentDate")}
@@ -400,24 +466,24 @@ const EditBusiness = ({ isOpen, onClose, business, onSuccess }) => {
             </div>
           )}
 
-          {showAppoinmentDate && (
+          {showAppointmentDate && (
             <div className="flex flex-col ">
               <label>Select BDE</label>
               <select
-                name="bdeId"
-                value={formData.bdeId}
+                name="appoint_to" // Changed from bdeId to appoint_to
+                value={formData.appoint_to}
                 onChange={handleInputChange}
                 className="bg-white rounded-sm p-4 border border-[#cccccc]"
               >
                 <option value="">Choose Bde</option>
-                {allBDE.map((bde, index) => (
-                  <option key={index} value={bde.bdeId}>
-                    {bde.bdename}
+                {allBDEs.map((bde) => (
+                  <option key={bde._id} value={bde._id}>
+                    {bde.name}
                   </option>
                 ))}
               </select>
-              {errors.bdeId && (
-                <span className="text-red-500">{errors.bdeId}</span>
+              {errors.appoint_to && ( // Changed from bdeId to appoint_to
+                <span className="text-red-500">{errors.appoint_to}</span>
               )}
             </div>
           )}

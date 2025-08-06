@@ -2,21 +2,40 @@ import React, { useEffect, useState } from "react";
 import TelecallerDashboardTemplate from "../../template/TelecallerDashboardTemplate";
 import axios from "axios";
 import { useParams } from "react-router-dom";
-import { FiEdit } from "react-icons/fi";
-import EditTargetPopup from "../../component/EditTargetPopup";
+
+// Helper function to extract unique years from targets
+const getUniqueYears = (targets) => {
+  const years = new Set(targets.map((t) => t.year));
+  return Array.from(years).sort((a, b) => b - a);
+};
+
+// Assuming rupeeFormatter is available from a previous context
+const rupeeFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+});
 
 const TelecallerAchievement = () => {
-  const [data, setData] = useState(null);
+  const [allTargets, setAllTargets] = useState([]);
+  const [filteredTargets, setFilteredTargets] = useState([]);
   const [selectedTarget, setSelectedTarget] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
+  const [uniqueYears, setUniqueYears] = useState([]);
+  const [currentYear, setCurrentYear] = useState(
+    new Date().getFullYear().toString()
+  );
   const { telecallerId } = useParams();
 
+  // 1. Fetch all data ONCE when telecallerId changes
   const fetchData = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/telecaller/get/${telecallerId}`
+        `${import.meta.env.VITE_BASE_URL}/api/users/get/${telecallerId}`
       );
-      setData(response.data);
+      const targets = response.data.targets || [];
+
+      setAllTargets(targets); // Store the full list of targets
+      setUniqueYears(getUniqueYears(targets)); // Extract unique years from the full list
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -26,18 +45,28 @@ const TelecallerAchievement = () => {
     fetchData();
   }, [telecallerId]);
 
+  // 2. Filter targets whenever allTargets or currentYear changes
+  useEffect(() => {
+    // If no year is selected, display all targets
+    const targetsForYear = currentYear
+      ? allTargets.filter((item) => item.year.toString() === currentYear)
+      : allTargets;
+
+    setFilteredTargets(targetsForYear);
+  }, [allTargets, currentYear]);
+
   const handleEditClick = (target) => {
     setSelectedTarget(target);
     setShowPopup(true);
   };
 
+  // 3. Correctly handle updates by modifying the allTargets state
   const handleUpdate = (updatedTarget) => {
-    setData((prevData) => ({
-      ...prevData,
-      targets: prevData.targets.map((t) =>
+    setAllTargets((prevAllTargets) =>
+      prevAllTargets.map((t) =>
         t._id === updatedTarget._id ? updatedTarget : t
-      ),
-    }));
+      )
+    );
   };
 
   const headers = ["Month", "Year", "Target", "Achievement", "Actions"];
@@ -48,11 +77,17 @@ const TelecallerAchievement = () => {
         <div className="py-6 border-b border-[#cccccc] flex flex-wrap items-center gap-6">
           <h1>Filter</h1>
           <select
-            name="category"
-            placeholder="By Category"
+            placeholder="By Year"
+            onChange={(e) => setCurrentYear(e.target.value)}
+            value={currentYear}
             className="md:px-2 md:py-1 sm:p-1 flex justify-center items-center text-sm rounded-sm border border-[#CCCCCC]"
           >
-            <option value="">By Month</option>
+            <option value="">By Year</option>
+            {uniqueYears.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
           </select>
           <button className="px-3 p-1 flex justify-center items-center text-[#FF2722] rounded-sm border border-[#FF2722] bg-[#FF27221A]">
             Export
@@ -68,8 +103,8 @@ const TelecallerAchievement = () => {
               ))}
             </div>
             <div className="flex flex-col gap-4">
-              {data && data.targets ? (
-                data.targets.map((target, rowIndex) => {
+              {filteredTargets.length > 0 ? (
+                filteredTargets.map((target, rowIndex) => {
                   const achievementPercentage =
                     target.amount && target.achievement
                       ? ((target.achievement / target.amount) * 100).toFixed(2)
@@ -81,38 +116,22 @@ const TelecallerAchievement = () => {
                     >
                       <div className="flex-1">{target.month}</div>
                       <div className="flex-1">{target.year}</div>
-                      <div className="flex-1">{target.amount}</div>
                       <div className="flex-1">
-                        {achievementPercentage}% ({target.achievement || "0"})
+                        {rupeeFormatter.format(target.amount)}
                       </div>
-                      <div className="flex flex-1 flex-row items-center gap-2">
-                        <button
-                          className="text-[#5BC0DE]"
-                          onClick={() => handleEditClick(target)}
-                        >
-                          <FiEdit />
-                        </button>
+                      <div className="flex-1">
+                        {achievementPercentage}% (
+                        {rupeeFormatter.format(target.achievement || 0)})
                       </div>
                     </div>
                   );
                 })
               ) : (
-                <div>No targets available</div>
+                <div>No targets available for this year.</div>
               )}
             </div>
           </div>
         </div>
-
-        {showPopup && (
-          <EditTargetPopup
-            show={showPopup}
-            onClose={() => setShowPopup(false)}
-            target={selectedTarget}
-            onUpdate={handleUpdate}
-            userId={telecallerId}
-            userType="telecaller"
-          />
-        )}
       </div>
     </TelecallerDashboardTemplate>
   );

@@ -37,122 +37,148 @@ import AddAndManageAchievement from "./pages/AddAndManageAchievement";
 import AddAndManageClient from "./pages/AddAndManageClient";
 import ManageLeave from "./pages/ManageLeave";
 import SalesDashboard from "./pages/SalesDashboard";
+import ProtectedRoute from "./context/ProtectedRoutes";
 
 function App() {
   return (
     <Routes>
-      <Route path="" element={<LoginPage />} />
+      <Route path="/" element={<LoginPage />} />
       {/* admin Part */}
-      <Route path="/admin/dashboard" element={<AdminDashboard />} />
-      <Route
-        path="/admin/business/add-manage-business"
-        element={<AddAndManageBuisness />}
-      />
-      <Route
-        path="/admin/business/add-manage-client"
-        element={<AddAndManageClient />}
-      />
-      <Route
-        path="/admin/business/add-manage-city-town"
-        element={<AddManageCity />}
-      />
-      <Route
-        path="/admin/business/add-manage-categories"
-        element={<AddAndManageCategory />}
-      />
-      <Route
-        path="/admin/business/add-manage-source"
-        element={<AddAndManageSource />}
-      />
-      <Route
-        path="/admin/hr/add-manage-candidate"
-        element={<AddAndManageCandidate />}
-      />
-      <Route
-        path="/admin/hr/add-manage-employees"
-        element={<AddAndManageEmployee />}
-      />
-      <Route path="/admin/hr/manage-leave" element={<ManageLeave />} />
-      <Route
-        path="/admin/user/add-manage-user"
-        element={<AddAndManageUser />}
-      />
-      <Route
-        path="/admin/sales/add-manage-target"
-        element={<AddAndManageTarget />}
-      />
-      <Route path="/admin/sales/sales-dashboard" element={<SalesDashboard />} />
-      <Route
-        path="/admin/sales/add-manage-achievement"
-        element={<AddAndManageAchievement />}
-      />
-      <Route
-        path="/admin/user/add-manage-assign-business"
-        element={<AddAndManageAssignBusiness />}
-      />
-      <Route path="/employee-details/:role/:id" element={<EmployeeDetails />} />
-      <Route path="/employee-details/:role/:id" element={<EmployeeDetails />} />
-      <Route path="/admin/brodcast/marketing" element={<WhatsappProposal />} />
-      <Route
-        path="/admin/brodcast/template-image-manage"
-        element={<WhatsAppTemplateImageUpload />}
-      />
-      <Route path="/admin/brodcast/single-massage" element={<Proposal />} />
-      <Route path="/admin/sales/proposal" element={<AdminProposalData />} />
-      <Route
-        path="/admin/getquotation/websiteleads"
-        element={<WebsiteLeads />}
-      />
-      <Route
-        path="/admin/blog/addandmanageblog"
-        element={<AddAndManageBlog />}
-      />
-      <Route path="/admin/career/addandmanagecareer" element={<Career />} />
-      <Route path="/admin/career/applications" element={<AllApplication />} />
+      <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route
+          path="/admin/business/add-manage-business"
+          element={<AddAndManageBuisness />}
+        />
+        <Route
+          path="/admin/business/add-manage-client"
+          element={<AddAndManageClient />}
+        />
+        <Route
+          path="/admin/business/add-manage-city-town"
+          element={<AddManageCity />}
+        />
+        <Route
+          path="/admin/business/add-manage-categories"
+          element={<AddAndManageCategory />}
+        />
+        <Route
+          path="/admin/business/add-manage-source"
+          element={<AddAndManageSource />}
+        />
+        <Route
+          path="/admin/hr/add-manage-candidate"
+          element={<AddAndManageCandidate />}
+        />
+        <Route
+          path="/admin/hr/add-manage-employees"
+          element={<AddAndManageEmployee />}
+        />
+        <Route path="/admin/hr/manage-leave" element={<ManageLeave />} />
+        <Route
+          path="/admin/user/add-manage-user"
+          element={<AddAndManageUser />}
+        />
+        <Route
+          path="/admin/sales/add-manage-target"
+          element={<AddAndManageTarget />}
+        />
+        <Route
+          path="/admin/sales/sales-dashboard"
+          element={<SalesDashboard />}
+        />
+        <Route
+          path="/admin/sales/add-manage-achievement"
+          element={<AddAndManageAchievement />}
+        />
+        <Route
+          path="/admin/user/add-manage-assign-business"
+          element={<AddAndManageAssignBusiness />}
+        />
+        <Route
+          path="/admin/brodcast/marketing"
+          element={<WhatsappProposal />}
+        />
+        <Route
+          path="/admin/brodcast/template-image-manage"
+          element={<WhatsAppTemplateImageUpload />}
+        />
+        <Route path="/admin/brodcast/single-massage" element={<Proposal />} />
+        <Route path="/admin/sales/proposal" element={<AdminProposalData />} />
+        <Route
+          path="/admin/getquotation/websiteleads"
+          element={<WebsiteLeads />}
+        />
+        <Route
+          path="/admin/blog/addandmanageblog"
+          element={<AddAndManageBlog />}
+        />
+        <Route path="/admin/career/addandmanagecareer" element={<Career />} />
+        <Route path="/admin/career/applications" element={<AllApplication />} />
+      </Route>
 
-      {/* Telecaller */}
-      <Route
-        path="/telecaler/telecaller-dashboard/:telecallerId"
-        element={<TelecallerDashboard />}
-      />
-      <Route
-        path="/telecaler/business/:telecallerId"
-        element={<TelecallerBusiness />}
-      />
-      <Route
-        path="/telecaler/calling-data/:telecallerId"
-        element={<TelecallerCallingDataPage />}
-      />
+      {/* Telecaller Part - Protected by 'telecaller' role */}
+      <Route element={<ProtectedRoute allowedRoles={["telecaller"]} />}>
+        <Route
+          path="/telecaler/telecaller-dashboard/:telecallerId"
+          element={<TelecallerDashboard />}
+        />
+        <Route
+          path="/telecaler/business/:telecallerId"
+          element={<TelecallerBusiness />}
+        />
+        <Route
+          path="/telecaler/calling-data/:telecallerId"
+          element={<TelecallerCallingDataPage />}
+        />
+        <Route
+          path="/telecaler/achivement/:telecallerId"
+          element={<TelecallerAchievement />}
+        />
+      </Route>
 
-      <Route
-        path="/telecaler/achivement/:telecallerId"
-        element={<TelecallerAchievement />}
-      />
+      {/* BDE Part - Protected by 'bde' role */}
+      <Route element={<ProtectedRoute allowedRoles={["bde"]} />}>
+        <Route path="/bde/bde-dashboard/:bdeId" element={<BdeDashboard />} />
+        <Route path="/bde/business/:bdeId" element={<BdeBusiness />} />
+        <Route
+          path="/bde/callingdata/:bdeId"
+          element={<BdeCallingDataPage />}
+        />
+        <Route path="/bde/achievement/:bdeId" element={<BdeAchievement />} />
+      </Route>
 
-      {/* BDE */}
-      <Route path="/bde/bde-dashboard/:bdeId" element={<BdeDashboard />} />
-      <Route path="/bde/business/:bdeId" element={<BdeBusiness />} />
-      <Route path="/bde/callingdata/:bdeId" element={<BdeCallingDataPage />} />
+      {/* Digital Marketer Part - Protected by 'digitalmarketer' role */}
+      <Route element={<ProtectedRoute allowedRoles={["digitalmarketer"]} />}>
+        <Route
+          path="/digitalmarketer/digitalmarketer-dashboard/:digitalMarketerId"
+          element={<DigitalDashboard />}
+        />
+        <Route
+          path="/digitalmarketer/business/:digitalMarketerId"
+          element={<DigitalBusiness />}
+        />
+        <Route
+          path="/digitalmarketer/calling-data/:digitalMarketerId"
+          element={<DigitalMarketerCallingDataPage />}
+        />
+        <Route
+          path="/digitalmarketer/achievement/:digitalMarketerId"
+          element={<DigitalMarketerAchievement />}
+        />
+      </Route>
 
-      <Route path="/bde/achievement/:bdeId" element={<BdeAchievement />} />
-
-      {/* digital marketer */}
-      <Route
-        path="/digitalmarketer/digitalmarketer-dashboard/:digitalMarketerId"
-        element={<DigitalDashboard />}
-      />
-      <Route
-        path="/digitalmarketer/business/:digitalMarketerId"
-        element={<DigitalBusiness />}
-      />
-      <Route
-        path="/digitalmarketer/calling-data/:digitalMarketerId"
-        element={<DigitalMarketerCallingDataPage />}
-      />
-      <Route
-        path="/digitalmarketer/achievement/:digitalMarketerId"
-        element={<DigitalMarketerAchievement />}
-      />
+      {/* Generic Employee Details Page - Accessible by any authenticated user */}
+      {/* If this page needs specific roles, wrap it in another ProtectedRoute */}
+      <Route element={<ProtectedRoute />}>
+        {" "}
+        {/* No allowedRoles means just authenticated */}
+        <Route
+          path="/employee-details/:role/:id"
+          element={<EmployeeDetails />}
+        />
+        {/* Removed the duplicate route */}
+      </Route>
     </Routes>
   );
 }

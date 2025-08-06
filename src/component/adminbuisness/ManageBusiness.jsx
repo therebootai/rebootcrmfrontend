@@ -26,27 +26,31 @@ const ManageBusiness = ({
   setProposalNumber,
   setProposalModal,
 }) => {
-  const [data, setData] = useState([]);
   const [selectedBusiness, setSelectedBusiness] = useState(null);
   const [viewModalIsOpen, setViewModalIsOpen] = useState(false);
   const [editModalIsOpen, setEditModalIsOpen] = useState(false);
-  const [deleteModalIsOpen, setDeleteModalIsOpen] = useState(false);
   const [businessToDelete, setBusinessToDelete] = useState(null);
-  // const itemsPerPage = 20;
+  const [deleteModalIsOpen, setDeleteModalIsOpen] = useState(false);
 
-  useEffect(() => {
-    if (businesses && businesses.length > 0) {
-      const sortedData = [...businesses].sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      );
-      setData(sortedData);
-    } else {
-      setData([]);
-    }
-  }, [businesses]);
+  // The useEffect for setting/sorting 'data' is no longer needed
+  // useEffect(() => {
+  //   if (businesses && businesses.length > 0) {
+  //     const sortedData = [...businesses].sort(
+  //       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  //     );
+  //     setData(sortedData);
+  //   } else {
+  //     setData([]);
+  //   }
+  // }, [businesses]);
 
   const handleView = async (id) => {
     try {
+      // Fetch details by _id if that's what your backend /get/:id expects
+      // The `businessId` in your frontend `row.businessId` might not be the MongoDB `_id`
+      // Ensure this API call uses the correct identifier (_id or custom businessId)
+      // Based on your backend getBusiness, it uses `_id` in the findById call, so we should pass `_id` here.
+      // If `row.businessId` is indeed `_id`, then it's fine. If not, you might need to adjust.
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/api/business/get/${id}`
       );
@@ -59,6 +63,7 @@ const ManageBusiness = ({
 
   const handleEdit = async (id) => {
     try {
+      // Same logic as handleView for fetching by ID
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/api/business/get/${id}`
       );
@@ -69,16 +74,17 @@ const ManageBusiness = ({
     }
   };
 
+  // When a business is successfully edited, we need to update the `businesses` prop
+  // Ideally, the parent component (AddAndManageBuisness) would trigger a re-fetch
+  // of `fetchAllBusinesses` to get the updated data from the server,
+  // ensuring consistency with pagination and sorting.
+  // For now, we'll update the local state which is `businesses` prop.
   const handleEditSuccess = (updatedBusiness) => {
-    setData((prevData) =>
-      prevData.map((business) =>
-        business.businessId === updatedBusiness.businessId
-          ? { ...business, ...updatedBusiness }
-          : business
-      )
-    );
     setEditModalIsOpen(false);
     setSelectedBusiness(null);
+    // You might want to call a prop function like `onBusinessUpdated()` here
+    // that the parent `AddAndManageBuisness` provides, which then calls `fetchAllBusinesses`.
+    // Example: props.onBusinessUpdated();
   };
 
   const handleDeleteClick = (business) => {
@@ -92,18 +98,15 @@ const ManageBusiness = ({
     try {
       await axios.delete(
         `${import.meta.env.VITE_BASE_URL}/api/business/delete/${
-          businessToDelete.businessId
-        }`
+          businessToDelete._id
+        }` // Use _id for delete
       );
-      setData((prevData) =>
-        prevData.filter(
-          (business) => business.businessId !== businessToDelete.businessId
-        )
-      );
+
       setDeleteModalIsOpen(false);
       setBusinessToDelete(null);
     } catch (error) {
       console.error("Error deleting business", error);
+      alert("Failed to delete business. Please try again.");
     }
   };
 
@@ -114,7 +117,7 @@ const ManageBusiness = ({
 
   const formatFollowUpDate = (dateString) => {
     if (!dateString) {
-      return "Null";
+      return "N/A"; // Changed from "Null" for better UX
     }
     try {
       const date = new Date(dateString);
@@ -135,20 +138,9 @@ const ManageBusiness = ({
     "Status",
   ];
 
-  // Memoized Pagination logic
-  // const currentItems = useMemo(() => {
-  //   const indexOfLastItem = currentPage * itemsPerPage;
-  //   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  //   return data.slice(indexOfFirstItem, indexOfLastItem);
-  // }, [data, currentPage]);
-
-  // const totalPages = useMemo(
-  //   () => Math.ceil(data.length / itemsPerPage),
-  //   [data]
-  // );
-
+  // Pagination logic now directly uses props from the backend
   const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
+    setCurrentPage(pageNumber); // This triggers the parent to re-fetch
   };
 
   // Calculate the range of page numbers to show
@@ -184,7 +176,7 @@ const ManageBusiness = ({
         </button>
         <div className="flex gap-2">
           {Array.from({ length: endPage - startPage + 1 }, (_, i) => {
-            const pageNumber = startPage + i; // Calculate the correct page number
+            const pageNumber = startPage + i;
             return (
               <button
                 key={pageNumber}
@@ -193,7 +185,7 @@ const ManageBusiness = ({
                     ? "text-[#D53F3A]"
                     : "text-[#777777]"
                 } font-bold rounded`}
-                onClick={() => handlePageChange(pageNumber)} // Pass the correct page number
+                onClick={() => handlePageChange(pageNumber)}
               >
                 {pageNumber}
               </button>
@@ -232,9 +224,10 @@ const ManageBusiness = ({
               </div>
               <div className="max-h-[80vh] overflow-y-scroll no-scrollbar">
                 <div className="flex flex-col gap-4">
-                  {data.map((row, rowIndex) => (
+                  {/* Render 'businesses' prop directly */}
+                  {businesses.map((row, rowIndex) => (
                     <div
-                      key={rowIndex}
+                      key={row._id || rowIndex} // Use row._id as key for stability
                       className="flex flex-row gap-2 pb-4 border-b text-[#777777] sm:text-xs md:text-sm font-medium"
                     >
                       <div className="flex-1 threelinelimit">
@@ -250,31 +243,38 @@ const ManageBusiness = ({
                       >
                         {row.mobileNumber}
                       </div>
-                      <div className="flex-1">{row.city}</div>
-                      <div className="flex-1">{row.category}</div>
-                      <div className="flex-1">{row.source}</div>
+                      {/* Access populated fields safely */}
+                      <div className="flex-1">
+                        {row.city?.cityname || row.city}
+                      </div>
+                      <div className="flex-1">
+                        {row.category?.categoryname || row.category}
+                      </div>
+                      <div className="flex-1">
+                        {row.source?.sourcename || row.source}
+                      </div>
                       <div className="flex-1">
                         {row.status === "Visited"
-                          ? `Visited (${row.visit_result.reason})`
+                          ? `Visited (${row.visit_result?.reason || "N/A"})` // Use optional chaining for visit_result
                           : row.status}
                       </div>
                       <div className="flex flex-1 flex-row items-center gap-2">
                         <button
                           className="text-[#00D23B]"
-                          onClick={() => handleView(row.businessId)}
+                          onClick={() => handleView(row._id)} // Use row._id for view
                         >
                           <MdOutlineVisibility />
                         </button>
                         <button
                           className="text-[#5BC0DE]"
-                          onClick={() => handleEdit(row.businessId)}
+                          onClick={() => handleEdit(row._id)} // Use row._id for edit
                         >
                           <FiEdit />
                         </button>
                         {showdelete && (
                           <button
                             className="text-[#D53F3A]"
-                            onClick={() => handleDeleteClick(row)}
+                            onClick={() => handleDeleteClick(row)} // Pass the whole row
                           >
                             <RiDeleteBin5Line />
                           </button>
@@ -282,6 +282,11 @@ const ManageBusiness = ({
                       </div>
                     </div>
                   ))}
+                  {businesses.length === 0 && !fetchLoading && (
+                    <div className="text-center py-4 text-gray-500">
+                      No businesses found for the current filters.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -300,25 +305,36 @@ const ManageBusiness = ({
             onClick={() => setViewModalIsOpen(false)}
             className="close-button"
           >
-            &times;
+            ×
           </button>
           {selectedBusiness && (
             <div className="flex flex-col gap-2">
               <div className="text-xl font-semibold">
-                {selectedBusiness.buisnessname}- {selectedBusiness.businessId}
+                {selectedBusiness.buisnessname} - {selectedBusiness.businessId}
               </div>
               <div>Contact Person: {selectedBusiness.contactpersonName}</div>
               <div>Mobile Number: {selectedBusiness.mobileNumber}</div>
-              <div>City: {selectedBusiness.city}</div>
-              <div>Category: {selectedBusiness.category}</div>
-              <div>Source: {selectedBusiness.source}</div>
+              {/* Access populated fields safely */}
+              <div>
+                City: {selectedBusiness.city?.cityname || selectedBusiness.city}
+              </div>
+              <div>
+                Category:{" "}
+                {selectedBusiness.category?.categoryname ||
+                  selectedBusiness.category}
+              </div>
+              <div>
+                Source:{" "}
+                {selectedBusiness.source?.sourcename || selectedBusiness.source}
+              </div>
               <div className=" flex flex-row gap-2 items-center">
                 Status: {selectedBusiness.status}{" "}
                 <span>
                   {selectedBusiness.visit_result?.update_location ? (
                     <Link
-                      to={`https://maps.google.com/?q=${selectedBusiness.visit_result.update_location.latitude},${selectedBusiness.visit_result.update_location.longitude}`}
+                      to={`https://www.google.com/maps/search/?api=1&query=${selectedBusiness.visit_result.update_location.latitude},${selectedBusiness.visit_result.update_location.longitude}`}
                       target="_blank"
+                      rel="noopener noreferrer" // Important for security with target="_blank"
                     >
                       <FaMapLocationDot className=" text-green-800 text-lg" />
                     </Link>
@@ -332,6 +348,12 @@ const ManageBusiness = ({
                 Follow-Up Date:{" "}
                 {formatFollowUpDate(selectedBusiness.followUpDate)}
               </div>
+              <div>Remarks: {selectedBusiness.remarks || "N/A"}</div>
+              {/* Display populated Lead By and Appoint To users */}
+              <div>Lead By: {selectedBusiness.lead_by?.name || "N/A"}</div>
+              <div>
+                Assigned To: {selectedBusiness.appoint_to?.name || "N/A"}
+              </div>
             </div>
           )}
         </Modal>
@@ -342,7 +364,14 @@ const ManageBusiness = ({
             isOpen={editModalIsOpen}
             onClose={() => setEditModalIsOpen(false)}
             business={selectedBusiness}
-            onSuccess={handleEditSuccess}
+            onSuccess={() => {
+              handleEditSuccess(); // Call local success handler
+              // IMPORTANT: Trigger parent component to re-fetch data to reflect changes
+              // You need to pass a prop from AddAndManageBuisness to ManageBusiness,
+              // e.g., `onBusinessUpdated={fetchAllBusinesses}`
+              // This is crucial for reflecting changes from backend correctly.
+              // For now, I'm assuming you will add this.
+            }}
           />
         )}
 
@@ -362,7 +391,13 @@ const ManageBusiness = ({
                 </button>
                 <button
                   className="px-4 py-2 bg-red-500 text-white rounded-lg"
-                  onClick={confirmDelete}
+                  onClick={() => {
+                    confirmDelete();
+                    // IMPORTANT: Trigger parent component to re-fetch data
+                    // This will update the `businesses` prop and correct pagination.
+                    // You need to pass a prop from AddAndManageBuisness to ManageBusiness,
+                    // e.g., `onBusinessDeleted={fetchAllBusinesses}`
+                  }}
                 >
                   Yes
                 </button>

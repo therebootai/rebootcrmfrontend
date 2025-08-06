@@ -5,6 +5,8 @@ import { TbRefresh } from "react-icons/tb";
 import { Link, useNavigate } from "react-router-dom";
 import ForgotPassword from "./ForgotPassword";
 import OTPLogin from "./OTPLogin";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 const AdminLogin = () => {
   const [emailorphone, setEmailorphone] = useState("");
@@ -19,6 +21,9 @@ const AdminLogin = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showOtpLogin, setShowOtpLogin] = useState(false);
+
+  const { login, hasRole } = useContext(AuthContext);
+
   useEffect(() => {
     generateCaptcha();
   }, []);
@@ -63,18 +68,19 @@ const AdminLogin = () => {
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/api/admin/login`,
+        `${import.meta.env.VITE_BASE_URL}/api/auth/login`,
         {
-          emailOrPhone: emailorphone,
+          mobileNumber: emailorphone,
           password,
         }
       );
 
-      const { token, name } = response.data;
+      const { token, user } = response.data;
       localStorage.setItem("token", token);
-      localStorage.setItem("name", name);
-      localStorage.setItem("role", "admin");
+      localStorage.setItem("user", JSON.stringify(user));
 
+      login(token, user);
+      hasRole(user.designation);
       navigate("/admin/dashboard");
     } catch (error) {
       if (error.response && error.response.data) {
@@ -185,13 +191,12 @@ const AdminLogin = () => {
         </div>
       </form>
       <div className="flex flex-col text-[#777777] gap-1 items-start font-medium">
-        <button
+        {/* <button
           className="text-[#777777] hover:text-[#FF2722]"
           onClick={() => setShowForgotPassword(true)}
         >
-          {" "}
           Forgot my password
-        </button>
+        </button> */}
         <button
           className="text-[#777777] hover:text-[#FF2722]"
           type="button"
@@ -200,9 +205,9 @@ const AdminLogin = () => {
           Login With OTP
         </button>
       </div>
-      {showForgotPassword && (
+      {/* {showForgotPassword && (
         <ForgotPassword onClose={() => setShowForgotPassword(false)} />
-      )}
+      )} */}
       {showOtpLogin && <OTPLogin onClose={() => setShowOtpLogin(false)} />}
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import AdminDashboardTemplate from "../template/AdminDashboardTemplate";
 import Modal from "react-modal";
 import AddUser from "../component/adminbuisness/AddUser";

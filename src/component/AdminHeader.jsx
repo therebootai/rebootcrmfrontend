@@ -4,6 +4,8 @@ import { IoNotificationsSharp } from "react-icons/io5";
 import { TfiMenuAlt } from "react-icons/tfi";
 import { IoIosLogOut } from "react-icons/io";
 import { AiOutlineClose } from "react-icons/ai"; // Import close icon
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 const AdminHeader = ({
   toggleMobileSidebar,
@@ -14,10 +16,11 @@ const AdminHeader = ({
   const profileImageRef = useRef(null);
   const profileDropdownRef = useRef(null);
 
+  const { user } = useContext(AuthContext);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("name");
-    localStorage.removeItem("role");
+    localStorage.removeItem("user");
 
     window.location.href = "/";
   };
@@ -25,11 +28,8 @@ const AdminHeader = ({
   const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    const name = localStorage.getItem("name");
-    if (name) {
-      setUserName(name);
-    }
-  }, []);
+    setUserName(user.name);
+  }, [user]);
 
   const toggleProfileDropdown = () => {
     setIsProfileDropdownOpen((prev) => !prev);
