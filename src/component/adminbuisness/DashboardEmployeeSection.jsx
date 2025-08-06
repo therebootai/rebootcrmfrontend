@@ -98,30 +98,21 @@ const DashboardEmployeeSection = () => {
 
         // --- 1. Fetch for `createdBy` ---
         const createdByParams = getCleanedParams({ createdBy: employeeId });
-        console.log(
-          `[Counts] CreatedBy Request for ${employeeId}. Params:`,
-          createdByParams
-        );
+
         const createdByResponsePromise = axios.get(baseUrl, {
           params: createdByParams,
         });
 
         // --- 2. Fetch for `leadBy` ---
         const leadByParams = getCleanedParams({ leadBy: employeeId });
-        console.log(
-          `[Counts] LeadBy Request for ${employeeId}. Params:`,
-          leadByParams
-        );
+
         const leadByResponsePromise = axios.get(baseUrl, {
           params: leadByParams,
         });
 
         // --- 3. Fetch for `assignedTo` ---
         const assignedToParams = getCleanedParams({ assignedTo: employeeId });
-        console.log(
-          `[Counts] AssignedTo Request for ${employeeId}. Params:`,
-          assignedToParams
-        );
+
         const assignedToResponsePromise = axios.get(baseUrl, {
           params: assignedToParams,
         });
@@ -150,7 +141,7 @@ const DashboardEmployeeSection = () => {
           createdByRes.value.data.success
         ) {
           const data = createdByRes.value.data;
-          console.log(`[Counts] CreatedBy Response for ${employeeId}:`, data);
+
           // As per your requirement, created_business_count comes from this endpoint's totalCount or statusCount
           aggregatedStatusCount.created_business_count =
             data.statusCount?.created_business_count || data.totalCount || 0;
@@ -173,7 +164,6 @@ const DashboardEmployeeSection = () => {
         // Process leadBy response (typically for Telecallers/Digital Marketers)
         if (leadByRes.status === "fulfilled" && leadByRes.value.data.success) {
           const data = leadByRes.value.data;
-          console.log(`[Counts] LeadBy Response for ${employeeId}:`, data);
           aggregatedStatusCount.FollowupCount +=
             data.statusCount?.FollowupCount || 0;
           aggregatedStatusCount.appointmentCount +=
@@ -194,7 +184,6 @@ const DashboardEmployeeSection = () => {
           assignedToRes.value.data.success
         ) {
           const data = assignedToRes.value.data;
-          console.log(`[Counts] AssignedTo Response for ${employeeId}:`, data);
           aggregatedStatusCount.FollowupCount +=
             data.statusCount?.FollowupCount || 0;
           aggregatedStatusCount.appointmentCount +=
@@ -216,15 +205,6 @@ const DashboardEmployeeSection = () => {
           aggregatedStatusCount.appointmentCount +
           aggregatedStatusCount.visitCount +
           aggregatedStatusCount.dealCloseCount;
-
-        console.log(
-          `[Counts] Final Aggregated Status Counts for ${employeeId}:`,
-          aggregatedStatusCount
-        );
-        console.log(
-          `[Counts] Final Total Sum of Counts for ${employeeId}:`,
-          totalSumOfCounts
-        );
 
         return {
           totalCount: totalSumOfCounts,
@@ -267,13 +247,17 @@ const DashboardEmployeeSection = () => {
           ? new Date(
               currentDateRange.startDate.getTime() -
                 currentDateRange.startDate.getTimezoneOffset() * 60000
-            ).toISOString()
+            )
+              .toISOString()
+              .split("T")[0]
           : "";
         const formattedEndDate = currentDateRange.endDate
           ? new Date(
               currentDateRange.endDate.getTime() -
                 currentDateRange.endDate.getTimezoneOffset() * 60000
-            ).toISOString()
+            )
+              .toISOString()
+              .split("T")[0]
           : "";
 
         let url = `${
@@ -292,6 +276,7 @@ const DashboardEmployeeSection = () => {
           } else if (role === "bde") {
             url += `&assignedTo=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
             url += `&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+            url += `&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
             // REMOVED: &byTagAppointment=true
           }
         }
@@ -329,13 +314,17 @@ const DashboardEmployeeSection = () => {
           ? new Date(
               dateRange.startDate.getTime() -
                 dateRange.startDate.getTimezoneOffset() * 60000
-            ).toISOString()
+            )
+              .toISOString()
+              .split("T")[0]
           : "";
         const formattedEndDate = dateRange.endDate
           ? new Date(
               dateRange.endDate.getTime() -
                 dateRange.endDate.getTimezoneOffset() * 60000
-            ).toISOString()
+            )
+              .toISOString()
+              .split("T")[0]
           : "";
 
         let url = `${
@@ -354,11 +343,11 @@ const DashboardEmployeeSection = () => {
           } else if (selectedEmployee.role.toLowerCase() === "bde") {
             url += `&assignedTo=${selectedEmployee._id}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
             url += `&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+            url += `&visitdatestart=${visitdatestart}&visitdateend=${visitdateend}`;
             // REMOVED: &byTagAppointment=true
           }
         }
 
-        console.log("Loading more modal data URL (corrected):", url);
         const response = await axios.get(url);
         if (response.data.success) {
           setModalData((prevData) => [
@@ -398,7 +387,6 @@ const DashboardEmployeeSection = () => {
   };
 
   const fetchEmployeeData = useCallback(async () => {
-    console.log("[fetchEmployeeData] Initiated. Current dateRange:", dateRange);
     try {
       // Set loading state before fetching
       // Assuming you have an isLoading state, otherwise add one
