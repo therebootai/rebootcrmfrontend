@@ -33,11 +33,6 @@ const AdminDashboard = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
 
-  // Note: allEmployees, tableDateRange, and graph-related states/functions
-  // are assumed to be managed within DashboardEmployeeSection and the graph components themselves,
-  // as per the separation of concerns for AdminDashboard.
-
-  // --- fetchBusinesses: Fetches overall business counts and combined targets for main dashboard ---
   const fetchBusinesses = useCallback(async () => {
     try {
       const formattedStartDate = dateRange.startDate

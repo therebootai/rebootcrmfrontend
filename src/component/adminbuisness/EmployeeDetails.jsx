@@ -42,7 +42,7 @@ const EmployeeDetails = () => {
       if (role === "telecaller") {
         url = `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?telecallerId=${id}&page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&followupstartdate=${
+        }/api/business/get?leadBy=${id}${id}&page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&followupstartdate=${
           dateRange.startDate
             ? new Date(
                 dateRange.startDate.getTime() -
@@ -60,7 +60,7 @@ const EmployeeDetails = () => {
       } else if (role === "digitalmarketer") {
         url = `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?digitalMarketerId=${id}&page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&followupstartdate=${
+        }/api/business/get?leadBy=${id}&page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&followupstartdate=${
           dateRange.startDate
             ? new Date(
                 dateRange.startDate.getTime() -
@@ -78,7 +78,7 @@ const EmployeeDetails = () => {
       } else if (role === "bde") {
         url = `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/get?bdeId=${id}&byTagAppointment=true&page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&appointmentstartdate=${
+        }/api/business/get?assignedTo=${id}&byTagAppointment=true&page=${currentPage}&status=${status}&category=${category}&city=${city}&mobileNumber=${mobileNumber}&appointmentstartdate=${
           dateRange.startDate
             ? new Date(
                 dateRange.startDate.getTime() -
@@ -144,24 +144,28 @@ const EmployeeDetails = () => {
 
     setFetchLoading(false);
   };
+
   useMemo(() => {
     async function getFilters() {
       try {
-        let endpointParams = {};
-        if (role === "telecaller") endpointParams.telecallerId = id;
-        if (role === "digitalmarketer") endpointParams.digitalMarketerId = id;
-        if (role === "bde") endpointParams.bdeId = id;
-
-        const queryParams = new URLSearchParams(endpointParams).toString();
         const url = `${
           import.meta.env.VITE_BASE_URL
-        }/api/business/getfilter?${queryParams}`;
+        }/api/users/get-filters/${id}`;
 
         const response = await axios.get(url);
 
         setUniqueCities(response.data.cities || []);
-        setUniqueCategories(response.data.businessCategories || []);
-        setUniqueStatuses(response.data.status || []);
+        setUniqueCategories(response.data.categories || []);
+        setUniqueStatuses([
+          "Fresh Data",
+          "Appointment Generated",
+          "Followup",
+          "Not Interested",
+          "Invalid Data",
+          "Not Responding",
+          "Deal Closed",
+          "Visited",
+        ]);
       } catch (error) {
         console.error("Error fetching filters:", error);
       }
@@ -274,8 +278,8 @@ const EmployeeDetails = () => {
             >
               <option value="">By City/Town</option>
               {uniqueCities.map((city, index) => (
-                <option key={index} value={city}>
-                  {city}
+                <option key={index} value={city._id}>
+                  {city.cityname}
                 </option>
               ))}
             </select>
@@ -292,8 +296,8 @@ const EmployeeDetails = () => {
             >
               <option value="">By Category</option>
               {uniqueCategories.map((cat, index) => (
-                <option key={index} value={cat}>
-                  {cat}
+                <option key={index} value={cat._id}>
+                  {cat.categoryname}
                 </option>
               ))}
             </select>
@@ -385,9 +389,9 @@ const EmployeeDetails = () => {
                       <div className="flex-1">{row.buisnessname}</div>
                       <div className="flex-1">{row.contactpersonName}</div>
                       <div className="flex-1">{row.mobileNumber}</div>
-                      <div className="flex-1">{row.city}</div>
-                      <div className="flex-1">{row.category}</div>
-                      <div className="flex-1">{row.source}</div>
+                      <div className="flex-1">{row.city.cityname}</div>
+                      <div className="flex-1">{row.category.categoryname}</div>
+                      <div className="flex-1">{row.source.sourcename}</div>
                       <div className="flex-1">{row.status}</div>
                     </div>
                   ))
