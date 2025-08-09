@@ -23,19 +23,23 @@ const monthNamesShort = [
   "DEC",
 ];
 
-// --- Helper for Date Formatting ---
-const formatDateToISO = (date) => {
-  if (!date) return "";
-  const utcDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return utcDate.toISOString();
-};
-
 const rupeeFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
   minimumFractionDigits: 0, // No decimal places for whole rupees
   maximumFractionDigits: 0,
 });
+
+const toUTCISOStringForQuery = (date, isEndDate = false) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isEndDate) {
+    d.setHours(23, 59, 59, 999);
+  } else {
+    d.setHours(0, 0, 0, 0);
+  }
+  return d.toISOString();
+};
 
 const SalesDashboard = () => {
   const [counts, setCounts] = useState({
@@ -57,8 +61,8 @@ const SalesDashboard = () => {
   });
   const [tableDateRange, setTableDateRange] = useState({
     // Date range specifically for the employee table
-    startDate: null,
-    endDate: null,
+    startDate: new Date(),
+    endDate: new Date(),
     key: "selection",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -313,9 +317,75 @@ const SalesDashboard = () => {
 
   // --- fetchtableData: Fetches data for the employee table (if it's part of SalesDashboard) ---
   // This function is kept here as it uses SalesDashboard's states (tableDateRange)
+  const fetchTableBusinessCountsForEmployee = useCallback(
+    async (employeeId, employeeDesignation, currentTableDateRange) => {
+      try {
+        const getCleanedParams = (additionalFilter) => {
+          const params = { ...additionalFilter };
+
+          const formattedStartDate = toUTCISOStringForQuery(
+            currentTableDateRange.startDate
+          );
+          const formattedEndDate = toUTCISOStringForQuery(
+            currentTableDateRange.endDate,
+            true
+          );
+
+          // Apply date filters based on designation
+          if (additionalFilter.createdBy) {
+            params.createdstartdate = formattedStartDate;
+            params.createdenddate = formattedEndDate;
+          }
+
+          if (additionalFilter.leadBy || additionalFilter.assignedTo) {
+            params.followupstartdate = formattedStartDate;
+            params.followupenddate = formattedEndDate;
+            params.appointmentstartdate = formattedStartDate;
+            params.appointmentenddate = formattedEndDate;
+            params.visitdatestart = formattedStartDate;
+            params.visitdateend = formattedEndDate;
+          }
+
+          const cleaned = {};
+          for (const key in params) {
+            if (params[key] !== null && params[key] !== "") {
+              cleaned[key] = params[key];
+            }
+          }
+          return cleaned;
+        };
+
+        const baseUrl = `${import.meta.env.VITE_BASE_URL}/api/business/get`;
+        let finalParams = {};
+
+        if (employeeDesignation === "BDE") {
+          finalParams = getCleanedParams({ assignedTo: employeeId });
+        } else if (employeeDesignation === "Telecaller") {
+          finalParams = getCleanedParams({ createdBy: employeeId });
+        }
+
+        const response = await axios.get(baseUrl, {
+          params: finalParams,
+        });
+
+        if (response.data.success) {
+          return response.data;
+        }
+        return { statusCount: {}, businesses: [] };
+      } catch (error) {
+        console.error(
+          `[TableCounts] Failed to fetch counts for ${employeeDesignation} ID ${employeeId}:`,
+          error
+        );
+        return { statusCount: {}, businesses: [] };
+      }
+    },
+    []
+  );
+
   const fetchtableData = useCallback(async () => {
     try {
-      const [telecallersRes, bdesRes] = await Promise.all([
+      const [telecallersResponse, bdesResponse] = await Promise.all([
         axios.get(
           `${
             import.meta.env.VITE_BASE_URL
@@ -326,131 +396,55 @@ const SalesDashboard = () => {
         ),
       ]);
 
-      const telecallers = telecallersRes.data.users;
-      const bdes = bdesRes.data.users;
+      const processEmployees = async (users, role) => {
+        const employeesWithRole = users.map((item) => ({
+          ...item,
+          id: item._id,
+          role,
+          name: item.name,
+        }));
 
-      const formattedStartDate = formatDateToISO(tableDateRange.startDate);
-      const formattedEndDate = formatDateToISO(tableDateRange.endDate);
-
-      const individualBusinessApiCalls = [];
-
-      bdes.forEach((bde) => {
-        const businessUrl = `${
-          import.meta.env.VITE_BASE_URL
-        }/api/business/get?assignedTo=${
-          bde._id
-        }&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
-        individualBusinessApiCalls.push(
-          axios
-            .get(businessUrl)
-            .then((response) => ({
-              type: "BDE_BUSINESS",
-              id: bde._id,
-              data: response.data,
-            }))
-            .catch((error) => {
-              console.error(
-                `Error fetching business data for BDE ID ${bde._id}:`,
-                error
-              );
-              return {
-                type: "BDE_BUSINESS",
-                id: bde._id,
-                error: error.message,
-                data: { statusCount: {} },
-              };
-            })
+        const employeesWithCountsPromises = employeesWithRole.map(
+          async (employee) => {
+            const businessData = await fetchTableBusinessCountsForEmployee(
+              employee.id,
+              employee.designation,
+              tableDateRange
+            );
+            return {
+              ...employee,
+              statuscount: businessData.statusCount || {},
+              latestTarget: getLatestTargetForTable(
+                employee.targets,
+                tableDateRange.startDate,
+                tableDateRange.endDate
+              ),
+              collections: calculateCollectionForRange(
+                employee.targets,
+                tableDateRange.startDate,
+                tableDateRange.endDate
+              ),
+            };
+          }
         );
-      });
+        return Promise.all(employeesWithCountsPromises);
+      };
 
-      telecallers.forEach((telecaller) => {
-        const businessUrl = `${
-          import.meta.env.VITE_BASE_URL
-        }/api/business/get?createdBy=${
-          telecaller._id
-        }&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
-        individualBusinessApiCalls.push(
-          axios
-            .get(businessUrl)
-            .then((response) => ({
-              type: "Telecaller_BUSINESS",
-              id: telecaller._id,
-              data: response.data,
-            }))
-            .catch((error) => {
-              console.error(
-                `Error fetching business data for Telecaller ID ${telecaller._id}:`,
-                error
-              );
-              return {
-                type: "Telecaller_BUSINESS",
-                id: telecaller._id,
-                error: error.message,
-                data: { statusCount: {} },
-              };
-            })
-        );
-      });
+      const [telecallersWithData, bdesWithData] = await Promise.all([
+        processEmployees(telecallersResponse.data.users, "Telecaller"),
+        processEmployees(bdesResponse.data.users, "BDE"),
+      ]);
 
-      const allIndividualBusinessResults = await Promise.allSettled(
-        individualBusinessApiCalls
-      );
-
-      const processedEmployees = [
-        ...bdes.map((user) => ({
-          ...user,
-          role: user.designation,
-          name: user.name,
-          id: user._id,
-          targets: user.targets || [],
-          statuscount:
-            allIndividualBusinessResults.find(
-              (result) =>
-                result.status === "fulfilled" &&
-                result.value.type === "BDE_BUSINESS" &&
-                result.value.id === user._id
-            )?.value.data.statusCount || {},
-          latestTarget: getLatestTargetForTable(
-            user.targets,
-            tableDateRange.startDate,
-            tableDateRange.endDate
-          ),
-          collections: calculateCollectionForRange(
-            user.targets,
-            tableDateRange.startDate,
-            tableDateRange.endDate
-          ),
-        })),
-        ...telecallers.map((user) => ({
-          ...user,
-          role: user.designation,
-          name: user.name,
-          id: user._id,
-          targets: user.targets || [],
-          statuscount:
-            allIndividualBusinessResults.find(
-              (result) =>
-                result.status === "fulfilled" &&
-                result.value.type === "Telecaller_BUSINESS" &&
-                result.value.id === user._id
-            )?.value.data.statusCount || {},
-          latestTarget: getLatestTargetForTable(
-            user.targets,
-            tableDateRange.startDate,
-            tableDateRange.endDate
-          ),
-          collections: calculateCollectionForRange(
-            user.targets,
-            tableDateRange.startDate,
-            tableDateRange.endDate
-          ),
-        })),
-      ];
-      setAllEmployees(processedEmployees);
+      const allEmployees = [...bdesWithData, ...telecallersWithData];
+      setAllEmployees(allEmployees);
     } catch (error) {
       console.error("Error fetching table data or employees:", error);
     }
-  }, [tableDateRange, calculateCollectionForRange]); // Dependencies for useCallback
+  }, [
+    tableDateRange,
+    fetchTableBusinessCountsForEmployee,
+    calculateCollectionForRange,
+  ]);
 
   // Helper function for fetchtableData to get the specific target for the table's date range
   const getLatestTargetForTable = useCallback((targets, startDate, endDate) => {
@@ -735,7 +729,7 @@ const SalesDashboard = () => {
     },
     {
       name: "Total Collections",
-      number: rupeeFormatter.format(counts.collection ),
+      number: rupeeFormatter.format(counts.collection),
     },
   ];
 

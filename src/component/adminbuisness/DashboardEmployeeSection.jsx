@@ -22,7 +22,7 @@ const formatDate = (dateString) => {
 };
 
 const toUTCISOStringForQuery = (date, isEndDate = false) => {
-  if (!date) return null;
+  if (!date) return "";
   const d = new Date(date);
   if (isEndDate) {
     d.setHours(23, 59, 59, 999);
@@ -91,7 +91,6 @@ const DashboardEmployeeSection = () => {
                 currentComponentDateRange.endDate,
                 true
               ));
-            // No 'created' dates are added in this branch, fulfilling the requirement.
           }
 
           const cleaned = {};
@@ -242,14 +241,7 @@ const DashboardEmployeeSection = () => {
   );
 
   const fetchEmployeeBusinessData = useCallback(
-    async (
-      role,
-      employeeId,
-      status,
-      currentDateRange,
-      page = 1,
-      leadByUserId
-    ) => {
+    async (role, employeeId, status, currentDateRange, page = 1) => {
       try {
         setModalData([]);
         setModalPage(1);
@@ -267,9 +259,36 @@ const DashboardEmployeeSection = () => {
         }/api/business/get?page=${page}`;
 
         if (status === "New Data") {
-          url += `&createdBy=${leadByUserId}&createdstartdate=${formattedStartDate}&createdenddate=${formattedEndDate}`;
+          url += `&createdBy=${employeeId}&createdstartdate=${formattedStartDate}&createdenddate=${formattedEndDate}`;
+        } else if (status === "Followup") {
+          if (role === "telecaller" || role === "digitalmarketer") {
+            url += `&leadBy=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+          } else if (role === "bde") {
+            url += `&assignedTo=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+          }
+        } else if (status === "Appointment Generated") {
+          if (role === "bde") {
+            url += `&status=Appointment Generated&assignedTo=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+          } else if (role === "telecaller" || role === "digitalmarketer") {
+            url += `&status=Appointment Generated&leadBy=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+          }
+        } else if (status === "Visited") {
+          if (role === "bde") {
+            url += `&status=Visited&assignedTo=${employeeId}&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
+          } else if (role === "telecaller" || role === "digitalmarketer") {
+            url += `&status=Visited&leadBy=${employeeId}&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
+          }
+        } else if (status === "Deal Closed") {
+          if (role === "bde") {
+            url += `&status=Deal Closed&assignedTo=${employeeId}&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
+          } else if (role === "telecaller" || role === "digitalmarketer") {
+            url += `&status=Deal Closed&leadBy=${employeeId}&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
+          }
         } else {
           url += `&status=${status}`;
+
+          if (status === "") {
+          }
 
           if (role === "telecaller") {
             url += `&leadBy=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
@@ -279,7 +298,6 @@ const DashboardEmployeeSection = () => {
             url += `&assignedTo=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
             url += `&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
             url += `&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
-            // REMOVED: &byTagAppointment=true
           }
         }
 
@@ -313,7 +331,7 @@ const DashboardEmployeeSection = () => {
     setOpenFor(openForStatus);
     setIsModalOpen(true);
     fetchEmployeeBusinessData(
-      emp.role.toLowerCase(),
+      emp.designation.toLowerCase(),
       emp._id,
       openForStatus,
       dateRange,
@@ -561,7 +579,8 @@ const DashboardEmployeeSection = () => {
                       <GoDotFill />
                     </span>
                     <span className=" flex flex-row items-center gap-2">
-                      {data.status === "Visited" ? data.status : data.status} - (
+                      {data.status === "Visited" ? data.status : data.status} -
+                      (
                       {formatDate(
                         data.followUpDate || data.visit_result?.visit_time || ""
                       )}
@@ -584,7 +603,7 @@ const DashboardEmployeeSection = () => {
                     <span>
                       <GoDotFill />
                     </span>
-                    <span>{data.category.categoryname}</span>
+                    <span>{data.category?.categoryname}</span>
                   </div>
                   <div className="flex  justify-between w-full items-center ">
                     <div className="flex flex-col gap-4">
@@ -592,7 +611,7 @@ const DashboardEmployeeSection = () => {
                         <span>
                           <GoDotFill />
                         </span>
-                        <span>{data.city.cityname}</span>
+                        <span>{data.city?.cityname}</span>
                       </div>
                     </div>
                   </div>

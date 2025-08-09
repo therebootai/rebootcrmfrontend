@@ -29,6 +29,17 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString("en-IN", options) + " ";
 };
 
+const toUTCISOStringForQuery = (date, isEndDate = false) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isEndDate) {
+    d.setHours(23, 59, 59, 999);
+  } else {
+    d.setHours(0, 0, 0, 0);
+  }
+  return d.toISOString();
+};
+
 const EmployeeSection = ({
   employees,
   dateRange, // This is the dateRange for the overall dashboard filters
@@ -55,7 +66,7 @@ const EmployeeSection = ({
     setOpenFor(openForStatus);
     setIsModalOpen(true);
     await fetchEmployeeBusinessData(
-      emp.role.toLowerCase(),
+      emp.designation.toLowerCase(),
       emp._id,
       openForStatus,
       dateRange,
@@ -168,39 +179,54 @@ const EmployeeSection = ({
   }, [dateRange, fetchtableData]);
 
   const fetchEmployeeBusinessData = useCallback(
-    async (
-      role,
-      employeeId,
-      status,
-      currentDateRange,
-      page = 1,
-      leadByUserId
-    ) => {
+    async (role, employeeId, status, currentDateRange, page = 1) => {
       try {
         setModalData([]);
         setModalPage(1);
 
-        const formattedStartDate = currentDateRange.startDate
-          ? new Date(
-              currentDateRange.startDate.getTime() -
-                currentDateRange.startDate.getTimezoneOffset() * 60000
-            ).toISOString()
-          : "";
-        const formattedEndDate = currentDateRange.endDate
-          ? new Date(
-              currentDateRange.endDate.getTime() -
-                currentDateRange.endDate.getTimezoneOffset() * 60000
-            ).toISOString()
-          : "";
+        const formattedStartDate = toUTCISOStringForQuery(
+          currentDateRange.startDate
+        );
+        const formattedEndDate = toUTCISOStringForQuery(
+          currentDateRange.endDate,
+          true
+        );
 
         let url = `${
           import.meta.env.VITE_BASE_URL
         }/api/business/get?page=${page}`;
 
         if (status === "New Data") {
-          url += `&createdBy=${leadByUserId}&createdstartdate=${formattedStartDate}&createdenddate=${formattedEndDate}`;
+          url += `&createdBy=${employeeId}&createdstartdate=${formattedStartDate}&createdenddate=${formattedEndDate}`;
+        } else if (status === "Followup") {
+          if (role === "telecaller" || role === "digitalmarketer") {
+            url += `&leadBy=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+          } else if (role === "bde") {
+            url += `&assignedTo=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+          }
+        } else if (status === "Appointment Generated") {
+          if (role === "bde") {
+            url += `&status=Appointment Generated&assignedTo=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+          } else if (role === "telecaller" || role === "digitalmarketer") {
+            url += `&status=Appointment Generated&leadBy=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+          }
+        } else if (status === "Visited") {
+          if (role === "bde") {
+            url += `&status=Visited&assignedTo=${employeeId}&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
+          } else if (role === "telecaller" || role === "digitalmarketer") {
+            url += `status=Visited&leadBy=${employeeId}&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
+          }
+        } else if (status === "Deal Closed") {
+          if (role === "bde") {
+            url += `&status=Deal Closed&assignedTo=${employeeId}&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
+          } else if (role === "telecaller" || role === "digitalmarketer") {
+            url += `&status=Deal Closed&leadBy=${employeeId}&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
+          }
         } else {
           url += `&status=${status}`;
+
+          if (status === "") {
+          }
 
           if (role === "telecaller") {
             url += `&leadBy=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
@@ -209,7 +235,7 @@ const EmployeeSection = ({
           } else if (role === "bde") {
             url += `&assignedTo=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
             url += `&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
-            // REMOVED: &byTagAppointment=true
+            url += `&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
           }
         }
 
