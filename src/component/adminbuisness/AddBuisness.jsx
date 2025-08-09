@@ -52,6 +52,12 @@ const AddBuisness = ({ onAddBusiness }) => {
       created_by: user._id,
     }));
     if (user.designation !== "Admin") {
+      if (user.designation === "BDE") {
+        setFormData((prevData) => ({
+          ...prevData,
+          appoint_to: user._id,
+        }));
+      }
       setFormData((prevData) => ({
         ...prevData,
         lead_by: user._id,

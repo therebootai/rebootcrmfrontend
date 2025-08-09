@@ -1,9 +1,34 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import AdminLogin from "../component/AdminLogin";
 import EmployeeLogin from "../component/EmployeeLogin";
+import { AuthContext } from "../context/AuthContext";
+import { Navigate } from "react-router-dom";
 
 const LoginPage = () => {
   const [selectedRole, setSelectedRole] = useState("admin");
+
+  const { user } = useContext(AuthContext);
+
+  if (user) {
+    if (user.designation === "Admin") {
+      return <Navigate to="/admin/dashboard" replace />;
+    } else if (user.designation === "Telecaller") {
+      return (
+        <Navigate to={`/telecaler/telecaller-dashboard/${user._id}`} replace />
+      );
+    } else if (user.designation === "BDE") {
+      return <Navigate to={`/bde/bde-dashboard/${user._id}`} replace />;
+    } else if (user.designation === "HR") {
+      return <Navigate to={`/hr/hr-dashboard/${user._id}`} replace />;
+    } else if (user.designation === "DigitalMarketer") {
+      return (
+        <Navigate
+          to={`/digitalmarketer/digitalmarketer-dashboard/${user._id}`}
+          replace
+        />
+      );
+    }
+  }
 
   const renderLoginForm = () => {
     if (selectedRole === "admin") {

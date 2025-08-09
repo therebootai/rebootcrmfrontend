@@ -22,7 +22,7 @@ const formatDate = (dateString) => {
 };
 
 const toUTCISOStringForQuery = (date, isEndDate = false) => {
-  if (!date) return null;
+  if (!date) return "";
   const d = new Date(date);
   if (isEndDate) {
     d.setHours(23, 59, 59, 999);
@@ -56,38 +56,47 @@ const DashboardEmployeeSection = () => {
   const fetchBusinessCountsForEmployee = useCallback(
     async (employeeId, currentComponentDateRange) => {
       try {
-        // Prepare base date parameters, which will be the same for all three calls
-        const baseDateParams = {
-          createdstartdate: toUTCISOStringForQuery(
-            currentComponentDateRange.startDate
-          ),
-          createdenddate: toUTCISOStringForQuery(
-            currentComponentDateRange.endDate,
-            true
-          ),
-          appointmentstartdate: toUTCISOStringForQuery(
-            currentComponentDateRange.startDate
-          ),
-          appointmentenddate: toUTCISOStringForQuery(
-            currentComponentDateRange.endDate,
-            true
-          ),
-          followupstartdate: toUTCISOStringForQuery(
-            currentComponentDateRange.startDate
-          ),
-          followupenddate: toUTCISOStringForQuery(
-            currentComponentDateRange.endDate,
-            true
-          ),
-        };
-
-        // Helper function to create cleaned parameters for each request
         const getCleanedParams = (additionalFilter) => {
-          const params = { ...baseDateParams, ...additionalFilter };
+          const params = { ...additionalFilter };
+
+          if (additionalFilter.createdBy) {
+            params.createdstartdate = toUTCISOStringForQuery(
+              currentComponentDateRange.startDate
+            );
+            params.createdenddate = toUTCISOStringForQuery(
+              currentComponentDateRange.endDate,
+              true
+            );
+          }
+
+          if (additionalFilter.leadBy || additionalFilter.assignedTo) {
+            params.appointmentstartdate = toUTCISOStringForQuery(
+              currentComponentDateRange.startDate
+            );
+            params.appointmentenddate = toUTCISOStringForQuery(
+              currentComponentDateRange.endDate,
+              true
+            );
+            params.followupstartdate = toUTCISOStringForQuery(
+              currentComponentDateRange.startDate
+            );
+            params.followupenddate = toUTCISOStringForQuery(
+              currentComponentDateRange.endDate,
+              true
+            );
+            (params.visitdatestart = toUTCISOStringForQuery(
+              currentComponentDateRange.startDate
+            )),
+              (params.visitdateend = toUTCISOStringForQuery(
+                currentComponentDateRange.endDate,
+                true
+              ));
+          }
+
           const cleaned = {};
           for (const key in params) {
-            if (params[key] !== null) {
-              // Only include parameters that are not null
+            // Only include parameters that are not null or empty strings
+            if (params[key] !== null && params[key] !== "") {
               cleaned[key] = params[key];
             }
           }
@@ -98,30 +107,21 @@ const DashboardEmployeeSection = () => {
 
         // --- 1. Fetch for `createdBy` ---
         const createdByParams = getCleanedParams({ createdBy: employeeId });
-        console.log(
-          `[Counts] CreatedBy Request for ${employeeId}. Params:`,
-          createdByParams
-        );
+
         const createdByResponsePromise = axios.get(baseUrl, {
           params: createdByParams,
         });
 
         // --- 2. Fetch for `leadBy` ---
         const leadByParams = getCleanedParams({ leadBy: employeeId });
-        console.log(
-          `[Counts] LeadBy Request for ${employeeId}. Params:`,
-          leadByParams
-        );
+
         const leadByResponsePromise = axios.get(baseUrl, {
           params: leadByParams,
         });
 
         // --- 3. Fetch for `assignedTo` ---
         const assignedToParams = getCleanedParams({ assignedTo: employeeId });
-        console.log(
-          `[Counts] AssignedTo Request for ${employeeId}. Params:`,
-          assignedToParams
-        );
+
         const assignedToResponsePromise = axios.get(baseUrl, {
           params: assignedToParams,
         });
@@ -150,18 +150,18 @@ const DashboardEmployeeSection = () => {
           createdByRes.value.data.success
         ) {
           const data = createdByRes.value.data;
-          console.log(`[Counts] CreatedBy Response for ${employeeId}:`, data);
+
           // As per your requirement, created_business_count comes from this endpoint's totalCount or statusCount
           aggregatedStatusCount.created_business_count =
             data.statusCount?.created_business_count || data.totalCount || 0;
 
           // Also add other status counts from this call if applicable (e.g., if a created lead can also be an appointment for this user)
-          aggregatedStatusCount.FollowupCount +=
+          aggregatedStatusCount.FollowupCount =
             data.statusCount?.FollowupCount || 0;
-          aggregatedStatusCount.appointmentCount +=
+          aggregatedStatusCount.appointmentCount =
             data.statusCount?.appointmentCount || 0;
-          aggregatedStatusCount.visitCount += data.statusCount?.visitCount || 0;
-          aggregatedStatusCount.dealCloseCount +=
+          aggregatedStatusCount.visitCount = data.statusCount?.visitCount || 0;
+          aggregatedStatusCount.dealCloseCount =
             data.statusCount?.dealCloseCount || 0;
         } else if (createdByRes.status === "rejected") {
           console.error(
@@ -173,13 +173,12 @@ const DashboardEmployeeSection = () => {
         // Process leadBy response (typically for Telecallers/Digital Marketers)
         if (leadByRes.status === "fulfilled" && leadByRes.value.data.success) {
           const data = leadByRes.value.data;
-          console.log(`[Counts] LeadBy Response for ${employeeId}:`, data);
-          aggregatedStatusCount.FollowupCount +=
+          aggregatedStatusCount.FollowupCount =
             data.statusCount?.FollowupCount || 0;
-          aggregatedStatusCount.appointmentCount +=
+          aggregatedStatusCount.appointmentCount =
             data.statusCount?.appointmentCount || 0;
-          aggregatedStatusCount.visitCount += data.statusCount?.visitCount || 0;
-          aggregatedStatusCount.dealCloseCount +=
+          aggregatedStatusCount.visitCount = data.statusCount?.visitCount || 0;
+          aggregatedStatusCount.dealCloseCount =
             data.statusCount?.dealCloseCount || 0;
         } else if (leadByRes.status === "rejected") {
           console.error(
@@ -194,13 +193,12 @@ const DashboardEmployeeSection = () => {
           assignedToRes.value.data.success
         ) {
           const data = assignedToRes.value.data;
-          console.log(`[Counts] AssignedTo Response for ${employeeId}:`, data);
-          aggregatedStatusCount.FollowupCount +=
+          aggregatedStatusCount.FollowupCount =
             data.statusCount?.FollowupCount || 0;
-          aggregatedStatusCount.appointmentCount +=
+          aggregatedStatusCount.appointmentCount =
             data.statusCount?.appointmentCount || 0;
-          aggregatedStatusCount.visitCount += data.statusCount?.visitCount || 0;
-          aggregatedStatusCount.dealCloseCount +=
+          aggregatedStatusCount.visitCount = data.statusCount?.visitCount || 0;
+          aggregatedStatusCount.dealCloseCount =
             data.statusCount?.dealCloseCount || 0;
         } else if (assignedToRes.status === "rejected") {
           console.error(
@@ -210,21 +208,13 @@ const DashboardEmployeeSection = () => {
         }
 
         // Calculate the final totalCount by summing all aggregated status counts
-        totalSumOfCounts =
-          aggregatedStatusCount.created_business_count +
-          aggregatedStatusCount.FollowupCount +
-          aggregatedStatusCount.appointmentCount +
-          aggregatedStatusCount.visitCount +
-          aggregatedStatusCount.dealCloseCount;
-
-        console.log(
-          `[Counts] Final Aggregated Status Counts for ${employeeId}:`,
-          aggregatedStatusCount
-        );
-        console.log(
-          `[Counts] Final Total Sum of Counts for ${employeeId}:`,
-          totalSumOfCounts
-        );
+        totalSumOfCounts = new Set(
+          [
+            ...createdByRes.value.data.businesses,
+            ...leadByRes.value.data.businesses,
+            ...assignedToRes.value.data.businesses,
+          ].map((business) => business._id)
+        ).size;
 
         return {
           totalCount: totalSumOfCounts,
@@ -251,39 +241,54 @@ const DashboardEmployeeSection = () => {
   );
 
   const fetchEmployeeBusinessData = useCallback(
-    async (
-      role,
-      employeeId,
-      status,
-      currentDateRange,
-      page = 1,
-      leadByUserId
-    ) => {
+    async (role, employeeId, status, currentDateRange, page = 1) => {
       try {
         setModalData([]);
         setModalPage(1);
 
-        const formattedStartDate = currentDateRange.startDate
-          ? new Date(
-              currentDateRange.startDate.getTime() -
-                currentDateRange.startDate.getTimezoneOffset() * 60000
-            ).toISOString()
-          : "";
-        const formattedEndDate = currentDateRange.endDate
-          ? new Date(
-              currentDateRange.endDate.getTime() -
-                currentDateRange.endDate.getTimezoneOffset() * 60000
-            ).toISOString()
-          : "";
+        const formattedStartDate = toUTCISOStringForQuery(
+          currentDateRange.startDate
+        );
+        const formattedEndDate = toUTCISOStringForQuery(
+          currentDateRange.endDate,
+          true
+        );
 
         let url = `${
           import.meta.env.VITE_BASE_URL
         }/api/business/get?page=${page}`;
 
         if (status === "New Data") {
-          url += `&createdBy=${leadByUserId}&createdstartdate=${formattedStartDate}&createdenddate=${formattedEndDate}`;
+          url += `&createdBy=${employeeId}&createdstartdate=${formattedStartDate}&createdenddate=${formattedEndDate}`;
+        } else if (status === "Followup") {
+          if (role === "telecaller" || role === "digitalmarketer") {
+            url += `&leadBy=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+          } else if (role === "bde") {
+            url += `&assignedTo=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
+          }
+        } else if (status === "Appointment Generated") {
+          if (role === "bde") {
+            url += `&status=Appointment Generated&assignedTo=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+          } else if (role === "telecaller" || role === "digitalmarketer") {
+            url += `&status=Appointment Generated&leadBy=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
+          }
+        } else if (status === "Visited") {
+          if (role === "bde") {
+            url += `&status=Visited&assignedTo=${employeeId}&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
+          } else if (role === "telecaller" || role === "digitalmarketer") {
+            url += `&status=Visited&leadBy=${employeeId}&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
+          }
+        } else if (status === "Deal Closed") {
+          if (role === "bde") {
+            url += `&status=Deal Closed&assignedTo=${employeeId}&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
+          } else if (role === "telecaller" || role === "digitalmarketer") {
+            url += `&status=Deal Closed&leadBy=${employeeId}&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
+          }
         } else {
           url += `&status=${status}`;
+
+          if (status === "") {
+          }
 
           if (role === "telecaller") {
             url += `&leadBy=${employeeId}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
@@ -292,7 +297,7 @@ const DashboardEmployeeSection = () => {
           } else if (role === "bde") {
             url += `&assignedTo=${employeeId}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
             url += `&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
-            // REMOVED: &byTagAppointment=true
+            url += `&visitdatestart=${formattedStartDate}&visitdateend=${formattedEndDate}`;
           }
         }
 
@@ -321,65 +326,12 @@ const DashboardEmployeeSection = () => {
     []
   );
 
-  const loadMoreModalData = useCallback(async () => {
-    if (modalPage < allModalPages) {
-      const nextPage = modalPage + 1;
-      try {
-        const formattedStartDate = dateRange.startDate
-          ? new Date(
-              dateRange.startDate.getTime() -
-                dateRange.startDate.getTimezoneOffset() * 60000
-            ).toISOString()
-          : "";
-        const formattedEndDate = dateRange.endDate
-          ? new Date(
-              dateRange.endDate.getTime() -
-                dateRange.endDate.getTimezoneOffset() * 60000
-            ).toISOString()
-          : "";
-
-        let url = `${
-          import.meta.env.VITE_BASE_URL
-        }/api/business/get?page=${nextPage}`;
-        if (openFor === "New Data") {
-          url += `&createdBy=${selectedEmployee._id}`;
-        } else {
-          url += `&status=${openFor}`;
-          if (selectedEmployee.role.toLowerCase() === "telecaller") {
-            url += `&assignedTo=${selectedEmployee._id}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
-          } else if (
-            selectedEmployee.role.toLowerCase() === "digitalmarketer"
-          ) {
-            url += `&assignedTo=${selectedEmployee._id}&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
-          } else if (selectedEmployee.role.toLowerCase() === "bde") {
-            url += `&assignedTo=${selectedEmployee._id}&appointmentstartdate=${formattedStartDate}&appointmentenddate=${formattedEndDate}`;
-            url += `&followupstartdate=${formattedStartDate}&followupenddate=${formattedEndDate}`;
-            // REMOVED: &byTagAppointment=true
-          }
-        }
-
-        console.log("Loading more modal data URL (corrected):", url);
-        const response = await axios.get(url);
-        if (response.data.success) {
-          setModalData((prevData) => [
-            ...prevData,
-            ...response.data.businesses,
-          ]);
-          setModalPage(response.data.currentPage);
-          setAllModalPages(response.data.totalPages);
-        }
-      } catch (error) {
-        console.error("Error loading more business data:", error);
-      }
-    }
-  }, [modalPage, allModalPages, dateRange, openFor, selectedEmployee]);
-
   const openModal = (emp, openForStatus) => {
     setSelectedEmployee(emp);
     setOpenFor(openForStatus);
     setIsModalOpen(true);
     fetchEmployeeBusinessData(
-      emp.role.toLowerCase(),
+      emp.designation.toLowerCase(),
       emp._id,
       openForStatus,
       dateRange,
@@ -398,12 +350,7 @@ const DashboardEmployeeSection = () => {
   };
 
   const fetchEmployeeData = useCallback(async () => {
-    console.log("[fetchEmployeeData] Initiated. Current dateRange:", dateRange);
     try {
-      // Set loading state before fetching
-      // Assuming you have an isLoading state, otherwise add one
-      // setIsLoading(true); // Uncomment if you have an isLoading state
-
       const [telecallersResponse, bdesResponse, digitalMarketersResponse] =
         await Promise.all([
           axios.get(
@@ -451,7 +398,7 @@ const DashboardEmployeeSection = () => {
           processEmployees(bdesResponse.data.users, "BDE"),
           processEmployees(
             digitalMarketersResponse.data.users,
-            "Digital Marketer"
+            "DigitalMarketer"
           ),
         ]);
 
@@ -479,12 +426,6 @@ const DashboardEmployeeSection = () => {
       key: "selection",
     });
     setIsDateFilterApplied(false);
-  };
-
-  const applyDateFilter = () => {
-    setIsDateFilterApplied(true);
-    setShowDatePicker(false);
-    fetchEmployeeData();
   };
 
   const clearDateFilter = () => {
@@ -638,7 +579,8 @@ const DashboardEmployeeSection = () => {
                       <GoDotFill />
                     </span>
                     <span className=" flex flex-row items-center gap-2">
-                      {data.status} - (
+                      {data.status === "Visited" ? data.status : data.status} -
+                      (
                       {formatDate(
                         data.followUpDate || data.visit_result?.visit_time || ""
                       )}
@@ -661,7 +603,7 @@ const DashboardEmployeeSection = () => {
                     <span>
                       <GoDotFill />
                     </span>
-                    <span>{data.category.categoryname}</span>
+                    <span>{data.category?.categoryname}</span>
                   </div>
                   <div className="flex  justify-between w-full items-center ">
                     <div className="flex flex-col gap-4">
@@ -669,7 +611,7 @@ const DashboardEmployeeSection = () => {
                         <span>
                           <GoDotFill />
                         </span>
-                        <span>{data.city.cityname}</span>
+                        <span>{data.city?.cityname}</span>
                       </div>
                     </div>
                   </div>

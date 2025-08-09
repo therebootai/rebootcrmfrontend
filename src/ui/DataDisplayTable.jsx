@@ -1,5 +1,4 @@
-import axios from "axios";
-import { useEffect, useState } from "react";
+import { useCallback } from "react";
 import { MdOutlineVisibility } from "react-icons/md";
 import { Link } from "react-router-dom";
 
@@ -171,114 +170,62 @@ const DataDisplayTable = ({
   handleViewDetails,
   dateRange,
 }) => {
-  const [visualData, setVisualData] = useState([]);
-
-  // Helper to ensure the date sent to backend is a clean start/end of day in UTC
-  // to match how MongoDB typically queries date ranges effectively.
-  const toUTCISOStringForQuery = (date, isEndDate = false) => {
-    if (!date) return null;
-    const d = new Date(date);
-    // Setting hours to start/end of day in the *local timezone* of the server
-    // then converting to ISO string effectively captures the whole day in UTC
-    // given typical server setups.
-    if (isEndDate) {
-      d.setHours(23, 59, 59, 999);
-    } else {
-      d.setHours(0, 0, 0, 0);
-    }
-    return d.toISOString();
-  };
-
-  const fetchBusinessData = async (employees) => {
-    try {
-      const businessPromises = employees.map((employee) => {
-        const params = {
-          createdstartdate: toUTCISOStringForQuery(dateRange.startDate),
-          createdenddate: toUTCISOStringForQuery(dateRange.endDate, true),
-          appointmentstartdate: toUTCISOStringForQuery(dateRange.startDate),
-          appointmentenddate: toUTCISOStringForQuery(dateRange.endDate, true),
-          followupstartdate: toUTCISOStringForQuery(dateRange.startDate),
-          followupenddate: toUTCISOStringForQuery(dateRange.endDate, true),
-        };
-
-        let url = "";
-        if (employee.role === "Telecaller") {
-          url = `${import.meta.env.VITE_BASE_URL}/api/business/get?leadBy=${
-            employee.id
-          }`;
-        } else if (employee.role === "Digital Marketer") {
-          url = `${import.meta.env.VITE_BASE_URL}/api/business/get?leadBy=${
-            employee.id
-          }`;
-        } else if (employee.role === "BDE") {
-          url = `${import.meta.env.VITE_BASE_URL}/api/business/get?assignedTo=${
-            employee.id
-          }&byTagAppointment=true`;
-        }
-
-        return axios
-          .get(url, { params })
-          .then((response) => ({
-            ...employee,
-            businessData: response.data.businesses,
-            statuscount: response.data.statuscount,
-            totalCount: response.data.totalCount || 0,
-          }))
-          .catch((err) => {
-            console.error(
-              `Error fetching business data for ${employee.role}:`,
-              err
-            );
-            return {
-              ...employee,
-              businessData: [],
-              statuscount: {},
-              totalCount: 0,
-            };
-          });
-      });
-
-      const updatedData = await Promise.all(businessPromises);
-      setVisualData(updatedData);
-    } catch (error) {
-      console.error("Error fetching business data:", error);
-    }
-  };
-
-  useEffect(() => {
-    // Only fetch if filteredData is available and has items
-    if (filteredData && filteredData.length > 0) {
-      fetchBusinessData(filteredData);
-    } else {
-      setVisualData([]); // Clear visual data if filteredData is empty
-    }
-  }, [filteredData, dateRange]); // Re-run when filteredData or dateRange changes
-
   // Get the latest target for an employee based on month and year
-  const getLatestTarget = (targets) => {
+  const getLatestTargetForTable = useCallback((targets, startDate, endDate) => {
     if (!targets || targets.length === 0) return null;
 
-    // Use a consistent Date object for comparison to handle timezone correctly
-    return targets.reduce((latest, current) => {
-      // Create a Date object from "Month Year" string, ensure it's comparable
-      const currentDate = new Date(`${current.month} 1, ${current.year}`);
-      const latestDate = latest
-        ? new Date(`${latest.month} 1, ${latest.year}`)
+    let filteredTargets = targets;
+
+    const applyDateRangeFilter =
+      startDate instanceof Date &&
+      !isNaN(startDate) &&
+      endDate instanceof Date &&
+      !isNaN(endDate);
+
+    if (applyDateRangeFilter) {
+      const startOfMonthFilter = new Date(
+        startDate.getFullYear(),
+        startDate.getMonth(),
+        1
+      );
+      const endOfMonthFilter = new Date(
+        endDate.getFullYear(),
+        endDate.getMonth() + 1,
+        0
+      );
+
+      filteredTargets = targets.filter((target) => {
+        const targetDate = new Date(
+          target.year,
+          new Date(Date.parse(target.month + " 1, 2000")).getMonth(),
+          1
+        );
+        return (
+          targetDate >= startOfMonthFilter && targetDate <= endOfMonthFilter
+        );
+      });
+    }
+
+    if (filteredTargets.length === 0) {
+      return null;
+    }
+
+    const latestTarget = filteredTargets.reduce((latest, current) => {
+      const currentTargetDate = new Date(current.month + " 1, " + current.year);
+      const latestTargetDate = latest
+        ? new Date(latest.month + " 1, " + latest.year)
         : null;
 
-      // Handle invalid dates from parsing if any
-      if (isNaN(currentDate.getTime())) return latest;
-
-      if (
-        !latestDate ||
-        isNaN(latestDate.getTime()) ||
-        currentDate.getTime() > latestDate.getTime()
-      ) {
-        return current;
-      }
-      return latest;
+      return !latest || currentTargetDate > latestTargetDate ? current : latest;
     }, null);
-  };
+
+    if (latestTarget) {
+      latestTarget.amount = parseFloat(latestTarget.amount || 0);
+      latestTarget.achievement = parseFloat(latestTarget.achievement || 0);
+      latestTarget.collection = parseFloat(latestTarget.collection || 0);
+    }
+    return latestTarget;
+  }, []);
 
   // Calculate total day count for attendance within a given date range (IST-aware)
   function calculateTotalDayCountByDate(
@@ -355,6 +302,7 @@ const DataDisplayTable = ({
   }
 
   const isBDE = (employee) => employee.designation === "BDE";
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
@@ -367,7 +315,11 @@ const DataDisplayTable = ({
       <div className="flex flex-col gap-4">
         {filteredData?.length > 0 ? (
           filteredData?.map((employee, rowIndex) => {
-            const latestTarget = getLatestTarget(employee.targets) || {
+            const latestTarget = getLatestTargetForTable(
+              employee.targets,
+              dateRange.startDate,
+              dateRange.endDate
+            ) || {
               amount: 0,
               achievement: 0,
             };
