@@ -190,7 +190,7 @@ const SalesDashboard = () => {
             const shortMonth = monthNamesShort[monthIndex];
             if (monthlyDataMap[shortMonth]) {
               monthlyDataMap[shortMonth].target += parseFloat(
-                target.amount || 0
+                target.achievement || 0
               ); // Sales Target
               monthlyDataMap[shortMonth].clearedAmount += parseFloat(
                 target.collection || 0

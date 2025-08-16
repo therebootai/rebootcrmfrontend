@@ -7,6 +7,7 @@ import AddCandidate from "../component/adminbuisness/AddCandidate";
 import ManageCandidate from "../component/adminbuisness/ManageCandidate";
 import { useCallback } from "react";
 import { DateRangePicker } from "react-date-range";
+import { MdKeyboardDoubleArrowLeft, MdKeyboardDoubleArrowRight } from "react-icons/md";
 
 const AddAndManageCandidate = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,6 +23,8 @@ const AddAndManageCandidate = () => {
   });
   const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -42,6 +45,7 @@ const AddAndManageCandidate = () => {
             startdate: dateRange.startDate,
             enddate: dateRange.endDate,
             search: search,
+            page: currentPage,
           },
         }
       );
@@ -94,6 +98,25 @@ const AddAndManageCandidate = () => {
     setDateRange(emptyDateRange);
     setIsDateFilterApplied(false);
   };
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber); // This triggers the parent to re-fetch
+  };
+
+  // Calculate the range of page numbers to show
+  const pageRange = 5;
+  let startPage = Math.max(1, currentPage - Math.floor(pageRange / 2));
+  let endPage = startPage + pageRange - 1;
+
+  if (endPage > totalPages) {
+    endPage = totalPages;
+    startPage = Math.max(1, endPage - pageRange + 1);
+  }
+
+  if (totalPages <= pageRange) {
+    startPage = 1;
+    endPage = totalPages;
+  }
 
   return (
     <AdminDashboardTemplate>
@@ -213,6 +236,50 @@ const AddAndManageCandidate = () => {
         </div>
         <div>
           <ManageCandidate candidates={candidates} />
+        </div>
+        <div className="flex justify-center gap-4 pb-4 border-b items-center mt-4">
+          <button
+            className={`flex gap-1 text-center items-center ${
+              currentPage === 1 ? "text-[#777777]" : "text-[#D53F3A]"
+            } font-bold rounded`}
+            disabled={currentPage === 1}
+            onClick={() => handlePageChange(currentPage - 1)}
+          >
+            <div>
+              <MdKeyboardDoubleArrowLeft />
+            </div>
+            <div>Prev</div>
+          </button>
+          <div className="flex gap-2">
+            {Array.from({ length: endPage - startPage + 1 }, (_, i) => {
+              const pageNumber = startPage + i;
+              return (
+                <button
+                  key={pageNumber}
+                  className={`px-4 py-2 ${
+                    currentPage === pageNumber
+                      ? "text-[#D53F3A]"
+                      : "text-[#777777]"
+                  } font-bold rounded`}
+                  onClick={() => handlePageChange(pageNumber)}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            className={`flex gap-1 text-center items-center ${
+              currentPage === totalPages ? "text-[#777777]" : "text-[#D53F3A]"
+            } font-bold rounded`}
+            disabled={currentPage === totalPages}
+            onClick={() => handlePageChange(currentPage + 1)}
+          >
+            <div>Next</div>
+            <div>
+              <MdKeyboardDoubleArrowRight />
+            </div>
+          </button>
         </div>
       </div>
 

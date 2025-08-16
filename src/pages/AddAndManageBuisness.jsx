@@ -70,7 +70,7 @@ const AddAndManageBuisness = () => {
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/api/users/get?limit=1000`
       ); // Fetch a large number or implement pagination
-      if (response.data.success) {
+      if (response.data) {
         setAllUsers(
           response.data.users.map((user) => ({
             id: user._id, // Use MongoDB _id

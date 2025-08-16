@@ -214,7 +214,9 @@ const AddAndManageClient = () => {
               >
                 <option value="">Filter BDE</option>
                 {bdes.map((item) => (
-                  <option value={item._id}>{item.name}</option>
+                  <option value={item._id} key={item._id}>
+                    {item.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -229,7 +231,9 @@ const AddAndManageClient = () => {
               >
                 <option value="">Filter TME</option>
                 {telecalers.map((item) => (
-                  <option value={item._id}>{item.name}</option>
+                  <option value={item._id} key={item._id}>
+                    {item.name}
+                  </option>
                 ))}
               </select>
             </div>

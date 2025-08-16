@@ -38,24 +38,6 @@ const ManageCandidate = ({ candidates }) => {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/candidate/get`
-        );
-        setData(
-          response.data.sort(
-            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-          )
-        );
-      } catch (error) {
-        console.error("Error fetching candidate data", error);
-      }
-    };
-    fetchData();
-  }, []);
-
-  useEffect(() => {
     setData(
       candidates.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     );
