@@ -125,10 +125,10 @@ const ManageClient = ({
                   </div>
                   <div className="flex-1 line-clamp-1">
                     {" "}
-                    {client.bdeName?.bdename}
+                    {client.bdeName?.name}
                   </div>
                   <div className="flex-1 line-clamp-1">
-                    {client.tmeLeads?.telecallername || ""}
+                    {client.tmeLeads?.name || ""}
                   </div>
                   <div className="flex-1 line-clamp-1  break-words break-all ">
                     {client.website || ""}

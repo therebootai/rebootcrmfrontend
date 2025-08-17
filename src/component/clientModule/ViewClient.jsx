@@ -333,10 +333,10 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
               : ""}
           </p>
           <p>
-            <strong>BDE Name:</strong> {viewClient.bdeName?.bdename}
+            <strong>BDE Name:</strong> {viewClient.bdeName?.name}
           </p>
           <p>
-            <strong>TME Name:</strong> {viewClient.tmeLeads?.telecallername}
+            <strong>TME Name:</strong> {viewClient.tmeLeads?.name}
           </p>
           <p>
             <strong>Remarks:</strong> {viewClient.remarks || ""}
