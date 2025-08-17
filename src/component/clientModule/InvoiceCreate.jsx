@@ -25,16 +25,6 @@ const InvoiceCreate = ({ clientId, fetchAllClients, setViewClient }) => {
   const [latestClientData, setLatestClientData] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const bdeResponse = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/bde/get`
-      );
-      setBdes(bdeResponse.data);
-    };
-    fetchData();
-  }, []);
-
-  useEffect(() => {
     const fetchClient = async () => {
       try {
         const response = await axios.get(
