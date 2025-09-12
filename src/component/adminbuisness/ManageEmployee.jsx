@@ -228,7 +228,7 @@ const ManageEmployee = ({ employees = [] }) => {
             <p>
               <strong>Bank Details: </strong>
               <a
-                href={selectedEmployee.bankDetails.secure_url}
+                href={selectedEmployee.bankDetails?.secure_url}
                 target="_blank"
                 className="text-blue-500 ml-2"
               >
