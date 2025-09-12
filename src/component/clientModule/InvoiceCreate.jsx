@@ -114,6 +114,20 @@ const InvoiceCreate = ({ clientId, fetchAllClients, setViewClient }) => {
     }
   };
 
+    useEffect(() => {
+    const fetchBdes = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/users/get?designation=BDE`
+        );
+        setBdes(response.data.users);
+      } catch (error) {
+        console.error("Error fetching BDEs:", error);
+      }
+    };
+    fetchBdes();
+  }, []);
+
   return (
     <div className="xl:px-8 px-6 flex flex-col gap-6">
       <h1 className="border-b pb-2 border-[#cccccc] text-2xl font-medium">
@@ -144,7 +158,7 @@ const InvoiceCreate = ({ clientId, fetchAllClients, setViewClient }) => {
               <option value="">Choose BDE</option>
               {bdes.map((item) => (
                 <option key={item._id} value={item._id}>
-                  {item.bdename}
+                  {item.name}
                 </option>
               ))}
             </select>
