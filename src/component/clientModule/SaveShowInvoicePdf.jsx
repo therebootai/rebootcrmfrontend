@@ -188,10 +188,10 @@ const SaveShowInvoicePdf = ({
           </div>
           <div className="w-[40%] flex flex-col text-end text-[#777777]">
             <h1 className="text-base font-medium">REBOOT AI PRIVATE LIMITED</h1>
-            <p className=" text-sm">
+            <p className=" text-xs">
               4th Floor Shib Sankar Market <br /> Bidhan Road Siliguri WB.734001
             </p>
-            <div className=" text-sm">rebootai.in | info@rebootai.in</div>
+            <div className=" text-xs">rebootai.in | info@rebootai.in</div>
           </div>
         </div>
 
@@ -232,7 +232,7 @@ const SaveShowInvoicePdf = ({
             </div>
             <div className="flex flex-row">
               <h1 className="w-[50%] font-semibold">Relationship Manager:</h1>
-              <span>{item?.bdeName?.bdename || "-"}</span>
+              <span>{item?.bdeName?.name || "-"}</span>
             </div>
             <div className="flex flex-row">
               <h1 className="w-[50%] font-semibold">Contact Number:</h1>
@@ -326,13 +326,13 @@ const SaveShowInvoicePdf = ({
             </div>
           </div>
         </div>
-        <div className=" flex flex-col gap-1">
+        <div className=" flex flex-col gap-2 mt-6">
           <h1 className=" text-sm font-medium">Payment Options</h1>
           <div className=" px-2 py-1 flex gap-1 border border-[#222222] rounded-md w-fit">
             <FaRegCreditCard className=" text-sm" />{" "}
             <img src="/images/upi.webp" className=" h-[0.8rem] w-fit" />
           </div>
-          <div className=" flex flex-col text-[11px]">
+          <div className=" flex flex-col text-[11px] gap-2">
             <span className=" font-medium">
               Our Bank Details for NEFFT/ RTGS, Online Fund Transfer
             </span>
@@ -345,7 +345,7 @@ const SaveShowInvoicePdf = ({
             </span>
           </div>
         </div>
-        <div className=" flex flex-col gap-1">
+        <div className=" flex flex-col gap-2">
           <h1 className=" font-medium text-xs text-[#222222]">
             Terms & Conditions
           </h1>
