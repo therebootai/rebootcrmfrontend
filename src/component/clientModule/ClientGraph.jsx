@@ -119,15 +119,16 @@ const ClientGraph = () => {
               <h1 className=" text-xs font-medium">
                 {formatToShortCurrency(item.target)}
               </h1>
-              <div className=" w-full h-[20rem] flex flex-col justify-end  bg-[#F8F8F8]">
+              <div className=" w-full h-[20rem] flex flex-col justify-end  bg-[#F8F8F8] relative">
                 {item.clearedAmount > 0 ? (
                   <div
-                    className="bg-[#0A5BFF] w-full text-xs xl:text-sm text-white text-center transition-all duration-300 ease-in-out"
+                    className="bg-[#0A5BFF] w-full text-xs xl:text-sm text-white text-center transition-all duration-300 ease-in-out "
                     style={{
                       height: barHeight,
                     }}
                   >
-                    {formatToShortCurrency(item.clearedAmount)}
+                    <div className=" absolute bottom-0 flex justify-center items-center w-full text-black">
+                    {formatToShortCurrency(item.clearedAmount)}</div>
                   </div>
                 ) : (
                   <div className="text-xs xl:text-sm text-gray-400 text-center py-1">

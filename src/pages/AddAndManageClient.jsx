@@ -97,6 +97,7 @@ const AddAndManageClient = () => {
     setSelectedEndDate(null);
     setIsDateFilterApplied(false);
     fetchAllClients();
+      setCurrentPage(1);
   };
 
   useEffect(() => {
@@ -131,7 +132,7 @@ const AddAndManageClient = () => {
                         )}`
                       : ""
                   }
-                  onClick={() => setShowDatePicker(true)}
+                  onClick={() => setShowDatePicker(true) }
                   placeholder="Choose Date"
                   readOnly
                   className="md:px-2 h-[3rem] w-full outline-none flex justify-center items-center text-sm border border-[#CCCCCC]"
@@ -176,6 +177,7 @@ const AddAndManageClient = () => {
                       setShowDatePicker(false);
 
                       fetchAllClients();
+                        setCurrentPage(1);
                     }}
                     className="px-2 py-1 bg-[#5BC0DE] text-white rounded-md text-sm font-medium cursor-pointer"
                   >

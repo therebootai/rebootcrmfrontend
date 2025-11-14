@@ -178,7 +178,7 @@ const SaveShowInvoicePdf = ({
         ref={containerRef}
         className="a4-container flex flex-col gap-2 p-2 px-4 border border-[#cccccc] "
       >
-        <div className="flex flex-row justify-between px-4">
+        <div className="flex flex-row justify-between items-center px-4">
           <div className="w-[60%]">
             <img
               src="/images/rebootailogo.png"
@@ -187,23 +187,23 @@ const SaveShowInvoicePdf = ({
             />
           </div>
           <div className="w-[40%] flex flex-col text-end text-[#777777]">
-            <h1 className="text-base font-medium">REBOOT AI PRIVATE LIMITED</h1>
-            <p className=" text-xs">
+            <h1 className="text-xs font-medium">REBOOT AI PRIVATE LIMITED</h1>
+            <p className=" text-[11px]">
               4th Floor Shib Sankar Market <br /> Bidhan Road Siliguri WB.734001
             </p>
-            <div className=" text-xs">rebootai.in | info@rebootai.in</div>
+            <div className=" text-[11px]">rebootai.in | info@rebootai.in</div>
           </div>
         </div>
 
         <div className="flex flex-row gap-1 items-center">
           <div className="w-[60%] h-[0.10rem] bg-[#777777]"></div>
-          <h1 className="text-red-900 font-medium text-nowrap w-[20%] text-center">
+          <h1 className="text-red-900 font-medium text-nowrap w-[20%] text-sm text-center">
             BILLING INVOICE
           </h1>
           <div className="w-[20%] h-[0.10rem] bg-[#777777]"></div>
         </div>
 
-        <div className="flex justify-between text-xs">
+        <div className="flex justify-between text-[11px]">
           <div className="flex flex-col gap-1 flex-1">
             <h3>Bill To</h3>
             <h1 className=" font-medium">
@@ -241,7 +241,7 @@ const SaveShowInvoicePdf = ({
           </div>
         </div>
 
-        <div className="text-sm text-[#777777]">
+        <div className="text-[11px] text-[#777777]">
           Place Of Supply: West Bengal (19)
         </div>
 
@@ -291,14 +291,14 @@ const SaveShowInvoicePdf = ({
         </div>
         <div className=" flex flex-row gap-4 text-xs">
           <div className="w-[60%] flex flex-col gap-4">
-            <p className=" ">
+            <p className=" text-[11px]">
               For assistance kindly mail us at help info@rebootai.in or chat
               with our support team on WhatsApp +91 -7044076603. You may also
               visit “rebootai.in” to see all your invoices, payments made, and
               for the complete statement.
             </p>
           </div>
-          <div className=" w-[40%] flex flex-col gap-2  items-center  text-xs">
+          <div className=" w-[40%] flex flex-col gap-2  items-center  text-[11px]">
             <div className=" flex  flex-col gap-2 border-b border-[#cccccc] w-full justify-center items-center pb-2">
               <div className="flex flex-row  text-[#666666] w-full justify-center items-center ">
                 <h1 className="w-[50%] font-semibold">Sub Total:</h1>
@@ -326,13 +326,16 @@ const SaveShowInvoicePdf = ({
             </div>
           </div>
         </div>
+      
+        <div className=" flex flex-col justify-end items-end h-full w-full">
+            <div className=" flex flex-col gap-4 justify-end h-full ">
         <div className=" flex flex-col gap-2 mt-6">
-          <h1 className=" text-sm font-medium">Payment Options</h1>
+          <h1 className=" text-xs font-medium">Payment Options</h1>
           <div className=" px-2 py-1 flex gap-1 border border-[#222222] rounded-md w-fit">
             <FaRegCreditCard className=" text-sm" />{" "}
             <img src="/images/upi.webp" className=" h-[0.8rem] w-fit" />
           </div>
-          <div className=" flex flex-col text-[11px] gap-2">
+          <div className=" flex flex-col text-[11px] gap-1">
             <span className=" font-medium">
               Our Bank Details for NEFFT/ RTGS, Online Fund Transfer
             </span>
@@ -357,11 +360,11 @@ const SaveShowInvoicePdf = ({
           </p>
         </div>
         <div>
-          <img src="/images/upireboot.png" className=" size-[14rem]" />
+          <img src="/images/upireboot.png" className=" size-[10rem]" />
         </div>
-        <div className=" flex justify-end items-end h-full w-full">
+        </div>
           <footer className="flex justify-center items-center border-t border-[#cccccc] w-full">
-            <div className=" flex flex-col gap-1 justify-center items-center text-xs text-center text-[#666666]">
+            <div className=" flex flex-col gap-1 justify-center items-center text-[11px] text-center text-[#666666]">
               <p>
                 Regd. Office: Siliguri | CIN No: U62012WB2024PTC274361 | PAN No:
                 U62012WB2074361 |
