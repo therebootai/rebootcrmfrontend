@@ -262,11 +262,11 @@ const ViewClient = ({ viewClient, setViewClient, fetchAllClients }) => {
         : "91" + viewClient.businessNameDoc?.mobileNumber;
 
     const payload = {
-      "auth-key": "aa61059c453fd7b25e02a9dec860e9c4e23834a61d1d26de4b",
-      "app-key": "0f71de7c-53dc-4793-9469-96356a6a2e4a",
+      "auth-key": import.meta.env.VITE_WAPP_AUTH_KEY,
+      "app-key": import.meta.env.VITE_WAPP_APP_KEY,
       destination_number: formattedPhoneNumber,
       template_id: "1802416130617430",
-      device_id: "67599f6c1c50a6c971f41728",
+      device_id: import.meta.env.VITE_WAPP_DEVICE_ID,
       language: "en",
       variables: [
         viewClient.businessNameDoc?.buisnessname.toString(),

@@ -80,11 +80,11 @@ const EmployeeOTPLogin = ({ onClose }) => {
       hasRole(user.designation);
 
       if (user.designation.toLowerCase() === "bde") {
-        navigate(`/bde/bde-dashboard/${user._id}`);
+        window.location.replace(`/bde/bde-dashboard/${user._id}`);
       } else if (user.designation.toLowerCase() === "telecaller") {
-        navigate(`/telecaler/telecaller-dashboard/${user._id}`);
+        window.location.replace(`/telecaler/telecaller-dashboard/${user._id}`);
       } else if (user.designation.toLowerCase() === "digital marketer") {
-        navigate(`/digitalmarketer/digitalmarketer-dashboard/${user._id}`);
+        window.location.replace(`/digitalmarketer/digitalmarketer-dashboard/${user._id}`);
       }
     } catch (error) {
       setError("Error verifying OTP.");

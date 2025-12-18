@@ -91,9 +91,9 @@ const OTPLogin = ({ onClose }) => {
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(user));
 
-        navigate("/admin/dashboard");
+       window.location.replace("/admin/dashboard");
 
-        onClose(); // Close the OTP modal
+    
       } else {
         setError("Invalid OTP. Please try again.");
       }
